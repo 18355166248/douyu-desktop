@@ -1,0 +1,27 @@
+appId: com.douyu.desktop
+productName: 斗鱼多屏
+copyright: Copyright © 2026 douyu-desktop
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+  - '!**/*.map'
+asar: true
+compression: normal
+npmRebuild: false
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: douyu-desktop-${version}-${arch}.${ext}
+  signAndEditExecutable: false
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: 斗鱼多屏
