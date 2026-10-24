@@ -171,7 +171,10 @@ export function VideoPlayer({
         }}
       />
 
-      <div className="video-topline">
+      <div
+        className={`video-topline${controls.visible ? ' is-visible' : ''}`}
+        aria-hidden={!controls.visible}
+      >
         <span className="live-pill">
           <i className="live-dot" />
           LIVE
