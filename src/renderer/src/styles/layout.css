@@ -76,6 +76,23 @@
   min-width: 0;
   padding: 0 8px;
   overflow: visible;
+  -webkit-app-region: drag;
+}
+
+/*
+ * The titlebar is a drag region, but controls must keep receiving pointer
+ * events. Mark every interactive box no-drag; empty gaps still drag.
+ */
+.titlebar-app button,
+.titlebar-app input,
+.titlebar-app select,
+.titlebar-app textarea,
+.titlebar-app a,
+.titlebar-app [role='dialog'],
+.titlebar-app [role='menu'],
+.titlebar-app .room-field,
+.titlebar-app .account-area,
+.titlebar-app .history-anchor {
   -webkit-app-region: no-drag;
 }
 

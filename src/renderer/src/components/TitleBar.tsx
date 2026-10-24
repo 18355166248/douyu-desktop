@@ -34,16 +34,20 @@ export function TitleBar({ children }: TitleBarProps): React.JSX.Element {
       .catch(() => undefined);
   }
 
+  function isInteractiveTarget(target: EventTarget | null): boolean {
+    return (
+      target instanceof Element &&
+      target.closest(
+        'button, input, select, textarea, a, [role="dialog"], [role="menu"], .room-field, .account-area, .history-anchor, .titlebar-controls',
+      ) !== null
+    );
+  }
+
   return (
     <header
       className="titlebar"
       onDoubleClick={(event) => {
-        if (
-          event.target instanceof Element &&
-          event.target.closest('.titlebar-controls, .titlebar-app')
-        ) {
-          return;
-        }
+        if (isInteractiveTarget(event.target)) return;
         toggleMaximize();
       }}
     >
