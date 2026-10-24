@@ -141,23 +141,6 @@
   flex: none;
 }
 
-.player-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 14px;
-  border-top: 1px solid var(--line-soft);
-  color: var(--dim);
-  font-size: 9px;
-}
-
-.player-foot span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
 .video-shell {
   position: relative;
   display: flex;
@@ -658,11 +641,6 @@
 .player-card.is-compact .icon-btn {
   width: 28px;
   height: 28px;
-}
-
-.player-card.is-compact .player-foot {
-  padding: 5px 10px;
-  font-size: 8px;
 }
 
 .player-card.is-compact .video-shell {

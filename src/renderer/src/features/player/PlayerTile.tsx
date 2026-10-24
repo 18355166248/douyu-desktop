@@ -98,15 +98,6 @@ export function PlayerTile({
         onOptionsChange={onOptionsChange}
         onOpenDanmakuSettings={onOpenDanmakuSettings}
       />
-
-      <footer className="player-foot">
-        <span>
-          <i className="status-dot active" />
-          已获取播放地址
-        </span>
-        <span>{playback.format === 'hls' ? 'HLS 分片' : 'HTTP-FLV'} · 本地解码</span>
-        <span>{compact ? '多路' : '单路'}</span>
-      </footer>
     </section>
   );
 }
