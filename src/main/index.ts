@@ -10,6 +10,8 @@ import { TaskService } from './services/TaskService';
 import { registerIpcHandlers } from './ipc';
 import { createMainWindow } from './window';
 
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+
 let mainWindow: BrowserWindow | null = null;
 
 const hasLock = app.requestSingleInstanceLock();

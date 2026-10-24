@@ -5,6 +5,14 @@ const PACKET_HEADER_SIZE = 12;
 const TEXT_ENCODER = new TextEncoder();
 const TEXT_DECODER = new TextDecoder('utf-8');
 const DEFAULT_COLOR = '#ffffff';
+const DOUYU_COLOR_BY_INDEX: Readonly<Record<number, string>> = {
+  1: '#ff0000',
+  2: '#1e87f0',
+  3: '#7ac84b',
+  4: '#ff7f00',
+  5: '#9b39f4',
+  6: '#ff69b4',
+};
 
 /**
  * Douyu STT packet:
@@ -89,6 +97,11 @@ function optionalText(value: string | undefined): string | undefined {
 
 function toColor(value: string | undefined): string {
   const parsed = toNumber(value);
+  if (parsed >= 1 && parsed <= 6) {
+    return DOUYU_COLOR_BY_INDEX[parsed] ?? DEFAULT_COLOR;
+  }
+  // Older/proxied payloads occasionally carry a packed RGB value instead of
+  // Douyu's small color index. Keep supporting it.
   if (parsed <= 0 || parsed > 0xffffff) return DEFAULT_COLOR;
   return `#${parsed.toString(16).padStart(6, '0')}`;
 }

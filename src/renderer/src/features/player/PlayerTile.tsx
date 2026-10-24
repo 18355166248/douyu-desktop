@@ -8,9 +8,11 @@ interface PlayerTileProps {
   compact?: boolean;
   error?: string | null;
   muted: boolean;
+  volume: number;
   onReload: () => void;
   onStop: () => void;
   onToggleMute: () => void;
+  onVolumeChange: (volume: number) => void;
 }
 
 export function PlayerTile({
@@ -19,9 +21,11 @@ export function PlayerTile({
   compact = false,
   error = null,
   muted,
+  volume,
   onReload,
   onStop,
   onToggleMute,
+  onVolumeChange,
 }: PlayerTileProps): React.JSX.Element {
   return (
     <section className={`player-card${compact ? ' is-compact' : ''}`}>
@@ -73,7 +77,13 @@ export function PlayerTile({
         </div>
       ) : null}
 
-      <VideoPlayer playback={playback} muted={muted} onToggleMute={onToggleMute} />
+      <VideoPlayer
+        playback={playback}
+        muted={muted}
+        volume={volume}
+        onToggleMute={onToggleMute}
+        onVolumeChange={onVolumeChange}
+      />
 
       <footer className="player-foot">
         <span>

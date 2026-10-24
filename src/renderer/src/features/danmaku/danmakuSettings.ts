@@ -38,13 +38,14 @@ export const DEFAULT_DANMAKU_SETTINGS: DanmakuSettings = {
   blockRole: false,
   blockSuper: false,
   simplified: false,
-  showBadges: true,
-  showNickname: true,
+  showBadges: false,
+  showNickname: false,
   showEnter: false,
   showGift: true,
 };
 
-const STORAGE_KEY = 'douyu-desktop.danmaku.settings.v1';
+const STORAGE_KEY = 'douyu-desktop.danmaku.settings.v2';
+const LEGACY_STORAGE_KEY = 'douyu-desktop.danmaku.settings.v1';
 const AREAS: readonly DanmakuArea[] = ['full', 'quarter', 'top', 'bottom'];
 
 function boolOr(value: unknown, fallback: boolean): boolean {
@@ -89,11 +90,30 @@ export function parseDanmakuSettings(raw: unknown): DanmakuSettings {
   };
 }
 
+export function migrateDanmakuSettings(raw: unknown): DanmakuSettings {
+  const parsed = parseDanmakuSettings(raw);
+  return {
+    ...parsed,
+    speed: parsed.speed === 140 ? 100 : parsed.speed,
+    fontScale: parsed.fontScale === 140 ? 100 : parsed.fontScale,
+    showBadges: false,
+    showNickname: false,
+  };
+}
+
 export function loadDanmakuSettings(): DanmakuSettings {
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (!stored) return { ...DEFAULT_DANMAKU_SETTINGS };
-    return { ...parseDanmakuSettings(JSON.parse(stored)), paused: false };
+    if (stored) return { ...parseDanmakuSettings(JSON.parse(stored)), paused: false };
+
+    const legacy = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacy) {
+      const migrated = migrateDanmakuSettings(JSON.parse(legacy));
+      saveDanmakuSettings(migrated);
+      return migrated;
+    }
+
+    return { ...DEFAULT_DANMAKU_SETTINGS };
   } catch {
     return { ...DEFAULT_DANMAKU_SETTINGS };
   }

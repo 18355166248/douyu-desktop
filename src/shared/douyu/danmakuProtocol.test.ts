@@ -49,6 +49,33 @@ describe('douyu danmaku protocol', () => {
     });
   });
 
+  it('maps Douyu color indexes to the colors used by the website', () => {
+    const colors: Array<[number, string]> = [
+      [1, '#ff0000'],
+      [2, '#1e87f0'],
+      [3, '#7ac84b'],
+      [4, '#ff7f00'],
+      [5, '#9b39f4'],
+      [6, '#ff69b4'],
+    ];
+
+    for (const [index, color] of colors) {
+      const message = parseDouyuDanmaku(
+        `type@=chatmsg/uid@=123/nn@=Alice/txt@=hello/col@=${index}/`,
+        '9999',
+      );
+      expect(message?.color).toBe(color);
+    }
+
+    expect(parseDouyuDanmaku('type@=chatmsg/uid@=123/nn@=Alice/txt@=hello/', '9999')?.color).toBe(
+      '#ffffff',
+    );
+    expect(
+      parseDouyuDanmaku('type@=chatmsg/uid@=123/nn@=Alice/txt@=hello/col@=16711680/', '9999')
+        ?.color,
+    ).toBe('#ff0000');
+  });
+
   it('parses enter and gift messages', () => {
     expect(parseDouyuDanmaku('type@=uenter/uid@=1/nn@=Bob/level@=10/', '9999')).toMatchObject({
       kind: 'enter',

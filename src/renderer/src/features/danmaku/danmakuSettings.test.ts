@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_DANMAKU_SETTINGS, parseDanmakuSettings } from './danmakuSettings';
+import {
+  DEFAULT_DANMAKU_SETTINGS,
+  migrateDanmakuSettings,
+  parseDanmakuSettings,
+} from './danmakuSettings';
 
 describe('danmaku settings', () => {
   it('falls back to defaults for a non-object payload', () => {
@@ -57,5 +61,25 @@ describe('danmaku settings', () => {
     expect(parsed.opacity).toBe(DEFAULT_DANMAKU_SETTINGS.opacity);
     expect(parsed.fontScale).toBe(DEFAULT_DANMAKU_SETTINGS.fontScale);
     expect(parsed.blockLarge).toBe(DEFAULT_DANMAKU_SETTINGS.blockLarge);
+  });
+
+  it('migrates the old 140% defaults and hides badges/nicknames once', () => {
+    const migrated = migrateDanmakuSettings({
+      speed: 140,
+      fontScale: 140,
+      opacity: 70,
+      area: 'quarter',
+      showBadges: true,
+      showNickname: true,
+    });
+
+    expect(migrated).toMatchObject({
+      speed: 100,
+      fontScale: 100,
+      opacity: 70,
+      area: 'quarter',
+      showBadges: false,
+      showNickname: false,
+    });
   });
 });

@@ -8,13 +8,17 @@ import { DanmakuOverlay } from '../danmaku/DanmakuOverlay';
 interface VideoPlayerProps {
   playback: StreamPlayback;
   muted: boolean;
+  volume: number;
   onToggleMute: () => void;
+  onVolumeChange: (volume: number) => void;
 }
 
 export function VideoPlayer({
   playback,
   muted,
+  volume,
   onToggleMute,
+  onVolumeChange,
 }: VideoPlayerProps): React.JSX.Element {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isReady, setIsReady] = useState(false);
@@ -114,6 +118,11 @@ export function VideoPlayer({
     if (video) video.muted = muted;
   }, [muted]);
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) video.volume = Math.min(1, Math.max(0, volume));
+  }, [volume]);
+
   return (
     <div className="video-shell">
       <video
@@ -161,15 +170,29 @@ export function VideoPlayer({
       ) : null}
 
       <div className="video-bottomline" onClick={(event) => event.stopPropagation()}>
-        <button
-          type="button"
-          className="icon-btn"
-          onClick={onToggleMute}
-          aria-label={muted ? '取消静音' : '静音'}
-        >
-          <Icon name={muted ? 'volumeOff' : 'volume'} size={18} />
-        </button>
-        <span className="video-sound">{muted ? '已静音' : '声音开启'}</span>
+        <div className="video-volume">
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={onToggleMute}
+            aria-label={muted ? '取消静音' : '静音'}
+          >
+            <Icon name={muted ? 'volumeOff' : 'volume'} size={18} />
+          </button>
+          <input
+            className="volume-range"
+            type="range"
+            min={0}
+            max={100}
+            step={1}
+            value={Math.round(volume * 100)}
+            onChange={(event) => onVolumeChange(Number(event.target.value) / 100)}
+            aria-label="音量"
+            aria-valuetext={`${Math.round(volume * 100)}%`}
+            title={`音量 ${Math.round(volume * 100)}%`}
+          />
+          <span className="video-sound">{muted ? '已静音' : `${Math.round(volume * 100)}%`}</span>
+        </div>
         <span className="video-quality">{playback.quality}</span>
       </div>
     </div>

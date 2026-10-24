@@ -222,8 +222,31 @@
 }
 
 .video-sound {
+  flex: none;
   color: rgb(255 255 255 / 55%);
   font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.video-volume {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.volume-range {
+  width: 64px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+@media (max-width: 720px) {
+  .volume-range {
+    width: 48px;
+  }
 }
 
 .video-quality {
@@ -562,6 +585,14 @@
 
 .player-card.is-compact .video-sound {
   font-size: 9px;
+}
+
+.player-card.is-compact .video-volume {
+  gap: 4px;
+}
+
+.player-card.is-compact .volume-range {
+  width: 48px;
 }
 
 .player-card.is-compact .video-quality {

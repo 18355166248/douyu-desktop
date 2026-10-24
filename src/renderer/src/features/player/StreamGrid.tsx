@@ -1,15 +1,18 @@
 import { Icon } from '../../components/Icon';
 import { PlayerTile } from './PlayerTile';
 import { getStreamLayout, MAX_STREAMS } from './streamGridLayout';
+import { DEFAULT_VOLUME } from './useStreamGrid';
 import type { StreamGridEntry } from './useStreamGrid';
 
 interface StreamGridProps {
   streams: StreamGridEntry[];
   reloadingRoomId: string | null;
   audioRoomId: string | null;
+  volumes: Record<string, number>;
   onReload: (roomId: string) => void;
   onRemove: (roomId: string) => void;
   onToggleAudio: (roomId: string) => void;
+  onVolumeChange: (roomId: string, volume: number) => void;
   onRequestAdd: () => void;
 }
 
@@ -17,9 +20,11 @@ export function StreamGrid({
   streams,
   reloadingRoomId,
   audioRoomId,
+  volumes,
   onReload,
   onRemove,
   onToggleAudio,
+  onVolumeChange,
   onRequestAdd,
 }: StreamGridProps): React.JSX.Element {
   const layout = getStreamLayout(streams.length);
@@ -34,10 +39,12 @@ export function StreamGrid({
           error={entry.error}
           compact={streams.length > 1}
           muted={audioRoomId !== entry.playback.roomId}
+          volume={volumes[entry.playback.roomId] ?? DEFAULT_VOLUME}
           isReloading={reloadingRoomId === entry.playback.roomId}
           onReload={() => onReload(entry.playback.roomId)}
           onStop={() => onRemove(entry.playback.roomId)}
           onToggleMute={() => onToggleAudio(entry.playback.roomId)}
+          onVolumeChange={(volume) => onVolumeChange(entry.playback.roomId, volume)}
         />
       ))}
 

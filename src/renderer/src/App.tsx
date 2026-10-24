@@ -24,11 +24,13 @@ export function App(): React.JSX.Element {
     isAdding,
     reloadingRoomId,
     audioRoomId,
+    volumes,
     addStream,
     reloadStream,
     removeStream,
     clearStreams,
     toggleAudio,
+    setVolume,
   } = useStreamGrid();
   const [roomId, setRoomId] = useState('9999');
   const [quality, setQuality] = useState<DouyuQuality>('0');
@@ -270,9 +272,11 @@ export function App(): React.JSX.Element {
                 streams={streams}
                 reloadingRoomId={reloadingRoomId}
                 audioRoomId={audioRoomId}
+                volumes={volumes}
                 onReload={handleReload}
                 onRemove={removeStream}
                 onToggleAudio={toggleAudio}
+                onVolumeChange={setVolume}
                 onRequestAdd={focusRoomInput}
               />
             )}
