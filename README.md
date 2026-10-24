@@ -80,7 +80,7 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - [x] 房间签到任务：后台单飞、每天自动一次（可关闭）、手动触发、dry-run、限速、逐房间结果
 - [x] typed preload + IPC `Result` 封装
 - [x] 房间访问历史：成功解析过的房间按最近访问时间倒序记录，可点击重新打开，localStorage 最多保留 30 条
-- [x] 边界检查脚本 + 55 个单测
+- [x] 边界检查脚本 + 58 个单测
 - [x] electron-builder Windows 打包配置
 
 ## 多路操作
@@ -89,6 +89,7 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - 顶部是唯一的操作栏：左侧品牌，中间依次是“直播”页签、房间号输入、历史、播放/添加、清空、签到和账号登录，右侧为最小化/最大化/关闭；顶栏除按钮、输入框、账号菜单等交互控件外均可拖拽，双击品牌或顶栏空白拖拽区也可最大化/还原
 - 不再有左侧导航和右侧任务栏；直播画面从顶栏下方 6px 开始，四路时也使用整窗宽度
 - 每张卡片右上角可单独“重新解析”或关闭
+- 播放中媒体时间连续 8 秒不前进时，卡片内提示“直播可能卡住了”，提供“重新加载/继续等待”；不自动刷新，避免误判打断播放
 - 视频底部控制条贴底显示，默认隐藏；鼠标进入画面显示，离开画面立即收起，鼠标静止 4 秒也会收起
 - 控制条包含画面播放/暂停、音量、弹幕显示/暂停、画质、HLS 和右侧齿轮；画质/HLS 只作用于当前这一路并自动重新解析
 - 点击画面本身不再暂停/播放，画面暂停按钮固定放在音量键左侧
@@ -131,7 +132,7 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 
 ## 已验证
 
-- `npm run check`：类型、ESLint、架构边界、55 个单测全部通过
+- `npm run check`：类型、ESLint、架构边界、58 个单测全部通过
 - `npm run build`：main / preload / renderer 生产构建通过
 - `node scripts/probe-douyu.mjs 9999`：真实斗鱼签名接口返回 FLV 地址；CDN 返回 `Access-Control-Allow-Origin: *`
 - `node scripts/probe-danmaku.mjs 9999`：真实斗鱼弹幕连接；12 秒收到 90 个包，含 `chatmsg`/`uenter`/`dgb`

@@ -6,7 +6,9 @@ import { Icon } from '../../components/Icon';
 import { DanmakuOverlay } from '../danmaku/DanmakuOverlay';
 import { useDanmakuSettings } from '../danmaku/DanmakuSettingsContext';
 import { QUALITY_OPTIONS } from './streamQuality';
+import { STALL_TIMEOUT_MS } from './streamStall';
 import { useAutoHideControls } from './useAutoHideControls';
+import { useStreamStall } from './useStreamStall';
 import type { StreamResolveOptions } from './useStreamGrid';
 
 interface VideoPlayerProps {
@@ -16,6 +18,7 @@ interface VideoPlayerProps {
   quality: DouyuQuality;
   preferHls: boolean;
   isReloading: boolean;
+  onReload: () => void;
   onToggleMute: () => void;
   onVolumeChange: (volume: number) => void;
   onOptionsChange: (patch: Partial<StreamResolveOptions>) => void;
@@ -29,6 +32,7 @@ export function VideoPlayer({
   quality,
   preferHls,
   isReloading,
+  onReload,
   onToggleMute,
   onVolumeChange,
   onOptionsChange,
@@ -40,6 +44,7 @@ export function VideoPlayer({
   const [error, setError] = useState<string | null>(null);
   const controls = useAutoHideControls();
   const { settings, update } = useDanmakuSettings();
+  const stall = useStreamStall(videoRef, isReady && !error && !isReloading);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -198,6 +203,34 @@ export function VideoPlayer({
       />
 
       <DanmakuOverlay roomId={playback.roomId} platform={playback.platform} />
+
+      {stall.stalled ? (
+        <div className="video-stall" role="alert" aria-live="assertive">
+          <span className="video-stall-icon" aria-hidden="true">
+            <Icon name="alert" size={18} />
+          </span>
+          <div className="video-stall-copy">
+            <strong>直播可能卡住了</strong>
+            <span>画面已超过 {STALL_TIMEOUT_MS / 1000} 秒没有更新</span>
+          </div>
+          <div className="video-stall-actions">
+            <button
+              type="button"
+              className="btn primary"
+              onClick={() => {
+                stall.dismiss();
+                onReload();
+              }}
+              disabled={isReloading}
+            >
+              重新加载
+            </button>
+            <button type="button" className="btn ghost" onClick={stall.dismiss}>
+              继续等待
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {!isReady && !error ? (
         <div className="video-loading">

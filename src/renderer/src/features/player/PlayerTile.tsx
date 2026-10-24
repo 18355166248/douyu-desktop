@@ -93,6 +93,7 @@ export function PlayerTile({
         quality={quality}
         preferHls={preferHls}
         isReloading={isReloading}
+        onReload={onReload}
         onToggleMute={onToggleMute}
         onVolumeChange={onVolumeChange}
         onOptionsChange={onOptionsChange}
