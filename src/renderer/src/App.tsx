@@ -21,14 +21,14 @@ export function App(): React.JSX.Element {
     streams,
     isAdding,
     reloadingRoomId,
-    audioRoomId,
+    mutedRooms,
     volumes,
     addStream,
     reloadStream,
     setStreamOptions,
     removeStream,
     clearStreams,
-    toggleAudio,
+    toggleMute,
     setVolume,
   } = useStreamGrid();
   const [roomId, setRoomId] = useState('9999');
@@ -258,12 +258,12 @@ export function App(): React.JSX.Element {
                 <StreamGrid
                   streams={streams}
                   reloadingRoomId={reloadingRoomId}
-                  audioRoomId={audioRoomId}
+                  mutedRooms={mutedRooms}
                   volumes={volumes}
                   onReload={handleReload}
                   onOptionsChange={handleStreamOptionsChange}
                   onRemove={removeStream}
-                  onToggleAudio={toggleAudio}
+                  onToggleMute={toggleMute}
                   onVolumeChange={setVolume}
                   onOpenDanmakuSettings={() => setDanmakuSettingsOpen(true)}
                   onRequestAdd={focusRoomInput}

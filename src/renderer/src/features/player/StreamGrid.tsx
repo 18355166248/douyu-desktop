@@ -7,12 +7,12 @@ import type { StreamGridEntry, StreamResolveOptions } from './useStreamGrid';
 interface StreamGridProps {
   streams: StreamGridEntry[];
   reloadingRoomId: string | null;
-  audioRoomId: string | null;
+  mutedRooms: Record<string, boolean>;
   volumes: Record<string, number>;
   onReload: (roomId: string) => void;
   onOptionsChange: (roomId: string, patch: Partial<StreamResolveOptions>) => void;
   onRemove: (roomId: string) => void;
-  onToggleAudio: (roomId: string) => void;
+  onToggleMute: (roomId: string) => void;
   onVolumeChange: (roomId: string, volume: number) => void;
   onOpenDanmakuSettings: () => void;
   onRequestAdd: () => void;
@@ -21,12 +21,12 @@ interface StreamGridProps {
 export function StreamGrid({
   streams,
   reloadingRoomId,
-  audioRoomId,
+  mutedRooms,
   volumes,
   onReload,
   onOptionsChange,
   onRemove,
-  onToggleAudio,
+  onToggleMute,
   onVolumeChange,
   onOpenDanmakuSettings,
   onRequestAdd,
@@ -42,7 +42,7 @@ export function StreamGrid({
           playback={entry.playback}
           error={entry.error}
           compact={streams.length > 1}
-          muted={audioRoomId !== entry.playback.roomId}
+          muted={mutedRooms[entry.playback.roomId] === true}
           volume={volumes[entry.playback.roomId] ?? DEFAULT_VOLUME}
           quality={entry.options.quality}
           preferHls={entry.options.preferHls}
@@ -50,7 +50,7 @@ export function StreamGrid({
           onReload={() => onReload(entry.playback.roomId)}
           onOptionsChange={(patch) => onOptionsChange(entry.playback.roomId, patch)}
           onStop={() => onRemove(entry.playback.roomId)}
-          onToggleMute={() => onToggleAudio(entry.playback.roomId)}
+          onToggleMute={() => onToggleMute(entry.playback.roomId)}
           onVolumeChange={(volume) => onVolumeChange(entry.playback.roomId, volume)}
           onOpenDanmakuSettings={onOpenDanmakuSettings}
         />
