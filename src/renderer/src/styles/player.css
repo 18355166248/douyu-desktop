@@ -235,6 +235,139 @@
   font-size: 9px;
 }
 
+.danmaku-layer {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.danmaku-layer.is-hidden {
+  visibility: hidden;
+}
+
+.danmaku-track {
+  position: absolute;
+  inset: 40px 12px 58px;
+  overflow: hidden;
+}
+
+.danmaku-item {
+  position: absolute;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 3px;
+  color: #fff;
+  font-weight: 650;
+  line-height: 1.25;
+  white-space: nowrap;
+  text-shadow:
+    0 1px 2px #000,
+    0 0 5px rgb(0 0 0 / 68%);
+  transform: translateX(100%);
+  will-change: transform;
+}
+
+.danmaku-item.is-large {
+  font-weight: 800;
+}
+
+.danmaku-item.is-noble .danmaku-nick {
+  color: #ffe4a6;
+  text-shadow:
+    0 1px 2px #000,
+    0 0 8px rgb(255 212 121 / 45%);
+}
+
+.danmaku-item.is-admin .danmaku-nick {
+  color: #ffaaa5;
+}
+
+.danmaku-item.is-super .danmaku-nick {
+  color: #cbb7ff;
+}
+
+.danmaku-item.is-enter {
+  color: rgb(255 255 255 / 62%);
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 90%);
+}
+
+.danmaku-item.is-gift {
+  padding: 2px 8px 2px 5px;
+  border: 1px solid rgb(255 190 118 / 18%);
+  border-radius: 5px;
+  background: linear-gradient(90deg, rgb(108 44 16 / 88%), rgb(65 31 13 / 42%));
+  color: #ffd8a8;
+}
+
+.danmaku-badge {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, #ffd479, #ffb13d);
+  color: #3a2100;
+  font-size: 0.65em;
+  font-weight: 750;
+  line-height: 1.55;
+  text-shadow: none;
+}
+
+.danmaku-badge i {
+  margin-left: 2px;
+  font-style: normal;
+  opacity: 0.72;
+}
+
+.danmaku-nick {
+  flex: none;
+  color: #ffd479;
+  font-size: 0.92em;
+  font-weight: 650;
+}
+
+.danmaku-item.is-enter .danmaku-nick {
+  color: rgb(255 255 255 / 72%);
+  font-weight: 500;
+}
+
+.danmaku-text {
+  color: inherit;
+}
+
+.danmaku-state {
+  position: absolute;
+  z-index: 3;
+  top: 12px;
+  right: 12px;
+  padding: 3px 7px;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 5px;
+  background: rgb(8 10 13 / 62%);
+  color: rgb(255 255 255 / 58%);
+  font-size: 9px;
+  font-weight: 650;
+  backdrop-filter: blur(6px);
+}
+
+.danmaku-state.is-connecting,
+.danmaku-state.is-reconnecting,
+.danmaku-state.is-paused {
+  color: #ffd479;
+  border-color: rgb(255 212 121 / 22%);
+}
+
+.danmaku-state.is-error,
+.danmaku-state.is-disconnected {
+  color: #ffb3b3;
+  border-color: rgb(255 107 107 / 24%);
+}
+
 .video-loading {
   position: absolute;
   z-index: 4;
@@ -274,4 +407,181 @@
 .video-error span {
   color: rgb(255 179 179 / 66%);
   font-size: 10px;
+}
+
+.player-title > div {
+  min-width: 0;
+}
+
+.player-alert {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border-bottom: 1px solid rgb(255 107 107 / 20%);
+  background: rgb(255 107 107 / 8%);
+  color: #ffb3b3;
+  font-size: 10px;
+}
+
+.player-alert span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-alert button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #ffb3b3;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.player-alert button:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.grid-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 0;
+  border: 1px dashed var(--line);
+  border-radius: 18px;
+  background: rgb(13 17 22 / 45%);
+  color: var(--dim);
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.grid-slot:hover {
+  border-color: rgb(255 107 53 / 38%);
+  background: rgb(255 107 53 / 4%);
+  color: var(--muted);
+}
+
+.grid-slot-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-2);
+  color: var(--accent-strong);
+}
+
+.grid-slot strong {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.grid-slot small {
+  color: var(--dim);
+  font-size: 10px;
+}
+
+.player-card.is-compact .player-head {
+  gap: 8px;
+  padding: 7px 10px;
+}
+
+.player-card.is-compact .player-title {
+  gap: 7px;
+}
+
+.player-card.is-compact .live-pill {
+  gap: 5px;
+  padding: 3px 6px;
+  font-size: 8px;
+}
+
+.player-card.is-compact .live-dot {
+  width: 5px;
+  height: 5px;
+}
+
+.player-card.is-compact .player-title h2 {
+  font-size: 12px;
+}
+
+.player-card.is-compact .player-title p {
+  font-size: 9px;
+}
+
+.player-card.is-compact .player-actions {
+  gap: 4px;
+}
+
+.player-card.is-compact .player-actions .tag {
+  display: none;
+}
+
+.player-card.is-compact .icon-btn {
+  width: 28px;
+  height: 28px;
+}
+
+.player-card.is-compact .player-foot {
+  padding: 5px 10px;
+  font-size: 8px;
+}
+
+.player-card.is-compact .video-shell {
+  min-height: 0;
+}
+
+.player-card.is-compact .video-topline {
+  top: 8px;
+  left: 8px;
+}
+
+.player-card.is-compact .video-room {
+  font-size: 8px;
+}
+
+.player-card.is-compact .video-bottomline {
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+  gap: 6px;
+  padding: 4px;
+}
+
+.player-card.is-compact .video-sound {
+  font-size: 9px;
+}
+
+.player-card.is-compact .video-quality {
+  font-size: 8px;
+}
+
+.player-card.is-compact .danmaku-track {
+  inset: 30px 8px 42px;
+}
+
+.player-card.is-compact .danmaku-badge {
+  padding: 0 3px;
+}
+
+.player-card.is-compact .danmaku-item.is-gift {
+  padding: 1px 6px 1px 4px;
+}
+
+.player-card.is-compact .danmaku-state {
+  top: 8px;
+  right: 8px;
+  font-size: 8px;
 }

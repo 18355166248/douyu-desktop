@@ -3,14 +3,20 @@ import Hls from 'hls.js';
 import mpegts from 'mpegts.js';
 import type { StreamPlayback } from '@shared/contracts/stream';
 import { Icon } from '../../components/Icon';
+import { DanmakuOverlay } from '../danmaku/DanmakuOverlay';
 
 interface VideoPlayerProps {
   playback: StreamPlayback;
+  muted: boolean;
+  onToggleMute: () => void;
 }
 
-export function VideoPlayer({ playback }: VideoPlayerProps): React.JSX.Element {
+export function VideoPlayer({
+  playback,
+  muted,
+  onToggleMute,
+}: VideoPlayerProps): React.JSX.Element {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isMuted, setIsMuted] = useState(true);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,8 +33,6 @@ export function VideoPlayer({ playback }: VideoPlayerProps): React.JSX.Element {
 
     setError(null);
     setIsReady(false);
-    video.muted = true;
-    setIsMuted(true);
 
     const play = (): void => {
       void Promise.resolve(video.play()).catch(() => {
@@ -103,14 +107,12 @@ export function VideoPlayer({ playback }: VideoPlayerProps): React.JSX.Element {
       video.removeAttribute('src');
       video.load();
     };
-  }, [playback.format, playback.url]);
+  }, [playback]);
 
-  const toggleMute = (): void => {
+  useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
-    video.muted = !video.muted;
-    setIsMuted(video.muted);
-  };
+    if (video) video.muted = muted;
+  }, [muted]);
 
   return (
     <div className="video-shell">
@@ -118,7 +120,7 @@ export function VideoPlayer({ playback }: VideoPlayerProps): React.JSX.Element {
         ref={videoRef}
         className="video"
         autoPlay
-        muted
+        muted={muted}
         playsInline
         preload="auto"
         controls={false}
@@ -141,6 +143,8 @@ export function VideoPlayer({ playback }: VideoPlayerProps): React.JSX.Element {
         <span className="video-room">ROOM {playback.roomId}</span>
       </div>
 
+      <DanmakuOverlay roomId={playback.roomId} platform={playback.platform} />
+
       {!isReady && !error ? (
         <div className="video-loading">
           <span className="spinner" />
@@ -160,12 +164,12 @@ export function VideoPlayer({ playback }: VideoPlayerProps): React.JSX.Element {
         <button
           type="button"
           className="icon-btn"
-          onClick={toggleMute}
-          aria-label={isMuted ? '取消静音' : '静音'}
+          onClick={onToggleMute}
+          aria-label={muted ? '取消静音' : '静音'}
         >
-          <Icon name={isMuted ? 'volumeOff' : 'volume'} size={18} />
+          <Icon name={muted ? 'volumeOff' : 'volume'} size={18} />
         </button>
-        <span className="video-sound">{isMuted ? '已静音' : '声音开启'}</span>
+        <span className="video-sound">{muted ? '已静音' : '声音开启'}</span>
         <span className="video-quality">{playback.quality}</span>
       </div>
     </div>

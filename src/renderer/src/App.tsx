@@ -1,12 +1,14 @@
-import { useState } from 'react';
-import type { DouyuQuality, StreamPlayback } from '@shared/contracts/stream';
+import { useEffect, useRef, useState } from 'react';
+import type { DouyuQuality } from '@shared/contracts/stream';
 import { Icon } from './components/Icon';
 import { AccountBar } from './features/accounts/AccountBar';
 import { useAccounts } from './features/accounts/useAccounts';
+import { DanmakuSettingsPanel } from './features/danmaku/DanmakuSettingsPanel';
 import { EmptyStage } from './features/player/EmptyStage';
-import { PlayerTile } from './features/player/PlayerTile';
+import { StreamGrid } from './features/player/StreamGrid';
+import { MAX_STREAMS, canAddStream } from './features/player/streamGridLayout';
+import { useStreamGrid } from './features/player/useStreamGrid';
 import { TaskPanel } from './features/tasks/TaskPanel';
-import { errorMessage, unwrap } from './lib/api';
 
 const qualityOptions: Array<{ value: DouyuQuality; label: string }> = [
   { value: '0', label: '原画' },
@@ -17,33 +19,80 @@ const qualityOptions: Array<{ value: DouyuQuality; label: string }> = [
 
 export function App(): React.JSX.Element {
   const { activeAccount } = useAccounts();
+  const {
+    streams,
+    isAdding,
+    reloadingRoomId,
+    audioRoomId,
+    addStream,
+    reloadStream,
+    removeStream,
+    clearStreams,
+    toggleAudio,
+  } = useStreamGrid();
   const [roomId, setRoomId] = useState('9999');
   const [quality, setQuality] = useState<DouyuQuality>('0');
   const [preferHls, setPreferHls] = useState(false);
-  const [playback, setPlayback] = useState<StreamPlayback | null>(null);
-  const [isResolving, setIsResolving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDanmakuSettingsOpen, setDanmakuSettingsOpen] = useState(false);
+  const roomInputRef = useRef<HTMLInputElement>(null);
+  const danmakuSettingsRef = useRef<HTMLDivElement>(null);
 
-  async function startPlayback(targetRoomId: string): Promise<void> {
-    const normalized = targetRoomId.trim();
-    if (!normalized) {
-      setError('请输入斗鱼房间号');
+  useEffect(() => {
+    if (!isDanmakuSettingsOpen) return;
+
+    const handlePointerDown = (event: PointerEvent): void => {
+      if (event.target instanceof Node && danmakuSettingsRef.current?.contains(event.target)) {
+        return;
+      }
+      setDanmakuSettingsOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') setDanmakuSettingsOpen(false);
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isDanmakuSettingsOpen]);
+
+  const canAdd = canAddStream(streams.length);
+  const canSubmit = canAdd && roomId.trim().length > 0;
+
+  async function handleAdd(targetRoomId: string): Promise<void> {
+    setError(null);
+    const message = await addStream({ roomId: targetRoomId, quality, preferHls });
+    if (message) {
+      setError(message);
       return;
     }
+    setRoomId('');
+    focusRoomInput();
+  }
 
-    setIsResolving(true);
-    setError(null);
-    try {
-      const data = unwrap(
-        await window.api.streams.resolve({ roomId: normalized, quality, preferHls }),
-      );
-      setPlayback(data);
-      setRoomId(normalized);
-    } catch (resolveError) {
-      setError(errorMessage(resolveError));
-    } finally {
-      setIsResolving(false);
-    }
+  function handleReload(targetRoomId: string): void {
+    void reloadStream(targetRoomId, { quality, preferHls }).then((message) => {
+      if (message) setError(message);
+    });
+  }
+
+  function focusRoomInput(): void {
+    roomInputRef.current?.focus();
+    roomInputRef.current?.select();
+  }
+
+  function addButtonLabel(): string {
+    if (isAdding) return '解析中…';
+    if (!canAdd) return `已满 ${MAX_STREAMS} 路`;
+    return streams.length > 0 ? '添加' : '播放';
+  }
+
+  function addButtonIcon(): 'refresh' | 'plus' | 'play' {
+    if (isAdding) return 'refresh';
+    return streams.length > 0 ? 'plus' : 'play';
   }
 
   return (
@@ -65,12 +114,17 @@ export function App(): React.JSX.Element {
             直播
             <i className="nav-dot" />
           </button>
-          <button type="button" className="nav-item" disabled title="P1 开放">
-            <Icon name="tasks" size={18} />
+          <button
+            type="button"
+            className="nav-item"
+            onClick={focusRoomInput}
+            title="聚焦房间输入，添加下一路直播"
+          >
+            <Icon name="grid" size={18} />
             多路布局
-            <span className="soon">SOON</span>
+            <span className="soon">4 路</span>
           </button>
-          <button type="button" className="nav-item" disabled title="P1 开放">
+          <button type="button" className="nav-item" disabled title="后续开放">
             <Icon name="settings" size={18} />
             设置
             <span className="soon">SOON</span>
@@ -79,15 +133,17 @@ export function App(): React.JSX.Element {
 
         <div className="side-card">
           <div className="side-card-top">
-            <span className="eyebrow">P0 · VERTICAL SLICE</span>
-            <span className="mini-badge">1 / 4</span>
+            <span className="eyebrow">P2 · LIVE + DANMAKU</span>
+            <span className="mini-badge">
+              {streams.length} / {MAX_STREAMS}
+            </span>
           </div>
-          <p>先跑通登录、解析、播放和签到，再扩 4/9 宫格。</p>
+          <p>最多 4 路同屏。每路独立解析、实时弹幕与错误处理，同一时间只保留一路声音。</p>
           <div className="pipeline">
             <span className="pipeline-step done">登录</span>
             <span className="pipeline-step done">解析</span>
-            <span className="pipeline-step done">播放</span>
-            <span className="pipeline-step">签到</span>
+            <span className={`pipeline-step${streams.length > 0 ? ' done' : ''}`}>播放</span>
+            <span className={`pipeline-step${streams.length > 0 ? ' done' : ''}`}>弹幕</span>
           </div>
         </div>
 
@@ -110,12 +166,13 @@ export function App(): React.JSX.Element {
           className="toolbar"
           onSubmit={(event) => {
             event.preventDefault();
-            void startPlayback(roomId);
+            if (canSubmit) void handleAdd(roomId);
           }}
         >
           <div className="room-field">
             <Icon name="live" size={18} />
             <input
+              ref={roomInputRef}
               value={roomId}
               onChange={(event) => setRoomId(event.target.value)}
               placeholder="输入斗鱼真实房间号，例如 9999"
@@ -147,10 +204,46 @@ export function App(): React.JSX.Element {
             HLS
           </label>
 
-          <button type="submit" className="btn primary" disabled={isResolving}>
-            <Icon name={isResolving ? 'refresh' : 'play'} size={16} />
-            {isResolving ? '解析中…' : '播放'}
+          <div
+            className="stream-count"
+            aria-label={`当前 ${streams.length} 路，最多 ${MAX_STREAMS} 路`}
+          >
+            <strong>{streams.length}</strong>
+            <span>/ {MAX_STREAMS}</span>
+          </div>
+
+          <div className="danmaku-settings-anchor" ref={danmakuSettingsRef}>
+            <button
+              type="button"
+              className={`btn ghost toolbar-danmaku${isDanmakuSettingsOpen ? ' is-active' : ''}`}
+              onClick={() => setDanmakuSettingsOpen((open) => !open)}
+              aria-expanded={isDanmakuSettingsOpen}
+              aria-haspopup="dialog"
+              title="弹幕设置"
+            >
+              <Icon name="settings" size={15} />
+              弹幕设置
+            </button>
+            {isDanmakuSettingsOpen ? (
+              <DanmakuSettingsPanel onClose={() => setDanmakuSettingsOpen(false)} />
+            ) : null}
+          </div>
+
+          <button type="submit" className="btn primary" disabled={isAdding || !canSubmit}>
+            <Icon name={addButtonIcon()} size={16} />
+            {addButtonLabel()}
           </button>
+
+          {streams.length > 0 ? (
+            <button
+              type="button"
+              className="btn ghost toolbar-clear"
+              onClick={clearStreams}
+              disabled={isAdding}
+            >
+              清空
+            </button>
+          ) : null}
         </form>
 
         {error ? (
@@ -165,19 +258,22 @@ export function App(): React.JSX.Element {
 
         <div className="workspace">
           <div className="stage">
-            {playback ? (
-              <PlayerTile
-                playback={playback}
-                isReloading={isResolving}
-                onReload={() => void startPlayback(playback.roomId)}
-                onStop={() => setPlayback(null)}
-              />
-            ) : (
+            {streams.length === 0 ? (
               <EmptyStage
                 onPickExample={() => {
                   setRoomId('9999');
-                  void startPlayback('9999');
+                  void handleAdd('9999');
                 }}
+              />
+            ) : (
+              <StreamGrid
+                streams={streams}
+                reloadingRoomId={reloadingRoomId}
+                audioRoomId={audioRoomId}
+                onReload={handleReload}
+                onRemove={removeStream}
+                onToggleAudio={toggleAudio}
+                onRequestAdd={focusRoomInput}
               />
             )}
           </div>
@@ -186,15 +282,21 @@ export function App(): React.JSX.Element {
 
         <footer className="statusbar">
           <span>
-            <i className={`status-dot ${activeAccount ? 'active' : ''}`} />
-            {activeAccount ? `账号 ${activeAccount.nickname}` : '未登录斗鱼'}
+            <i
+              className={`status-dot ${
+                activeAccount ? (activeAccount.status === 'active' ? 'active' : 'expired') : ''
+              }`}
+            />
+            {activeAccount
+              ? `账号 ${activeAccount.nickname}${
+                  activeAccount.status === 'active' ? '' : ' · 登录过期'
+                }`
+              : '未登录斗鱼'}
           </span>
           <span>
-            {playback
-              ? `房间 ${playback.roomId} · ${playback.format.toUpperCase()} · ${playback.quality}`
-              : '等待播放'}
+            {streams.length > 0 ? `${streams.length} / ${MAX_STREAMS} 路 · 多路同屏` : '等待播放'}
           </span>
-          <span>P0 · 单路模式</span>
+          <span>P2 · 多路 + 弹幕</span>
         </footer>
       </main>
     </div>

@@ -1,0 +1,71 @@
+import type { DanmakuArea } from './danmakuSettings';
+
+const BASE_FONT_SIZE = 16;
+const MIN_LANE_HEIGHT = 22;
+const GAP_MIN = 8;
+const GAP_MAX = 28;
+
+export interface DanmakuGeometry {
+  width: number;
+  height: number;
+  top: number;
+  usableHeight: number;
+  fontSize: number;
+  laneHeight: number;
+  laneCount: number;
+  gap: number;
+}
+
+interface GeometryInput {
+  width: number;
+  height: number;
+  area: DanmakuArea;
+  fontScale: number;
+  density: number;
+}
+
+function areaHeight(height: number, area: DanmakuArea): number {
+  switch (area) {
+    case 'quarter':
+      return height * 0.25;
+    case 'top':
+    case 'bottom':
+      return height * 0.5;
+    case 'full':
+      return height;
+    default:
+      return height;
+  }
+}
+
+export function danmakuGap(density: number): number {
+  const ratio = (Math.min(10, Math.max(1, density)) - 1) / 9;
+  return GAP_MAX - ratio * (GAP_MAX - GAP_MIN);
+}
+
+export function computeDanmakuGeometry({
+  width,
+  height,
+  area,
+  fontScale,
+  density,
+}: GeometryInput): DanmakuGeometry {
+  const safeWidth = Math.max(0, width);
+  const safeHeight = Math.max(0, height);
+  const fontSize = Math.max(9, Math.round(BASE_FONT_SIZE * (fontScale / 100)));
+  const laneHeight = Math.max(MIN_LANE_HEIGHT, Math.ceil(fontSize * 1.6));
+  const usableHeight = Math.max(0, areaHeight(safeHeight, area));
+  const top = area === 'bottom' ? safeHeight - usableHeight : 0;
+  const laneCount = Math.max(1, Math.floor(usableHeight / laneHeight));
+
+  return {
+    width: safeWidth,
+    height: safeHeight,
+    top,
+    usableHeight,
+    fontSize,
+    laneHeight,
+    laneCount,
+    gap: danmakuGap(density),
+  };
+}

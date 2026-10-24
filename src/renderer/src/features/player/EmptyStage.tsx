@@ -18,15 +18,19 @@ export function EmptyStage({ onPickExample }: EmptyStageProps): React.JSX.Elemen
       </div>
       <span className="eyebrow">READY WHEN YOU ARE</span>
       <h2>把直播间放进来</h2>
-      <p>输入斗鱼真实房间号，解析 FLV 或 HLS 流。登录后可运行房间签到，Cookie 只留在主进程。</p>
+      <p>
+        输入斗鱼真实房间号，最多 4 路同屏。每路独立解析 FLV/HLS、独立处理错误，并接入实时弹幕；
+        同一时间只保留一路声音，Cookie 只留在主进程。
+      </p>
       <button type="button" className="btn subtle" onClick={onPickExample}>
         <Icon name="play" size={16} />
         试一下 9999
       </button>
       <div className="empty-hints">
-        <span>1 路播放</span>
-        <span>4 / 9 宫格预留</span>
-        <span>任务中心同屏</span>
+        <span>最多 4 路同屏</span>
+        <span>单路错误隔离</span>
+        <span>实时弹幕</span>
+        <span>一路声音</span>
       </div>
     </div>
   );
