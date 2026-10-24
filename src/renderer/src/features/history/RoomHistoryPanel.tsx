@@ -60,10 +60,11 @@ export function RoomHistoryPanel({
               title={`重新打开房间 ${entry.roomId}`}
             >
               <span className="history-item-main">
-                <strong>{entry.title || `房间 ${entry.roomId}`}</strong>
-                <span>
-                  {entry.anchorName || '斗鱼主播'} · 房间 {entry.roomId}
-                </span>
+                <span className="history-anchor-name">{entry.anchorName || '斗鱼主播'}</span>
+                <strong className="history-room-title">
+                  {entry.title || `房间 ${entry.roomId}`}
+                </strong>
+                <span className="history-room-id">房间 {entry.roomId}</span>
               </span>
               <time dateTime={new Date(entry.visitedAt).toISOString()}>
                 {formatHistoryTime(entry.visitedAt)}
