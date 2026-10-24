@@ -4,6 +4,8 @@ import { TitleBar } from './components/TitleBar';
 import { AccountBar } from './features/accounts/AccountBar';
 import { useAccounts } from './features/accounts/useAccounts';
 import { DanmakuSettingsPanel } from './features/danmaku/DanmakuSettingsPanel';
+import { RoomHistoryPanel } from './features/history/RoomHistoryPanel';
+import { useRoomHistory } from './features/history/useRoomHistory';
 import { EmptyStage } from './features/player/EmptyStage';
 import { StreamGrid } from './features/player/StreamGrid';
 import { MAX_STREAMS, canAddStream } from './features/player/streamGridLayout';
@@ -30,8 +32,11 @@ export function App(): React.JSX.Element {
   const [roomId, setRoomId] = useState('9999');
   const [error, setError] = useState<string | null>(null);
   const [isDanmakuSettingsOpen, setDanmakuSettingsOpen] = useState(false);
+  const [isHistoryOpen, setHistoryOpen] = useState(false);
   const roomInputRef = useRef<HTMLInputElement>(null);
   const danmakuSettingsRef = useRef<HTMLDivElement>(null);
+  const historyRef = useRef<HTMLDivElement>(null);
+  const { entries: roomHistory, recordVisit, clearHistory } = useRoomHistory();
 
   useEffect(() => {
     if (!isDanmakuSettingsOpen) return;
@@ -54,18 +59,54 @@ export function App(): React.JSX.Element {
     };
   }, [isDanmakuSettingsOpen]);
 
+  useEffect(() => {
+    if (!isHistoryOpen) return;
+
+    const handlePointerDown = (event: PointerEvent): void => {
+      if (event.target instanceof Node && historyRef.current?.contains(event.target)) {
+        return;
+      }
+      setHistoryOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') setHistoryOpen(false);
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isHistoryOpen]);
+
   const canAdd = canAddStream(streams.length);
   const canSubmit = canAdd && roomId.trim().length > 0;
 
   async function handleAdd(targetRoomId: string): Promise<void> {
     setError(null);
-    const message = await addStream({ roomId: targetRoomId, ...DEFAULT_STREAM_OPTIONS });
+    const message = await addStream(
+      { roomId: targetRoomId, ...DEFAULT_STREAM_OPTIONS },
+      (playback) => {
+        recordVisit({
+          roomId: playback.roomId,
+          title: playback.title,
+          anchorName: playback.anchorName,
+        });
+      },
+    );
     if (message) {
       setError(message);
       return;
     }
     setRoomId('');
     focusRoomInput();
+  }
+
+  function handleHistorySelect(targetRoomId: string): void {
+    setHistoryOpen(false);
+    setRoomId(targetRoomId);
+    void handleAdd(targetRoomId);
   }
 
   function handleReload(targetRoomId: string): void {
@@ -183,6 +224,29 @@ export function App(): React.JSX.Element {
             >
               <strong>{streams.length}</strong>
               <span>/ {MAX_STREAMS}</span>
+            </div>
+
+            <div className="history-anchor" ref={historyRef}>
+              <button
+                type="button"
+                className={`btn ghost toolbar-history${isHistoryOpen ? ' is-active' : ''}`}
+                onClick={() => setHistoryOpen((open) => !open)}
+                aria-expanded={isHistoryOpen}
+                aria-haspopup="dialog"
+                aria-controls="room-history-panel"
+                title="查看访问过的房间"
+              >
+                <Icon name="history" size={15} />
+                历史
+              </button>
+              {isHistoryOpen ? (
+                <RoomHistoryPanel
+                  entries={roomHistory}
+                  onSelect={handleHistorySelect}
+                  onClear={clearHistory}
+                  onClose={() => setHistoryOpen(false)}
+                />
+              ) : null}
             </div>
 
             <button type="submit" className="btn primary" disabled={isAdding || !canSubmit}>

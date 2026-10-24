@@ -24,7 +24,10 @@ export interface UseStreamGridResult {
   reloadingRoomId: string | null;
   audioRoomId: string | null;
   volumes: Record<string, number>;
-  addStream: (options: AddStreamOptions) => Promise<string | null>;
+  addStream: (
+    options: AddStreamOptions,
+    onResolved?: (playback: StreamPlayback) => void,
+  ) => Promise<string | null>;
   reloadStream: (roomId: string, options?: StreamResolveOptions) => Promise<string | null>;
   setStreamOptions: (
     roomId: string,
@@ -51,7 +54,10 @@ export function useStreamGrid(): UseStreamGridResult {
   const addingRef = useRef(false);
   const reloadingRef = useRef<string | null>(null);
 
-  async function addStream(options: AddStreamOptions): Promise<string | null> {
+  async function addStream(
+    options: AddStreamOptions,
+    onResolved?: (playback: StreamPlayback) => void,
+  ): Promise<string | null> {
     const roomId = options.roomId.trim();
     if (!roomId) return '请输入斗鱼房间号';
     if (addingRef.current) return '正在解析其他房间，请稍候';
@@ -84,6 +90,7 @@ export function useStreamGrid(): UseStreamGridResult {
       setVolumes((current) =>
         current[roomId] === undefined ? { ...current, [roomId]: DEFAULT_VOLUME } : current,
       );
+      onResolved?.(playback);
       return null;
     } catch (error) {
       return errorMessage(error);

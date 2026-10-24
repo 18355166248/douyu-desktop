@@ -71,7 +71,8 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - [x] 断线重连、连接超时、错误状态提示
 - [x] 房间签到任务（手动触发、dry-run、限速、逐房间结果）
 - [x] typed preload + IPC `Result` 封装
-- [x] 边界检查脚本 + 34 个单测
+- [x] 房间访问历史：成功解析过的房间按最近访问时间倒序记录，可点击重新打开，localStorage 最多保留 30 条
+- [x] 边界检查脚本 + 38 个单测
 - [x] electron-builder Windows 打包配置
 
 ## 多路操作
@@ -87,6 +88,8 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - 新加入的房间默认开启声音并成为唯一发声路；拖动某一路音量会自动切换到该路
 - 新房间默认按原画 + FLV 解析，加入后可在底部切换到高清/超清/蓝光，或尝试 HLS
 - 3 路时会显示“再加一路”空位；工具栏“清空”一次关闭全部
+- 工具栏“历史”按最近访问时间倒序列出房间标题、主播、房间号和访问时间；点击记录可直接重新加入，重复访问只保留一条并更新时间
+- 历史写入 `localStorage`（`douyu-desktop.room-history.v1`），最多保留 30 条；面板支持清空，点击外部或 Esc 关闭
 - 每路视频左下角显示实时弹幕；连接中/重连/失败会在右上角提示
 - 控制条最右侧齿轮打开全局弹幕设置面板；面板固定在窗口右下角，所有画面立即同步，点击外部或 Esc 关闭
 - 画质下拉使用深色菜单和显式文字颜色，未选中项保持高对比，不再出现深色字贴深色底
@@ -111,7 +114,7 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 
 ## 已验证
 
-- `npm run check`：类型、ESLint、架构边界、34 个单测全部通过
+- `npm run check`：类型、ESLint、架构边界、38 个单测全部通过
 - `npm run build`：main / preload / renderer 生产构建通过
 - `node scripts/probe-douyu.mjs 9999`：真实斗鱼签名接口返回 FLV 地址；CDN 返回 `Access-Control-Allow-Origin: *`
 - `node scripts/probe-danmaku.mjs 9999`：真实斗鱼弹幕连接；12 秒收到 90 个包，含 `chatmsg`/`uenter`/`dgb`
@@ -122,6 +125,7 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - 底部控制条联调：初始 `opacity: 0` 且不可点击，鼠标进入显示，静止 4.3 秒隐藏，移出画面立即隐藏；4 路紧凑布局下控制条在 245px 内无溢出；弹幕显示/暂停、画质切到高清、HLS 开关分别触发对应 DOM/重载
 - 画面角标联调：初始 LIVE/ROOM `opacity: 0` 且 `aria-hidden=true`，鼠标进入后 `opacity: 1`，静止/移出后重新隐藏，与底部控制条同步
 - 画面播放联调：点击视频不再触发 `play/pause`；音量键左侧按钮从“继续播放”切到“暂停播放”，再点击触发暂停并恢复“继续播放”
+- 历史记录联调：依次添加 4 个房间后按最新访问倒序显示，时间为 `YYYY-MM-DD HH:mm`；关闭其中一路后从历史点击可重新加入并更新时间，刷新页面后记录仍存在
 - 设置入口联调：右侧齿轮打开固定右下角面板（356×649，距右 24/距底 46，顶部留出 44px 自绘顶栏），关闭按钮生效；画质四项中选中项为橙色，其余为 `#eef3f7` 深色底高对比
 - 自绘顶栏联调（浏览器 CDP + mock window API）：顶栏高 44，拖拽区 `drag`、控制区 `no-drag`，最大化图标切换，最小化/关闭调用已记录；真实无边框窗口拖拽和系统窗口按钮需在 Windows 桌面用安装包验证
 - 当前执行环境没有可用的交互式 Electron 窗口（最小 Electron 窗口也会崩），所以窗口级 UI 需在正常 Windows 桌面执行 `npm run dev` 验证
