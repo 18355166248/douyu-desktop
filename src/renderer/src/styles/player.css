@@ -687,8 +687,8 @@
 }
 
 .player-card.is-compact .video-bottomline .icon-btn {
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
 }
 
 .player-card.is-compact .video-volume {
@@ -696,7 +696,7 @@
 }
 
 .player-card.is-compact .volume-range {
-  width: 40px;
+  width: 30px;
 }
 
 .player-card.is-compact .video-sound,

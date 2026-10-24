@@ -36,6 +36,7 @@ export function VideoPlayer({
 }: VideoPlayerProps): React.JSX.Element {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isReady, setIsReady] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const controls = useAutoHideControls();
   const { settings, update } = useDanmakuSettings();
@@ -53,6 +54,7 @@ export function VideoPlayer({
 
     setError(null);
     setIsReady(false);
+    setIsPlaying(false);
 
     const play = (): void => {
       void Promise.resolve(video.play()).catch(() => {
@@ -139,6 +141,18 @@ export function VideoPlayer({
     if (video) video.volume = Math.min(1, Math.max(0, volume));
   }, [volume]);
 
+  function togglePlayback(): void {
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      void video.play().catch(() => {
+        // Autoplay rejection is surfaced by the loading/error state.
+      });
+    } else {
+      video.pause();
+    }
+  }
+
   return (
     <div
       className="video-shell"
@@ -162,13 +176,9 @@ export function VideoPlayer({
         controls={false}
         onLoadedMetadata={() => setIsReady(true)}
         onCanPlay={() => setIsReady(true)}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
         onError={() => setError('视频加载失败，请重新解析')}
-        onClick={() => {
-          const video = videoRef.current;
-          if (!video) return;
-          if (video.paused) void video.play();
-          else video.pause();
-        }}
       />
 
       <div
@@ -203,6 +213,15 @@ export function VideoPlayer({
         className={`video-bottomline${controls.visible ? ' is-visible' : ''}`}
         onClick={(event) => event.stopPropagation()}
       >
+        <button
+          type="button"
+          className="icon-btn video-playback-toggle"
+          onClick={togglePlayback}
+          aria-label={isPlaying ? '暂停播放' : '继续播放'}
+          title={isPlaying ? '暂停播放' : '继续播放'}
+        >
+          <Icon name={isPlaying ? 'pause' : 'play'} size={17} />
+        </button>
         <div className="video-volume">
           <button
             type="button"
