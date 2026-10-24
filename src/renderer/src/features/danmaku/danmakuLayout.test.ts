@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeDanmakuGeometry, danmakuGap } from './danmakuLayout';
+import { computeDanmakuGeometry, danmakuGap, remapLane } from './danmakuLayout';
 
 describe('danmaku layout', () => {
   it('fills the whole layer and calculates tracks from font size', () => {
@@ -56,5 +56,15 @@ describe('danmaku layout', () => {
     expect(large.laneHeight).toBe(57);
     expect(danmakuGap(1)).toBe(46);
     expect(danmakuGap(10)).toBe(20);
+  });
+
+  it('remaps active lanes when the area or font size changes', () => {
+    expect(remapLane(0, 4, 2)).toBe(0);
+    expect(remapLane(1, 4, 2)).toBe(0);
+    expect(remapLane(2, 4, 2)).toBe(1);
+    expect(remapLane(3, 4, 2)).toBe(1);
+    expect(remapLane(2, 4, 8)).toBe(5);
+    expect(remapLane(2, 1, 5)).toBe(0);
+    expect(remapLane(99, 4, 2)).toBe(1);
   });
 });

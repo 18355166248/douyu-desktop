@@ -37,7 +37,6 @@ export function DanmakuSettingsProvider({ children }: { children: ReactNode }): 
 
   const reset = useCallback((): void => {
     setSettings({ ...DEFAULT_DANMAKU_SETTINGS });
-    setClearToken((token) => token + 1);
   }, []);
 
   const value = useMemo(

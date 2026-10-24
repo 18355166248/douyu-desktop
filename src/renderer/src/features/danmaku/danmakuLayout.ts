@@ -44,6 +44,14 @@ export function danmakuGap(density: number): number {
   return GAP_MAX - ratio * (GAP_MAX - GAP_MIN);
 }
 
+export function remapLane(lane: number, fromCount: number, toCount: number): number {
+  const from = Math.max(1, fromCount);
+  const to = Math.max(1, toCount);
+  if (to === 1) return 0;
+  const ratio = from > 1 ? lane / (from - 1) : 0;
+  return Math.round(Math.min(1, Math.max(0, ratio)) * (to - 1));
+}
+
 export function computeDanmakuGeometry({
   width,
   height,

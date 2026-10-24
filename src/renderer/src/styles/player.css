@@ -350,6 +350,7 @@
   inset: 0;
   overflow: hidden;
   pointer-events: none;
+  transition: opacity 220ms ease;
 }
 
 .danmaku-layer.is-hidden {
@@ -360,6 +361,7 @@
   position: absolute;
   inset: 40px 12px 58px;
   overflow: hidden;
+  transition: opacity 220ms ease;
 }
 
 .danmaku-item {
@@ -378,6 +380,9 @@
     0 0 5px rgb(0 0 0 / 68%);
   transform: translateX(100%);
   will-change: transform;
+  transition:
+    top 220ms cubic-bezier(0.22, 0.8, 0.24, 1),
+    font-size 180ms ease;
 }
 
 .danmaku-item.is-large {
