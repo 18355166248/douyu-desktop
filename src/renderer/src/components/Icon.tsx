@@ -20,7 +20,10 @@ export type IconName =
   | 'chevron'
   | 'spark'
   | 'grid'
-  | 'lock';
+  | 'lock'
+  | 'minimize'
+  | 'maximize'
+  | 'restore';
 
 const paths: Record<IconName, ReactNode> = {
   live: (
@@ -121,6 +124,14 @@ const paths: Record<IconName, ReactNode> = {
     <>
       <rect x="5" y="10" width="14" height="10" rx="2.5" />
       <path d="M8.5 10V7.5a3.5 3.5 0 0 1 7 0V10" />
+    </>
+  ),
+  minimize: <path d="M5 12h14" />,
+  maximize: <rect x="5" y="5" width="14" height="14" rx="1.5" />,
+  restore: (
+    <>
+      <rect x="8" y="8" width="11" height="11" rx="1.5" />
+      <path d="M6 16.5V7a1 1 0 0 1 1-1h9.5" />
     </>
   ),
 };

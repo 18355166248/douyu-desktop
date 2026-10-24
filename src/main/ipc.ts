@@ -1,4 +1,4 @@
-import { ipcMain, shell } from 'electron';
+import { BrowserWindow, ipcMain, shell } from 'electron';
 import { z } from 'zod';
 import { IPC } from '@shared/contracts/ipc';
 import type { AppErrorPayload, Result } from '@shared/contracts/result';
@@ -57,6 +57,26 @@ export interface IpcServices {
 
 export function registerIpcHandlers(services: IpcServices): void {
   const { accounts, streams, tasks } = services;
+
+  ipcMain.on(IPC.windowMinimize, (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.minimize();
+  });
+
+  ipcMain.on(IPC.windowClose, (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.close();
+  });
+
+  ipcMain.handle(IPC.windowToggleMaximize, (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (!window || window.isDestroyed()) return false;
+    if (window.isMaximized()) window.unmaximize();
+    else window.maximize();
+    return window.isMaximized();
+  });
+
+  ipcMain.handle(IPC.windowIsMaximized, (event) => {
+    return BrowserWindow.fromWebContents(event.sender)?.isMaximized() ?? false;
+  });
 
   ipcMain.handle(IPC.accountsList, () => respond(() => accounts.list()));
 

@@ -22,6 +22,13 @@ export interface DesktopApi {
   app: {
     openExternal(url: string): Promise<Result<void>>;
   };
+  window: {
+    minimize(): void;
+    toggleMaximize(): Promise<boolean>;
+    close(): void;
+    isMaximized(): Promise<boolean>;
+    onMaximizedChange(listener: (maximized: boolean) => void): () => void;
+  };
 }
 
 export const IPC = {
@@ -35,4 +42,9 @@ export const IPC = {
   tasksRun: 'tasks:run',
   tasksProgress: 'tasks:progress',
   appOpenExternal: 'app:open-external',
+  windowMinimize: 'window:minimize',
+  windowToggleMaximize: 'window:toggle-maximize',
+  windowClose: 'window:close',
+  windowIsMaximized: 'window:is-maximized',
+  windowMaximizedChange: 'window:maximized-change',
 } as const;

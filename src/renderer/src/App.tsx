@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from './components/Icon';
+import { TitleBar } from './components/TitleBar';
 import { AccountBar } from './features/accounts/AccountBar';
 import { useAccounts } from './features/accounts/useAccounts';
 import { DanmakuSettingsPanel } from './features/danmaku/DanmakuSettingsPanel';
@@ -99,173 +100,166 @@ export function App(): React.JSX.Element {
   }
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="brand-mark">
-            <Icon name="live" size={22} />
-          </div>
-          <div className="brand-text">
-            <strong>斗鱼多屏</strong>
-            <span>DOUYU DESKTOP</span>
-          </div>
-        </div>
-
-        <nav className="nav" aria-label="主导航">
-          <button type="button" className="nav-item is-active">
-            <Icon name="live" size={18} />
-            直播
-            <i className="nav-dot" />
-          </button>
-          <button
-            type="button"
-            className="nav-item"
-            onClick={focusRoomInput}
-            title="聚焦房间输入，添加下一路直播"
-          >
-            <Icon name="grid" size={18} />
-            多路布局
-            <span className="soon">4 路</span>
-          </button>
-          <button type="button" className="nav-item" disabled title="后续开放">
-            <Icon name="settings" size={18} />
-            设置
-            <span className="soon">SOON</span>
-          </button>
-        </nav>
-
-        <div className="side-card">
-          <div className="side-card-top">
-            <span className="eyebrow">P2 · LIVE + DANMAKU</span>
-            <span className="mini-badge">
-              {streams.length} / {MAX_STREAMS}
-            </span>
-          </div>
-          <p>最多 4 路同屏。每路独立解析、实时弹幕与错误处理，同一时间只保留一路声音。</p>
-          <div className="pipeline">
-            <span className="pipeline-step done">登录</span>
-            <span className="pipeline-step done">解析</span>
-            <span className={`pipeline-step${streams.length > 0 ? ' done' : ''}`}>播放</span>
-            <span className={`pipeline-step${streams.length > 0 ? ' done' : ''}`}>弹幕</span>
-          </div>
-        </div>
-
-        <div className="sidebar-foot">
-          <i className="status-dot active" />
-          本地运行 · Cookie 隔离
-        </div>
-      </aside>
-
-      <main className="main">
-        <header className="topbar">
-          <div className="page-title">
-            <span className="eyebrow">LIVE WORKSPACE</span>
-            <h1>直播</h1>
-          </div>
-          <AccountBar />
-        </header>
-
-        <form
-          className="toolbar"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (canSubmit) void handleAdd(roomId);
-          }}
-        >
-          <div className="room-field">
-            <Icon name="live" size={18} />
-            <input
-              ref={roomInputRef}
-              value={roomId}
-              onChange={(event) => setRoomId(event.target.value)}
-              placeholder="输入斗鱼真实房间号，例如 9999"
-              spellCheck={false}
-              aria-label="斗鱼房间号"
-            />
-          </div>
-
-          <div
-            className="stream-count"
-            aria-label={`当前 ${streams.length} 路，最多 ${MAX_STREAMS} 路`}
-          >
-            <strong>{streams.length}</strong>
-            <span>/ {MAX_STREAMS}</span>
-          </div>
-
-          <button type="submit" className="btn primary" disabled={isAdding || !canSubmit}>
-            <Icon name={addButtonIcon()} size={16} />
-            {addButtonLabel()}
-          </button>
-
-          {streams.length > 0 ? (
+    <div className="window-frame">
+      <TitleBar />
+      <div className="app-shell">
+        <aside className="sidebar">
+          <nav className="nav" aria-label="主导航">
+            <button type="button" className="nav-item is-active">
+              <Icon name="live" size={18} />
+              直播
+              <i className="nav-dot" />
+            </button>
             <button
               type="button"
-              className="btn ghost toolbar-clear"
-              onClick={clearStreams}
-              disabled={isAdding}
+              className="nav-item"
+              onClick={focusRoomInput}
+              title="聚焦房间输入，添加下一路直播"
             >
-              清空
+              <Icon name="grid" size={18} />
+              多路布局
+              <span className="soon">4 路</span>
             </button>
+            <button type="button" className="nav-item" disabled title="后续开放">
+              <Icon name="settings" size={18} />
+              设置
+              <span className="soon">SOON</span>
+            </button>
+          </nav>
+
+          <div className="side-card">
+            <div className="side-card-top">
+              <span className="eyebrow">P2 · LIVE + DANMAKU</span>
+              <span className="mini-badge">
+                {streams.length} / {MAX_STREAMS}
+              </span>
+            </div>
+            <p>最多 4 路同屏。每路独立解析、实时弹幕与错误处理，同一时间只保留一路声音。</p>
+            <div className="pipeline">
+              <span className="pipeline-step done">登录</span>
+              <span className="pipeline-step done">解析</span>
+              <span className={`pipeline-step${streams.length > 0 ? ' done' : ''}`}>播放</span>
+              <span className={`pipeline-step${streams.length > 0 ? ' done' : ''}`}>弹幕</span>
+            </div>
+          </div>
+
+          <div className="sidebar-foot">
+            <i className="status-dot active" />
+            本地运行 · Cookie 隔离
+          </div>
+        </aside>
+
+        <main className="main">
+          <header className="topbar">
+            <div className="page-title">
+              <span className="eyebrow">LIVE WORKSPACE</span>
+              <h1>直播</h1>
+            </div>
+            <AccountBar />
+          </header>
+
+          <form
+            className="toolbar"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (canSubmit) void handleAdd(roomId);
+            }}
+          >
+            <div className="room-field">
+              <Icon name="live" size={18} />
+              <input
+                ref={roomInputRef}
+                value={roomId}
+                onChange={(event) => setRoomId(event.target.value)}
+                placeholder="输入斗鱼真实房间号，例如 9999"
+                spellCheck={false}
+                aria-label="斗鱼房间号"
+              />
+            </div>
+
+            <div
+              className="stream-count"
+              aria-label={`当前 ${streams.length} 路，最多 ${MAX_STREAMS} 路`}
+            >
+              <strong>{streams.length}</strong>
+              <span>/ {MAX_STREAMS}</span>
+            </div>
+
+            <button type="submit" className="btn primary" disabled={isAdding || !canSubmit}>
+              <Icon name={addButtonIcon()} size={16} />
+              {addButtonLabel()}
+            </button>
+
+            {streams.length > 0 ? (
+              <button
+                type="button"
+                className="btn ghost toolbar-clear"
+                onClick={clearStreams}
+                disabled={isAdding}
+              >
+                清空
+              </button>
+            ) : null}
+          </form>
+
+          {error ? (
+            <div className="alert" role="alert">
+              <Icon name="alert" size={18} />
+              <span>{error}</span>
+              <button type="button" className="alert-close" onClick={() => setError(null)}>
+                <Icon name="close" size={15} />
+              </button>
+            </div>
           ) : null}
-        </form>
 
-        {error ? (
-          <div className="alert" role="alert">
-            <Icon name="alert" size={18} />
-            <span>{error}</span>
-            <button type="button" className="alert-close" onClick={() => setError(null)}>
-              <Icon name="close" size={15} />
-            </button>
+          <div className="workspace">
+            <div className="stage">
+              {streams.length === 0 ? (
+                <EmptyStage
+                  onPickExample={() => {
+                    setRoomId('9999');
+                    void handleAdd('9999');
+                  }}
+                />
+              ) : (
+                <StreamGrid
+                  streams={streams}
+                  reloadingRoomId={reloadingRoomId}
+                  audioRoomId={audioRoomId}
+                  volumes={volumes}
+                  onReload={handleReload}
+                  onOptionsChange={handleStreamOptionsChange}
+                  onRemove={removeStream}
+                  onToggleAudio={toggleAudio}
+                  onVolumeChange={setVolume}
+                  onOpenDanmakuSettings={() => setDanmakuSettingsOpen(true)}
+                  onRequestAdd={focusRoomInput}
+                />
+              )}
+            </div>
+            <TaskPanel hasAccount={Boolean(activeAccount && activeAccount.status === 'active')} />
           </div>
-        ) : null}
 
-        <div className="workspace">
-          <div className="stage">
-            {streams.length === 0 ? (
-              <EmptyStage
-                onPickExample={() => {
-                  setRoomId('9999');
-                  void handleAdd('9999');
-                }}
+          <footer className="statusbar">
+            <span>
+              <i
+                className={`status-dot ${
+                  activeAccount ? (activeAccount.status === 'active' ? 'active' : 'expired') : ''
+                }`}
               />
-            ) : (
-              <StreamGrid
-                streams={streams}
-                reloadingRoomId={reloadingRoomId}
-                audioRoomId={audioRoomId}
-                volumes={volumes}
-                onReload={handleReload}
-                onOptionsChange={handleStreamOptionsChange}
-                onRemove={removeStream}
-                onToggleAudio={toggleAudio}
-                onVolumeChange={setVolume}
-                onOpenDanmakuSettings={() => setDanmakuSettingsOpen(true)}
-                onRequestAdd={focusRoomInput}
-              />
-            )}
-          </div>
-          <TaskPanel hasAccount={Boolean(activeAccount && activeAccount.status === 'active')} />
-        </div>
-
-        <footer className="statusbar">
-          <span>
-            <i
-              className={`status-dot ${
-                activeAccount ? (activeAccount.status === 'active' ? 'active' : 'expired') : ''
-              }`}
-            />
-            {activeAccount
-              ? `账号 ${activeAccount.nickname}${
-                  activeAccount.status === 'active' ? '' : ' · 登录过期'
-                }`
-              : '未登录斗鱼'}
-          </span>
-          <span>
-            {streams.length > 0 ? `${streams.length} / ${MAX_STREAMS} 路 · 多路同屏` : '等待播放'}
-          </span>
-          <span>P2 · 多路 + 弹幕</span>
-        </footer>
-      </main>
+              {activeAccount
+                ? `账号 ${activeAccount.nickname}${
+                    activeAccount.status === 'active' ? '' : ' · 登录过期'
+                  }`
+                : '未登录斗鱼'}
+            </span>
+            <span>
+              {streams.length > 0 ? `${streams.length} / ${MAX_STREAMS} 路 · 多路同屏` : '等待播放'}
+            </span>
+            <span>P2 · 多路 + 弹幕</span>
+          </footer>
+        </main>
+      </div>
 
       {isDanmakuSettingsOpen ? (
         <div className="danmaku-settings-dock" ref={danmakuSettingsRef}>

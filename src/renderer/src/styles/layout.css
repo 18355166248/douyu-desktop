@@ -1,6 +1,110 @@
-.app-shell {
+.window-frame {
   display: flex;
   height: 100vh;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.titlebar {
+  display: flex;
+  height: 44px;
+  flex: none;
+  align-items: stretch;
+  border-bottom: 1px solid var(--line-soft);
+  background: linear-gradient(180deg, #0d1116, #090c10);
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.titlebar-brand {
+  display: flex;
+  width: 228px;
+  flex: none;
+  align-items: center;
+  gap: 9px;
+  padding: 0 18px;
+  border-right: 1px solid var(--line-soft);
+}
+
+.titlebar-mark {
+  display: grid;
+  width: 25px;
+  height: 25px;
+  flex: none;
+  place-items: center;
+  border: 1px solid rgb(255 139 76 / 30%);
+  border-radius: 8px;
+  background: linear-gradient(145deg, rgb(255 107 53 / 24%), rgb(255 107 53 / 7%));
+  color: var(--accent-strong);
+}
+
+.titlebar-brand-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.titlebar-brand-text strong {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.titlebar-brand-text span {
+  color: var(--dim);
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.titlebar-drag {
+  flex: 1;
+}
+
+.titlebar-controls {
+  display: flex;
+  flex: none;
+  align-items: stretch;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-button {
+  display: grid;
+  width: 46px;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: default;
+  place-items: center;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.titlebar-button:hover {
+  background: rgb(255 255 255 / 7%);
+  color: var(--text);
+}
+
+.titlebar-button:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -3px;
+}
+
+.titlebar-close:hover {
+  background: #e5484d;
+  color: #fff;
+}
+
+.app-shell {
+  display: flex;
+  min-height: 0;
+  flex: 1;
   overflow: hidden;
   background:
     radial-gradient(circle at 12% 0%, rgb(255 107 53 / 8%), transparent 32%),
@@ -12,53 +116,15 @@
   flex: none;
   flex-direction: column;
   width: 228px;
-  padding: 24px 18px 18px;
+  padding: 18px 18px 18px;
   border-right: 1px solid var(--line-soft);
   background: rgb(9 12 15 / 76%);
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 0 6px;
-}
-
-.brand-mark {
-  display: grid;
-  width: 38px;
-  height: 38px;
-  place-items: center;
-  border: 1px solid rgb(255 139 76 / 28%);
-  border-radius: 12px;
-  background: linear-gradient(145deg, rgb(255 107 53 / 24%), rgb(255 107 53 / 7%));
-  color: var(--accent-strong);
-  box-shadow: inset 0 0 18px rgb(255 107 53 / 8%);
-}
-
-.brand-text {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.brand-text strong {
-  font-size: 15px;
-  letter-spacing: 0.02em;
-}
-
-.brand-text span {
-  color: var(--dim);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.13em;
 }
 
 .nav {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-top: 34px;
 }
 
 .nav-item {
@@ -517,7 +583,7 @@
   position: relative;
   top: auto;
   right: auto;
-  max-height: min(690px, calc(100vh - 70px));
+  max-height: min(690px, calc(100vh - 100px));
 }
 
 .danmaku-settings-panel {

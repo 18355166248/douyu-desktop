@@ -30,6 +30,21 @@ const api: DesktopApi = {
   app: {
     openExternal: (url) => ipcRenderer.invoke(IPC.appOpenExternal, url),
   },
+  window: {
+    minimize: () => ipcRenderer.send(IPC.windowMinimize),
+    toggleMaximize: () => ipcRenderer.invoke(IPC.windowToggleMaximize),
+    close: () => ipcRenderer.send(IPC.windowClose),
+    isMaximized: () => ipcRenderer.invoke(IPC.windowIsMaximized),
+    onMaximizedChange: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, maximized: boolean): void => {
+        listener(maximized);
+      };
+      ipcRenderer.on(IPC.windowMaximizedChange, handler);
+      return () => {
+        ipcRenderer.removeListener(IPC.windowMaximizedChange, handler);
+      };
+    },
+  },
 };
 
 contextBridge.exposeInMainWorld('api', api);

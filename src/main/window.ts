@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import { BrowserWindow, shell } from 'electron';
+import { IPC } from '@shared/contracts/ipc';
 import { isAllowedExternalUrl } from './constants';
 
 export function createMainWindow(): BrowserWindow {
@@ -9,6 +10,9 @@ export function createMainWindow(): BrowserWindow {
     minWidth: 1100,
     minHeight: 700,
     show: false,
+    frame: false,
+    thickFrame: true,
+    hasShadow: true,
     autoHideMenuBar: true,
     backgroundColor: '#0b0d10',
     title: '斗鱼多屏',
@@ -20,6 +24,17 @@ export function createMainWindow(): BrowserWindow {
       webSecurity: true,
     },
   });
+
+  window.setMenu(null);
+
+  const notifyMaximized = (): void => {
+    if (window.isDestroyed() || window.webContents.isDestroyed()) return;
+    window.webContents.send(IPC.windowMaximizedChange, window.isMaximized());
+  };
+  window.on('maximize', notifyMaximized);
+  window.on('unmaximize', notifyMaximized);
+  window.on('restore', notifyMaximized);
+  window.webContents.on('did-finish-load', notifyMaximized);
 
   window.once('ready-to-show', () => window.show());
 
