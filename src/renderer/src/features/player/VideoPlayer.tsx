@@ -192,6 +192,11 @@ export function VideoPlayer({
         <span className="video-room">ROOM {playback.roomId}</span>
       </div>
 
+      <div
+        className={`video-bottom-fade${controls.visible ? ' is-visible' : ''}`}
+        aria-hidden="true"
+      />
+
       <DanmakuOverlay roomId={playback.roomId} platform={playback.platform} />
 
       {!isReady && !error ? (

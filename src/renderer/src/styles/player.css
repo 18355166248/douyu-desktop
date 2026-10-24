@@ -193,21 +193,43 @@
   letter-spacing: 0.08em;
 }
 
+.video-bottom-fade {
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 104px;
+  background: linear-gradient(
+    to top,
+    rgb(8 10 13 / 92%) 0%,
+    rgb(8 10 13 / 58%) 38%,
+    rgb(8 10 13 / 22%) 70%,
+    transparent 100%
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+}
+
+.video-bottom-fade.is-visible {
+  opacity: 1;
+}
+
 .video-bottomline {
   position: absolute;
   z-index: 5;
-  right: 12px;
-  bottom: 12px;
-  left: 12px;
+  right: 0;
+  bottom: 0;
+  left: 0;
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 6px 7px;
-  border: 1px solid rgb(255 255 255 / 10%);
-  border-radius: 10px;
-  background: rgb(8 10 13 / 82%);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 24%);
-  backdrop-filter: blur(10px);
+  padding: 10px 14px 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   opacity: 0;
   pointer-events: none;
   transform: translateY(8px);
@@ -661,12 +683,16 @@
   font-size: 8px;
 }
 
+.player-card.is-compact .video-bottom-fade {
+  height: 84px;
+}
+
 .player-card.is-compact .video-bottomline {
-  right: 8px;
-  bottom: 8px;
-  left: 8px;
+  right: 0;
+  bottom: 0;
+  left: 0;
   gap: 5px;
-  padding: 4px 5px;
+  padding: 7px 8px 8px;
 }
 
 .player-card.is-compact .video-bottomline .icon-btn {
