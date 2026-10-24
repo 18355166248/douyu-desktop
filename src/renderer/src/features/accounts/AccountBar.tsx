@@ -7,27 +7,35 @@ function initialOf(name: string): string {
   return name.trim().slice(0, 1) || '斗';
 }
 
-export function AccountBar(): React.JSX.Element {
+export function AccountBar({ compact = false }: { compact?: boolean }): React.JSX.Element {
   const { query, accounts, activeAccount, login, switchAccount, logout, health } = useAccounts();
   const [open, setOpen] = useState(false);
 
   const error = login.error ?? switchAccount.error ?? logout.error ?? health.error;
   const busy = login.isPending || switchAccount.isPending || logout.isPending || health.isPending;
 
-  if (query.isPending) return <div className="account-skeleton" aria-label="加载账号" />;
+  if (query.isPending) {
+    return (
+      <div className={`account-skeleton${compact ? ' is-compact' : ''}`} aria-label="加载账号" />
+    );
+  }
 
   if (query.isError) {
     return (
-      <button type="button" className="btn ghost" onClick={() => void query.refetch()}>
+      <button
+        type="button"
+        className={`btn ghost${compact ? ' account-retry' : ''}`}
+        onClick={() => void query.refetch()}
+      >
         <Icon name="refresh" />
-        重试账号
+        {compact ? '重试' : '重试账号'}
       </button>
     );
   }
 
   if (!activeAccount) {
     return (
-      <div className="account-area">
+      <div className={`account-area${compact ? ' is-compact' : ''}`}>
         <button
           type="button"
           className="btn ghost"
@@ -35,7 +43,7 @@ export function AccountBar(): React.JSX.Element {
           disabled={login.isPending}
         >
           <Icon name="user" />
-          {login.isPending ? '等待登录…' : '登录斗鱼'}
+          {login.isPending ? '等待…' : compact ? '登录' : '登录斗鱼'}
         </button>
         {error ? <span className="account-error">{errorMessage(error)}</span> : null}
       </div>
@@ -45,7 +53,7 @@ export function AccountBar(): React.JSX.Element {
   const statusText = activeAccount.status === 'active' ? '在线' : '登录过期';
 
   return (
-    <div className="account-area">
+    <div className={`account-area${compact ? ' is-compact' : ''}`}>
       <div className="account-menu">
         <button
           type="button"

@@ -33,6 +33,7 @@ export function App(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [isDanmakuSettingsOpen, setDanmakuSettingsOpen] = useState(false);
   const [isHistoryOpen, setHistoryOpen] = useState(false);
+  const [isTaskOpen, setTaskOpen] = useState(false);
   const roomInputRef = useRef<HTMLInputElement>(null);
   const danmakuSettingsRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);
@@ -79,6 +80,17 @@ export function App(): React.JSX.Element {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isHistoryOpen]);
+
+  useEffect(() => {
+    if (!isTaskOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') setTaskOpen(false);
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isTaskOpen]);
 
   const canAdd = canAddStream(streams.length);
   const canSubmit = canAdd && roomId.trim().length > 0;
@@ -142,130 +154,94 @@ export function App(): React.JSX.Element {
 
   return (
     <div className="window-frame">
-      <TitleBar />
-      <div className="app-shell">
-        <aside className="sidebar">
-          <nav className="nav" aria-label="主导航">
-            <button type="button" className="nav-item is-active">
-              <Icon name="live" size={18} />
-              直播
-              <i className="nav-dot" />
-            </button>
+      <TitleBar>
+        <div className="titlebar-tab" aria-label={`直播工作台，当前 ${streams.length} 路`}>
+          <Icon name="live" size={14} />
+          <strong>直播</strong>
+          <span className="titlebar-count">
+            {streams.length}/{MAX_STREAMS}
+          </span>
+        </div>
+
+        <form
+          className="titlebar-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (canSubmit) void handleAdd(roomId);
+          }}
+        >
+          <div className="room-field">
+            <Icon name="live" size={15} />
+            <input
+              ref={roomInputRef}
+              value={roomId}
+              onChange={(event) => setRoomId(event.target.value)}
+              placeholder="房间号，如 9999"
+              spellCheck={false}
+              aria-label="斗鱼房间号"
+            />
+          </div>
+
+          <div className="history-anchor" ref={historyRef}>
             <button
               type="button"
-              className="nav-item"
-              onClick={focusRoomInput}
-              title="聚焦房间输入，添加下一路直播"
+              className={`btn ghost titlebar-history${isHistoryOpen ? ' is-active' : ''}`}
+              onClick={() => setHistoryOpen((open) => !open)}
+              aria-expanded={isHistoryOpen}
+              aria-haspopup="dialog"
+              aria-controls="room-history-panel"
+              title="查看访问过的房间"
             >
-              <Icon name="grid" size={18} />
-              多路布局
-              <span className="soon">4 路</span>
+              <Icon name="history" size={14} />
+              历史
             </button>
-            <button type="button" className="nav-item" disabled title="后续开放">
-              <Icon name="settings" size={18} />
-              设置
-              <span className="soon">SOON</span>
-            </button>
-          </nav>
-
-          <div className="side-card">
-            <div className="side-card-top">
-              <span className="eyebrow">P2 · LIVE + DANMAKU</span>
-              <span className="mini-badge">
-                {streams.length} / {MAX_STREAMS}
-              </span>
-            </div>
-            <p>最多 4 路同屏。每路独立解析、实时弹幕与错误处理，同一时间只保留一路声音。</p>
-            <div className="pipeline">
-              <span className="pipeline-step done">登录</span>
-              <span className="pipeline-step done">解析</span>
-              <span className={`pipeline-step${streams.length > 0 ? ' done' : ''}`}>播放</span>
-              <span className={`pipeline-step${streams.length > 0 ? ' done' : ''}`}>弹幕</span>
-            </div>
-          </div>
-
-          <div className="sidebar-foot">
-            <i className="status-dot active" />
-            本地运行 · Cookie 隔离
-          </div>
-        </aside>
-
-        <main className="main">
-          <header className="topbar">
-            <div className="page-title">
-              <span className="eyebrow">LIVE WORKSPACE</span>
-              <h1>直播</h1>
-            </div>
-            <AccountBar />
-          </header>
-
-          <form
-            className="toolbar"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (canSubmit) void handleAdd(roomId);
-            }}
-          >
-            <div className="room-field">
-              <Icon name="live" size={18} />
-              <input
-                ref={roomInputRef}
-                value={roomId}
-                onChange={(event) => setRoomId(event.target.value)}
-                placeholder="输入斗鱼真实房间号，例如 9999"
-                spellCheck={false}
-                aria-label="斗鱼房间号"
+            {isHistoryOpen ? (
+              <RoomHistoryPanel
+                entries={roomHistory}
+                onSelect={handleHistorySelect}
+                onClear={clearHistory}
+                onClose={() => setHistoryOpen(false)}
               />
-            </div>
-
-            <div
-              className="stream-count"
-              aria-label={`当前 ${streams.length} 路，最多 ${MAX_STREAMS} 路`}
-            >
-              <strong>{streams.length}</strong>
-              <span>/ {MAX_STREAMS}</span>
-            </div>
-
-            <div className="history-anchor" ref={historyRef}>
-              <button
-                type="button"
-                className={`btn ghost toolbar-history${isHistoryOpen ? ' is-active' : ''}`}
-                onClick={() => setHistoryOpen((open) => !open)}
-                aria-expanded={isHistoryOpen}
-                aria-haspopup="dialog"
-                aria-controls="room-history-panel"
-                title="查看访问过的房间"
-              >
-                <Icon name="history" size={15} />
-                历史
-              </button>
-              {isHistoryOpen ? (
-                <RoomHistoryPanel
-                  entries={roomHistory}
-                  onSelect={handleHistorySelect}
-                  onClear={clearHistory}
-                  onClose={() => setHistoryOpen(false)}
-                />
-              ) : null}
-            </div>
-
-            <button type="submit" className="btn primary" disabled={isAdding || !canSubmit}>
-              <Icon name={addButtonIcon()} size={16} />
-              {addButtonLabel()}
-            </button>
-
-            {streams.length > 0 ? (
-              <button
-                type="button"
-                className="btn ghost toolbar-clear"
-                onClick={clearStreams}
-                disabled={isAdding}
-              >
-                清空
-              </button>
             ) : null}
-          </form>
+          </div>
 
+          <button
+            type="submit"
+            className="btn primary titlebar-add"
+            disabled={isAdding || !canSubmit}
+          >
+            <Icon name={addButtonIcon()} size={15} />
+            {addButtonLabel()}
+          </button>
+
+          {streams.length > 0 ? (
+            <button
+              type="button"
+              className="btn ghost titlebar-clear"
+              onClick={clearStreams}
+              disabled={isAdding}
+            >
+              清空
+            </button>
+          ) : null}
+        </form>
+
+        <button
+          type="button"
+          className={`titlebar-task${isTaskOpen ? ' is-active' : ''}`}
+          onClick={() => setTaskOpen((open) => !open)}
+          aria-expanded={isTaskOpen}
+          aria-haspopup="dialog"
+          title="打开签到任务"
+        >
+          <Icon name="check" size={14} />
+          签到
+        </button>
+
+        <AccountBar compact />
+      </TitleBar>
+      <div className="app-shell">
+        <main className="main">
           {error ? (
             <div className="alert" role="alert">
               <Icon name="alert" size={18} />
@@ -301,7 +277,6 @@ export function App(): React.JSX.Element {
                 />
               )}
             </div>
-            <TaskPanel hasAccount={Boolean(activeAccount && activeAccount.status === 'active')} />
           </div>
 
           <footer className="statusbar">
@@ -324,6 +299,23 @@ export function App(): React.JSX.Element {
           </footer>
         </main>
       </div>
+
+      {isTaskOpen ? (
+        <div
+          className="task-modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label="签到任务"
+          onPointerDown={(event) => {
+            if (event.target === event.currentTarget) setTaskOpen(false);
+          }}
+        >
+          <TaskPanel
+            hasAccount={Boolean(activeAccount && activeAccount.status === 'active')}
+            onClose={() => setTaskOpen(false)}
+          />
+        </div>
+      ) : null}
 
       {isDanmakuSettingsOpen ? (
         <div className="danmaku-settings-dock" ref={danmakuSettingsRef}>

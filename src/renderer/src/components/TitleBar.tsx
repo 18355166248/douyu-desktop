@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Icon } from './Icon';
 
-export function TitleBar(): React.JSX.Element {
+interface TitleBarProps {
+  children?: ReactNode;
+}
+
+export function TitleBar({ children }: TitleBarProps): React.JSX.Element {
   const [maximized, setMaximized] = useState(false);
 
   useEffect(() => {
@@ -33,7 +38,10 @@ export function TitleBar(): React.JSX.Element {
     <header
       className="titlebar"
       onDoubleClick={(event) => {
-        if (event.target instanceof Element && event.target.closest('.titlebar-controls')) {
+        if (
+          event.target instanceof Element &&
+          event.target.closest('.titlebar-controls, .titlebar-app')
+        ) {
           return;
         }
         toggleMaximize();
@@ -48,6 +56,7 @@ export function TitleBar(): React.JSX.Element {
           <span>MULTIVIEW</span>
         </div>
       </div>
+      <div className="titlebar-app">{children}</div>
       <div className="titlebar-drag" aria-hidden="true" />
       <div className="titlebar-controls">
         <button

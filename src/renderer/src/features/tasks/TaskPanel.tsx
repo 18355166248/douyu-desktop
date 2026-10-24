@@ -13,9 +13,10 @@ const statusLabel: Record<TaskStatus, string> = {
 
 interface TaskPanelProps {
   hasAccount: boolean;
+  onClose?: () => void;
 }
 
-export function TaskPanel({ hasAccount }: TaskPanelProps): React.JSX.Element {
+export function TaskPanel({ hasAccount, onClose }: TaskPanelProps): React.JSX.Element {
   const { query, tasks, runTask, progress, result } = useTasks();
   const [liveOnly, setLiveOnly] = useState(true);
   const [dryRun, setDryRun] = useState(false);
@@ -33,7 +34,20 @@ export function TaskPanel({ hasAccount }: TaskPanelProps): React.JSX.Element {
           <span className="eyebrow">TASK CENTER</span>
           <h2>签到</h2>
         </div>
-        <span className="panel-count">{tasks.length}</span>
+        <div className="panel-head-actions">
+          <span className="panel-count">{tasks.length}</span>
+          {onClose ? (
+            <button
+              type="button"
+              className="task-close"
+              onClick={onClose}
+              aria-label="关闭签到"
+              title="关闭"
+            >
+              <Icon name="close" size={15} />
+            </button>
+          ) : null}
+        </div>
       </header>
 
       {query.isPending ? <div className="task-skeleton" aria-label="加载任务" /> : null}
