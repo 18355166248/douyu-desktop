@@ -14,9 +14,9 @@ describe('danmaku layout', () => {
     expect(geometry).toMatchObject({
       top: 0,
       usableHeight: 300,
-      fontSize: 16,
-      laneHeight: 26,
-      laneCount: 11,
+      fontSize: 20,
+      laneHeight: 38,
+      laneCount: 7,
     });
   });
 
@@ -29,7 +29,7 @@ describe('danmaku layout', () => {
       density: 6,
     });
     expect(quarter.usableHeight).toBe(75);
-    expect(quarter.laneCount).toBe(2);
+    expect(quarter.laneCount).toBe(1);
 
     const bottom = computeDanmakuGeometry({
       width: 640,
@@ -40,7 +40,7 @@ describe('danmaku layout', () => {
     });
     expect(bottom.top).toBe(150);
     expect(bottom.usableHeight).toBe(150);
-    expect(bottom.laneCount).toBe(5);
+    expect(bottom.laneCount).toBe(3);
   });
 
   it('scales the font and tightens the gap with density', () => {
@@ -52,9 +52,9 @@ describe('danmaku layout', () => {
       density: 10,
     });
 
-    expect(large.fontSize).toBe(24);
-    expect(large.laneHeight).toBe(39);
-    expect(danmakuGap(1)).toBe(28);
-    expect(danmakuGap(10)).toBe(8);
+    expect(large.fontSize).toBe(30);
+    expect(large.laneHeight).toBe(57);
+    expect(danmakuGap(1)).toBe(46);
+    expect(danmakuGap(10)).toBe(20);
   });
 });

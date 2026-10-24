@@ -19,7 +19,7 @@ describe('danmaku settings', () => {
     expect(parsed).toMatchObject({
       speed: 200,
       opacity: 0,
-      fontScale: 60,
+      fontScale: 80,
       density: 10,
       area: 'bottom',
     });

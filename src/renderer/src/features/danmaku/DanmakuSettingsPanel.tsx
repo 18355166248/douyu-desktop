@@ -150,7 +150,7 @@ export function DanmakuSettingsPanel({ onClose }: DanmakuSettingsPanelProps): Re
           <SliderRow
             label="弹幕字号"
             value={settings.fontScale}
-            min={60}
+            min={80}
             max={180}
             step={5}
             suffix="%"

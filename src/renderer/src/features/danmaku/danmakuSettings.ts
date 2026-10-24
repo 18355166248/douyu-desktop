@@ -7,7 +7,7 @@ export interface DanmakuSettings {
   speed: number;
   /** 0-100, applied to the whole flying layer. */
   opacity: number;
-  /** 60-180, a percentage of the engine's base font size. */
+  /** 80-180, a percentage of the engine's 20px base font size. */
   fontScale: number;
   area: DanmakuArea;
   /** 1-10; higher values pack tracks closer together. */
@@ -73,7 +73,7 @@ export function parseDanmakuSettings(raw: unknown): DanmakuSettings {
     paused: boolOr(value.paused, DEFAULT_DANMAKU_SETTINGS.paused),
     speed: numberOr(value.speed, DEFAULT_DANMAKU_SETTINGS.speed, 50, 200),
     opacity: numberOr(value.opacity, DEFAULT_DANMAKU_SETTINGS.opacity, 0, 100),
-    fontScale: numberOr(value.fontScale, DEFAULT_DANMAKU_SETTINGS.fontScale, 60, 180),
+    fontScale: numberOr(value.fontScale, DEFAULT_DANMAKU_SETTINGS.fontScale, 80, 180),
     area: areaOr(value.area),
     density: numberOr(value.density, DEFAULT_DANMAKU_SETTINGS.density, 1, 10),
     blockLarge: boolOr(value.blockLarge, DEFAULT_DANMAKU_SETTINGS.blockLarge),

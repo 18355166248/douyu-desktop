@@ -5,9 +5,9 @@ import type { DanmakuGeometry } from './danmakuLayout';
 import type { DanmakuSettings } from './danmakuSettings';
 
 const BASE_SPEED_PX_PER_SECOND = 100;
-const ENTRY_GAP_PX = 14;
+const ENTRY_GAP_PX = 18;
 const MAX_QUEUE = 120;
-const MAX_SPAWN_PER_FRAME = 3;
+const SPAWN_INTERVAL_MS = 70;
 
 interface ActiveItem {
   element: HTMLElement;
@@ -20,6 +20,9 @@ export class DanmakuEngine {
   private readonly active: ActiveItem[] = [];
   private queue: DanmakuEvent[] = [];
   private readonly laneBusyUntil: number[] = [];
+  private laneCursor = 0;
+  private lastSpawnAt = Number.NEGATIVE_INFINITY;
+  private pausedAt: number | null = null;
   private readonly resizeObserver: ResizeObserver;
   private frameId: number | null = null;
   private lastSize = '';
@@ -68,7 +71,7 @@ export class DanmakuEngine {
       previous.showEnter !== next.showEnter ||
       previous.showGift !== next.showGift;
 
-    if (layoutChanged || contentChanged) this.clear();
+    if (layoutChanged || contentChanged || previous.speed !== next.speed) this.clear();
 
     if (previous.paused !== next.paused) {
       if (next.paused) this.pauseAnimations();
@@ -85,6 +88,9 @@ export class DanmakuEngine {
     this.active.length = 0;
     this.queue = [];
     this.laneBusyUntil.length = 0;
+    this.laneCursor = 0;
+    this.lastSpawnAt = Number.NEGATIVE_INFINITY;
+    this.pausedAt = null;
   }
 
   destroy(): void {
@@ -128,37 +134,32 @@ export class DanmakuEngine {
 
   private drainQueue(): void {
     if (this.queue.length === 0) return;
+    const now = performance.now();
+    if (now - this.lastSpawnAt < SPAWN_INTERVAL_MS) return;
+
     const geometry = this.geometry();
     if (geometry.width < 1 || geometry.height < 1) return;
 
     this.ensureLaneSlots(geometry.laneCount);
-    let spawned = 0;
+    const lane = this.pickLane(now);
+    if (lane < 0) return;
 
-    while (this.queue.length > 0 && spawned < MAX_SPAWN_PER_FRAME) {
-      const event = this.queue[0];
-      if (!event) break;
+    const event = this.queue[0];
+    if (!event) return;
 
-      const element = this.createElement(event);
-      this.container.appendChild(element);
-      const width = element.getBoundingClientRect().width;
+    const element = this.createElement(event, geometry.fontSize);
+    this.container.appendChild(element);
+    const width = element.getBoundingClientRect().width;
 
-      if (width < 1) {
-        element.remove();
-        this.queue.shift();
-        continue;
-      }
-
-      const now = performance.now();
-      const lane = this.pickLane(now);
-      if (lane < 0) {
-        element.remove();
-        break;
-      }
-
+    if (width < 1) {
+      element.remove();
       this.queue.shift();
-      this.launch(element, width, lane, geometry, now);
-      spawned += 1;
+      return;
     }
+
+    this.queue.shift();
+    this.launch(element, width, lane, geometry, now);
+    this.lastSpawnAt = now;
   }
 
   private ensureLaneSlots(count: number): void {
@@ -167,8 +168,16 @@ export class DanmakuEngine {
   }
 
   private pickLane(now: number): number {
-    for (let lane = 0; lane < this.laneBusyUntil.length; lane += 1) {
-      if ((this.laneBusyUntil[lane] ?? 0) <= now) return lane;
+    const count = this.laneBusyUntil.length;
+    if (count === 0) return -1;
+    const start = this.laneCursor % count;
+
+    for (let offset = 0; offset < count; offset += 1) {
+      const lane = (start + offset) % count;
+      if ((this.laneBusyUntil[lane] ?? 0) <= now) {
+        this.laneCursor = (lane + 1) % count;
+        return lane;
+      }
     }
     return -1;
   }
@@ -185,9 +194,9 @@ export class DanmakuEngine {
     const speed = BASE_SPEED_PX_PER_SECOND * (this.settings.speed / 100);
     const distance = geometry.width + width + ENTRY_GAP_PX * 2;
     const duration = (distance / speed) * 1000;
+    const gap = geometry.gap + geometry.fontSize * 0.5;
 
     element.style.top = `${textTop}px`;
-    element.style.fontSize = `${geometry.fontSize}px`;
     element.style.transform = `translateX(${geometry.width + ENTRY_GAP_PX}px)`;
 
     const animation = element.animate(
@@ -198,7 +207,7 @@ export class DanmakuEngine {
       { duration, easing: 'linear', fill: 'forwards' },
     );
 
-    this.laneBusyUntil[lane] = now + ((width + geometry.gap) / speed) * 1000;
+    this.laneBusyUntil[lane] = now + ((width + gap) / speed) * 1000;
 
     const item: ActiveItem = { element, animation };
     this.active.push(item);
@@ -212,7 +221,7 @@ export class DanmakuEngine {
     if (this.settings.paused) animation.pause();
   }
 
-  private createElement(event: DanmakuEvent): HTMLElement {
+  private createElement(event: DanmakuEvent, fontSize: number): HTMLElement {
     const element = document.createElement('div');
     element.className = [
       'danmaku-item',
@@ -225,6 +234,9 @@ export class DanmakuEngine {
       .filter(Boolean)
       .join(' ');
     element.setAttribute('aria-hidden', 'true');
+    // Must be set before measuring: the inherited font size is smaller and would
+    // make the lane reservation too short, causing messages to overlap.
+    element.style.fontSize = `${fontSize}px`;
 
     if (this.settings.showBadges && event.badgeName) {
       const badge = document.createElement('span');
@@ -255,12 +267,21 @@ export class DanmakuEngine {
   }
 
   private pauseAnimations(): void {
+    if (this.pausedAt === null) this.pausedAt = performance.now();
     for (const item of this.active) {
       if (item.animation.playState === 'running') item.animation.pause();
     }
   }
 
   private resumeAnimations(): void {
+    if (this.pausedAt !== null) {
+      const pauseDuration = Math.max(0, performance.now() - this.pausedAt);
+      for (let lane = 0; lane < this.laneBusyUntil.length; lane += 1) {
+        this.laneBusyUntil[lane] = (this.laneBusyUntil[lane] ?? 0) + pauseDuration;
+      }
+      this.pausedAt = null;
+    }
+
     for (const item of this.active) {
       if (item.animation.playState === 'paused') item.animation.play();
     }

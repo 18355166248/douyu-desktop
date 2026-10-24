@@ -1,9 +1,10 @@
 import type { DanmakuArea } from './danmakuSettings';
 
-const BASE_FONT_SIZE = 16;
-const MIN_LANE_HEIGHT = 22;
-const GAP_MIN = 8;
-const GAP_MAX = 28;
+const BASE_FONT_SIZE = 20;
+const MIN_LANE_HEIGHT = 32;
+const LANE_HEIGHT_FACTOR = 1.9;
+const GAP_MIN = 20;
+const GAP_MAX = 46;
 
 export interface DanmakuGeometry {
   width: number;
@@ -52,8 +53,8 @@ export function computeDanmakuGeometry({
 }: GeometryInput): DanmakuGeometry {
   const safeWidth = Math.max(0, width);
   const safeHeight = Math.max(0, height);
-  const fontSize = Math.max(9, Math.round(BASE_FONT_SIZE * (fontScale / 100)));
-  const laneHeight = Math.max(MIN_LANE_HEIGHT, Math.ceil(fontSize * 1.6));
+  const fontSize = Math.max(12, Math.round(BASE_FONT_SIZE * (fontScale / 100)));
+  const laneHeight = Math.max(MIN_LANE_HEIGHT, Math.ceil(fontSize * LANE_HEIGHT_FACTOR));
   const usableHeight = Math.max(0, areaHeight(safeHeight, area));
   const top = area === 'bottom' ? safeHeight - usableHeight : 0;
   const laneCount = Math.max(1, Math.floor(usableHeight / laneHeight));
