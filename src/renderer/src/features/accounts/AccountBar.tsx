@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Icon } from '../../components/Icon';
 import { errorMessage } from '../../lib/api';
 import { useAccounts } from './useAccounts';
+
+const ACCOUNT_ERROR_VISIBLE_MS = 4000;
 
 function initialOf(name: string): string {
   return name.trim().slice(0, 1) || '斗';
@@ -10,8 +12,21 @@ function initialOf(name: string): string {
 export function AccountBar({ compact = false }: { compact?: boolean }): React.JSX.Element {
   const { query, accounts, activeAccount, login, switchAccount, logout, health } = useAccounts();
   const [open, setOpen] = useState(false);
+  const rawError = login.error ?? switchAccount.error ?? logout.error ?? health.error;
+  const [visibleError, setVisibleError] = useState<unknown>(null);
 
-  const error = login.error ?? switchAccount.error ?? logout.error ?? health.error;
+  useEffect(() => {
+    if (!rawError) {
+      setVisibleError(null);
+      return;
+    }
+
+    setVisibleError(rawError);
+    const timer = window.setTimeout(() => setVisibleError(null), ACCOUNT_ERROR_VISIBLE_MS);
+    return () => window.clearTimeout(timer);
+  }, [rawError]);
+
+  const error = visibleError;
   const busy = login.isPending || switchAccount.isPending || logout.isPending || health.isPending;
 
   if (query.isPending) {
@@ -45,7 +60,11 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
           <Icon name="user" />
           {login.isPending ? '等待…' : compact ? '登录' : '登录斗鱼'}
         </button>
-        {error ? <span className="account-error">{errorMessage(error)}</span> : null}
+        {error ? (
+          <span className="account-error" role="status">
+            {errorMessage(error)}
+          </span>
+        ) : null}
       </div>
     );
   }
@@ -144,7 +163,11 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
           </>
         ) : null}
       </div>
-      {error ? <span className="account-error">{errorMessage(error)}</span> : null}
+      {error ? (
+        <span className="account-error" role="status">
+          {errorMessage(error)}
+        </span>
+      ) : null}
     </div>
   );
 }
