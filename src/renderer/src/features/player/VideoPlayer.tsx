@@ -1,28 +1,42 @@
 import { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import mpegts from 'mpegts.js';
-import type { StreamPlayback } from '@shared/contracts/stream';
+import type { DouyuQuality, StreamPlayback } from '@shared/contracts/stream';
 import { Icon } from '../../components/Icon';
 import { DanmakuOverlay } from '../danmaku/DanmakuOverlay';
+import { useDanmakuSettings } from '../danmaku/DanmakuSettingsContext';
+import { QUALITY_OPTIONS } from './streamQuality';
+import { useAutoHideControls } from './useAutoHideControls';
+import type { StreamResolveOptions } from './useStreamGrid';
 
 interface VideoPlayerProps {
   playback: StreamPlayback;
   muted: boolean;
   volume: number;
+  quality: DouyuQuality;
+  preferHls: boolean;
+  isReloading: boolean;
   onToggleMute: () => void;
   onVolumeChange: (volume: number) => void;
+  onOptionsChange: (patch: Partial<StreamResolveOptions>) => void;
 }
 
 export function VideoPlayer({
   playback,
   muted,
   volume,
+  quality,
+  preferHls,
+  isReloading,
   onToggleMute,
   onVolumeChange,
+  onOptionsChange,
 }: VideoPlayerProps): React.JSX.Element {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const controls = useAutoHideControls();
+  const { settings, update } = useDanmakuSettings();
 
   useEffect(() => {
     const video = videoRef.current;
@@ -124,7 +138,18 @@ export function VideoPlayer({
   }, [volume]);
 
   return (
-    <div className="video-shell">
+    <div
+      className="video-shell"
+      onPointerEnter={controls.show}
+      onPointerMove={controls.show}
+      onPointerLeave={controls.hide}
+      onFocusCapture={controls.reveal}
+      onBlurCapture={(event) => {
+        const next = event.relatedTarget;
+        if (next instanceof Node && event.currentTarget.contains(next)) return;
+        controls.scheduleHide();
+      }}
+    >
       <video
         ref={videoRef}
         className="video"
@@ -169,7 +194,10 @@ export function VideoPlayer({
         </div>
       ) : null}
 
-      <div className="video-bottomline" onClick={(event) => event.stopPropagation()}>
+      <div
+        className={`video-bottomline${controls.visible ? ' is-visible' : ''}`}
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="video-volume">
           <button
             type="button"
@@ -193,7 +221,59 @@ export function VideoPlayer({
           />
           <span className="video-sound">{muted ? '已静音' : `${Math.round(volume * 100)}%`}</span>
         </div>
-        <span className="video-quality">{playback.quality}</span>
+
+        <span className="video-divider" aria-hidden="true" />
+
+        <button
+          type="button"
+          className={`icon-btn video-danmaku-button${settings.visible ? '' : ' is-off'}`}
+          onClick={() => update({ visible: !settings.visible })}
+          aria-label={settings.visible ? '隐藏弹幕' : '显示弹幕'}
+          aria-pressed={settings.visible}
+          title={settings.visible ? '隐藏弹幕' : '显示弹幕'}
+        >
+          <Icon name={settings.visible ? 'eye' : 'eyeOff'} size={17} />
+        </button>
+        <button
+          type="button"
+          className={`icon-btn video-danmaku-button${settings.paused ? ' is-off' : ''}`}
+          onClick={() => update({ paused: !settings.paused })}
+          aria-label={settings.paused ? '继续弹幕' : '暂停弹幕'}
+          aria-pressed={settings.paused}
+          title={settings.paused ? '继续弹幕' : '暂停弹幕'}
+        >
+          <Icon name={settings.paused ? 'play' : 'pause'} size={17} />
+        </button>
+
+        <div className="video-playback-controls">
+          <label className="video-select-wrap">
+            <span className="sr-only">画质</span>
+            <select
+              className="video-select"
+              value={quality}
+              onChange={(event) => onOptionsChange({ quality: event.target.value as DouyuQuality })}
+              disabled={isReloading}
+              aria-label="画质"
+              title="切换画质并重新解析"
+            >
+              {QUALITY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className={`video-hls${preferHls ? ' is-on' : ''}`}
+            onClick={() => onOptionsChange({ preferHls: !preferHls })}
+            disabled={isReloading}
+            aria-pressed={preferHls}
+            title={`优先使用 HLS（当前 ${playback.format.toUpperCase()}）`}
+          >
+            HLS
+          </button>
+        </div>
       </div>
     </div>
   );

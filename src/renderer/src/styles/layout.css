@@ -435,17 +435,6 @@
   color: var(--dim);
 }
 
-.select-wrap select {
-  height: 40px;
-  padding: 0 28px 0 11px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--panel-2);
-  color: var(--muted);
-  font-size: 12px;
-  cursor: pointer;
-}
-
 .workspace {
   display: grid;
   flex: 1;

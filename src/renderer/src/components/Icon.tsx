@@ -10,6 +10,9 @@ export type IconName =
   | 'logout'
   | 'volume'
   | 'volumeOff'
+  | 'eye'
+  | 'eyeOff'
+  | 'pause'
   | 'refresh'
   | 'close'
   | 'check'
@@ -66,6 +69,20 @@ const paths: Record<IconName, ReactNode> = {
       <path d="m16 9 5 5M21 9l-5 5" />
     </>
   ),
+  eye: (
+    <>
+      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z" />
+      <circle cx="12" cy="12" r="2.8" />
+    </>
+  ),
+  eyeOff: (
+    <>
+      <path d="m3 3 18 18" />
+      <path d="M10.6 6.2A10.7 10.7 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-3.2 3.8M6.3 7.8A16.7 16.7 0 0 0 2.5 12s3.5 6 9.5 6a10 10 0 0 0 4-.8" />
+      <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+    </>
+  ),
+  pause: <path d="M9 5v14M15 5v14" />,
   refresh: (
     <>
       <path d="M20 11a8 8 0 1 0-2.3 5.7" />

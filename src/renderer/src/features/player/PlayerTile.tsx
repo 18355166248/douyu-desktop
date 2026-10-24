@@ -1,5 +1,6 @@
-import type { StreamPlayback } from '@shared/contracts/stream';
+import type { DouyuQuality, StreamPlayback } from '@shared/contracts/stream';
 import { Icon } from '../../components/Icon';
+import type { StreamResolveOptions } from './useStreamGrid';
 import { VideoPlayer } from './VideoPlayer';
 
 interface PlayerTileProps {
@@ -9,7 +10,10 @@ interface PlayerTileProps {
   error?: string | null;
   muted: boolean;
   volume: number;
+  quality: DouyuQuality;
+  preferHls: boolean;
   onReload: () => void;
+  onOptionsChange: (patch: Partial<StreamResolveOptions>) => void;
   onStop: () => void;
   onToggleMute: () => void;
   onVolumeChange: (volume: number) => void;
@@ -22,7 +26,10 @@ export function PlayerTile({
   error = null,
   muted,
   volume,
+  quality,
+  preferHls,
   onReload,
+  onOptionsChange,
   onStop,
   onToggleMute,
   onVolumeChange,
@@ -81,8 +88,12 @@ export function PlayerTile({
         playback={playback}
         muted={muted}
         volume={volume}
+        quality={quality}
+        preferHls={preferHls}
+        isReloading={isReloading}
         onToggleMute={onToggleMute}
         onVolumeChange={onVolumeChange}
+        onOptionsChange={onOptionsChange}
       />
 
       <footer className="player-foot">

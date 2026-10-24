@@ -241,29 +241,6 @@ select {
   color: var(--text);
 }
 
-.check {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 40px;
-  padding: 0 10px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: rgb(20 27 34 / 55%);
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 650;
-  cursor: pointer;
-  user-select: none;
-}
-
-.check input {
-  width: 14px;
-  height: 14px;
-  margin: 0;
-  accent-color: var(--accent);
-}
-
 .alert {
   display: flex;
   align-items: center;

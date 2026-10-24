@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import type { DouyuQuality } from '@shared/contracts/stream';
 import { Icon } from './components/Icon';
 import { AccountBar } from './features/accounts/AccountBar';
 import { useAccounts } from './features/accounts/useAccounts';
@@ -7,15 +6,9 @@ import { DanmakuSettingsPanel } from './features/danmaku/DanmakuSettingsPanel';
 import { EmptyStage } from './features/player/EmptyStage';
 import { StreamGrid } from './features/player/StreamGrid';
 import { MAX_STREAMS, canAddStream } from './features/player/streamGridLayout';
-import { useStreamGrid } from './features/player/useStreamGrid';
+import { DEFAULT_STREAM_OPTIONS, useStreamGrid } from './features/player/useStreamGrid';
+import type { StreamResolveOptions } from './features/player/useStreamGrid';
 import { TaskPanel } from './features/tasks/TaskPanel';
-
-const qualityOptions: Array<{ value: DouyuQuality; label: string }> = [
-  { value: '0', label: '原画' },
-  { value: '3', label: '高清' },
-  { value: '4', label: '超清' },
-  { value: '8', label: '蓝光' },
-];
 
 export function App(): React.JSX.Element {
   const { activeAccount } = useAccounts();
@@ -27,14 +20,13 @@ export function App(): React.JSX.Element {
     volumes,
     addStream,
     reloadStream,
+    setStreamOptions,
     removeStream,
     clearStreams,
     toggleAudio,
     setVolume,
   } = useStreamGrid();
   const [roomId, setRoomId] = useState('9999');
-  const [quality, setQuality] = useState<DouyuQuality>('0');
-  const [preferHls, setPreferHls] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDanmakuSettingsOpen, setDanmakuSettingsOpen] = useState(false);
   const roomInputRef = useRef<HTMLInputElement>(null);
@@ -66,7 +58,7 @@ export function App(): React.JSX.Element {
 
   async function handleAdd(targetRoomId: string): Promise<void> {
     setError(null);
-    const message = await addStream({ roomId: targetRoomId, quality, preferHls });
+    const message = await addStream({ roomId: targetRoomId, ...DEFAULT_STREAM_OPTIONS });
     if (message) {
       setError(message);
       return;
@@ -76,7 +68,16 @@ export function App(): React.JSX.Element {
   }
 
   function handleReload(targetRoomId: string): void {
-    void reloadStream(targetRoomId, { quality, preferHls }).then((message) => {
+    void reloadStream(targetRoomId).then((message) => {
+      if (message) setError(message);
+    });
+  }
+
+  function handleStreamOptionsChange(
+    targetRoomId: string,
+    patch: Partial<StreamResolveOptions>,
+  ): void {
+    void setStreamOptions(targetRoomId, patch).then((message) => {
       if (message) setError(message);
     });
   }
@@ -183,29 +184,6 @@ export function App(): React.JSX.Element {
             />
           </div>
 
-          <label className="select-wrap">
-            <span className="sr-only">画质</span>
-            <select
-              value={quality}
-              onChange={(event) => setQuality(event.target.value as DouyuQuality)}
-            >
-              {qualityOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={preferHls}
-              onChange={(event) => setPreferHls(event.target.checked)}
-            />
-            HLS
-          </label>
-
           <div
             className="stream-count"
             aria-label={`当前 ${streams.length} 路，最多 ${MAX_STREAMS} 路`}
@@ -274,6 +252,7 @@ export function App(): React.JSX.Element {
                 audioRoomId={audioRoomId}
                 volumes={volumes}
                 onReload={handleReload}
+                onOptionsChange={handleStreamOptionsChange}
                 onRemove={removeStream}
                 onToggleAudio={toggleAudio}
                 onVolumeChange={setVolume}

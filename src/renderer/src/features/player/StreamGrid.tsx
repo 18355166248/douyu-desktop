@@ -2,7 +2,7 @@ import { Icon } from '../../components/Icon';
 import { PlayerTile } from './PlayerTile';
 import { getStreamLayout, MAX_STREAMS } from './streamGridLayout';
 import { DEFAULT_VOLUME } from './useStreamGrid';
-import type { StreamGridEntry } from './useStreamGrid';
+import type { StreamGridEntry, StreamResolveOptions } from './useStreamGrid';
 
 interface StreamGridProps {
   streams: StreamGridEntry[];
@@ -10,6 +10,7 @@ interface StreamGridProps {
   audioRoomId: string | null;
   volumes: Record<string, number>;
   onReload: (roomId: string) => void;
+  onOptionsChange: (roomId: string, patch: Partial<StreamResolveOptions>) => void;
   onRemove: (roomId: string) => void;
   onToggleAudio: (roomId: string) => void;
   onVolumeChange: (roomId: string, volume: number) => void;
@@ -22,6 +23,7 @@ export function StreamGrid({
   audioRoomId,
   volumes,
   onReload,
+  onOptionsChange,
   onRemove,
   onToggleAudio,
   onVolumeChange,
@@ -40,8 +42,11 @@ export function StreamGrid({
           compact={streams.length > 1}
           muted={audioRoomId !== entry.playback.roomId}
           volume={volumes[entry.playback.roomId] ?? DEFAULT_VOLUME}
+          quality={entry.options.quality}
+          preferHls={entry.options.preferHls}
           isReloading={reloadingRoomId === entry.playback.roomId}
           onReload={() => onReload(entry.playback.roomId)}
+          onOptionsChange={(patch) => onOptionsChange(entry.playback.roomId, patch)}
           onStop={() => onRemove(entry.playback.roomId)}
           onToggleMute={() => onToggleAudio(entry.playback.roomId)}
           onVolumeChange={(volume) => onVolumeChange(entry.playback.roomId, volume)}
