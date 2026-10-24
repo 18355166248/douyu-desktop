@@ -359,7 +359,7 @@
 
 .danmaku-track {
   position: absolute;
-  inset: 40px 12px 58px;
+  inset: 0 12px 58px;
   overflow: hidden;
   transition: opacity 220ms ease;
 }
@@ -709,7 +709,7 @@
 }
 
 .player-card.is-compact .danmaku-track {
-  inset: 30px 8px 42px;
+  inset: 0 8px 42px;
 }
 
 .player-card.is-compact .danmaku-badge {
