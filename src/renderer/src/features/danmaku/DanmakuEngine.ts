@@ -9,15 +9,6 @@ const ENTRY_GAP_PX = 18;
 const MAX_QUEUE = 120;
 const SPAWN_INTERVAL_MS = 70;
 const GEOMETRY_RESYNC_MS = 200;
-const RAINBOW_COLORS: readonly string[] = [
-  '#ff4d4d',
-  '#ffb84d',
-  '#ffe14d',
-  '#66e07a',
-  '#4dd7ff',
-  '#6c7cff',
-  '#d16bff',
-];
 
 interface ActiveItem {
   element: HTMLElement;
@@ -451,19 +442,8 @@ export class DanmakuEngine {
     const text = document.createElement('span');
     const isRainbow = event.kind === 'chat' && event.color === 'rainbow';
     text.className = isRainbow ? 'danmaku-text is-rainbow' : 'danmaku-text';
-    if (isRainbow) {
-      Array.from(event.text).forEach((char, index) => {
-        const color = RAINBOW_COLORS[index % RAINBOW_COLORS.length] ?? '#ff4d4d';
-        const segment = document.createElement('span');
-        segment.className = 'danmaku-rainbow-char';
-        segment.style.color = color;
-        segment.textContent = char;
-        text.appendChild(segment);
-      });
-    } else {
-      text.textContent = event.text;
-      if (event.kind === 'chat') text.style.color = event.color;
-    }
+    text.textContent = event.text;
+    if (event.kind === 'chat' && !isRainbow) text.style.color = event.color;
     element.appendChild(text);
   }
 
