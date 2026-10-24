@@ -212,7 +212,7 @@ export function DanmakuSettingsPanel({ onClose }: DanmakuSettingsPanelProps): Re
           />
           <ToggleRow
             label="精简弹幕"
-            description="过滤无 dms 标记的机器人弹幕"
+            description="过滤无 dms 标记的机器人弹幕；开启时部分彩色弹幕也会被隐藏"
             checked={settings.simplified}
             onChange={(simplified) => update({ simplified })}
           />
