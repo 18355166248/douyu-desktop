@@ -192,23 +192,6 @@ export function App(): React.JSX.Element {
             <span>/ {MAX_STREAMS}</span>
           </div>
 
-          <div className="danmaku-settings-anchor" ref={danmakuSettingsRef}>
-            <button
-              type="button"
-              className={`btn ghost toolbar-danmaku${isDanmakuSettingsOpen ? ' is-active' : ''}`}
-              onClick={() => setDanmakuSettingsOpen((open) => !open)}
-              aria-expanded={isDanmakuSettingsOpen}
-              aria-haspopup="dialog"
-              title="弹幕设置"
-            >
-              <Icon name="settings" size={15} />
-              弹幕设置
-            </button>
-            {isDanmakuSettingsOpen ? (
-              <DanmakuSettingsPanel onClose={() => setDanmakuSettingsOpen(false)} />
-            ) : null}
-          </div>
-
           <button type="submit" className="btn primary" disabled={isAdding || !canSubmit}>
             <Icon name={addButtonIcon()} size={16} />
             {addButtonLabel()}
@@ -256,6 +239,7 @@ export function App(): React.JSX.Element {
                 onRemove={removeStream}
                 onToggleAudio={toggleAudio}
                 onVolumeChange={setVolume}
+                onOpenDanmakuSettings={() => setDanmakuSettingsOpen(true)}
                 onRequestAdd={focusRoomInput}
               />
             )}
@@ -282,6 +266,12 @@ export function App(): React.JSX.Element {
           <span>P2 · 多路 + 弹幕</span>
         </footer>
       </main>
+
+      {isDanmakuSettingsOpen ? (
+        <div className="danmaku-settings-dock" ref={danmakuSettingsRef}>
+          <DanmakuSettingsPanel onClose={() => setDanmakuSettingsOpen(false)} />
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -506,21 +506,18 @@
   padding: 0 12px;
 }
 
-.danmaku-settings-anchor {
+.danmaku-settings-dock {
+  position: fixed;
+  z-index: 120;
+  right: 24px;
+  bottom: 46px;
+}
+
+.danmaku-settings-dock .danmaku-settings-panel {
   position: relative;
-  flex: none;
-}
-
-.toolbar-danmaku {
-  height: 40px;
-  padding: 0 11px;
-  gap: 6px;
-}
-
-.toolbar-danmaku.is-active {
-  border-color: rgb(255 107 53 / 45%);
-  background: rgb(255 107 53 / 10%);
-  color: #ffc3a6;
+  top: auto;
+  right: auto;
+  max-height: min(690px, calc(100vh - 70px));
 }
 
 .danmaku-settings-panel {

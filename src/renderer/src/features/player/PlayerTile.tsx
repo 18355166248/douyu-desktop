@@ -17,6 +17,7 @@ interface PlayerTileProps {
   onStop: () => void;
   onToggleMute: () => void;
   onVolumeChange: (volume: number) => void;
+  onOpenDanmakuSettings: () => void;
 }
 
 export function PlayerTile({
@@ -33,6 +34,7 @@ export function PlayerTile({
   onStop,
   onToggleMute,
   onVolumeChange,
+  onOpenDanmakuSettings,
 }: PlayerTileProps): React.JSX.Element {
   return (
     <section className={`player-card${compact ? ' is-compact' : ''}`}>
@@ -94,6 +96,7 @@ export function PlayerTile({
         onToggleMute={onToggleMute}
         onVolumeChange={onVolumeChange}
         onOptionsChange={onOptionsChange}
+        onOpenDanmakuSettings={onOpenDanmakuSettings}
       />
 
       <footer className="player-foot">

@@ -14,6 +14,7 @@ interface StreamGridProps {
   onRemove: (roomId: string) => void;
   onToggleAudio: (roomId: string) => void;
   onVolumeChange: (roomId: string, volume: number) => void;
+  onOpenDanmakuSettings: () => void;
   onRequestAdd: () => void;
 }
 
@@ -27,6 +28,7 @@ export function StreamGrid({
   onRemove,
   onToggleAudio,
   onVolumeChange,
+  onOpenDanmakuSettings,
   onRequestAdd,
 }: StreamGridProps): React.JSX.Element {
   const layout = getStreamLayout(streams.length);
@@ -50,6 +52,7 @@ export function StreamGrid({
           onStop={() => onRemove(entry.playback.roomId)}
           onToggleMute={() => onToggleAudio(entry.playback.roomId)}
           onVolumeChange={(volume) => onVolumeChange(entry.playback.roomId, volume)}
+          onOpenDanmakuSettings={onOpenDanmakuSettings}
         />
       ))}
 

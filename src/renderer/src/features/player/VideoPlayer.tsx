@@ -19,6 +19,7 @@ interface VideoPlayerProps {
   onToggleMute: () => void;
   onVolumeChange: (volume: number) => void;
   onOptionsChange: (patch: Partial<StreamResolveOptions>) => void;
+  onOpenDanmakuSettings: () => void;
 }
 
 export function VideoPlayer({
@@ -31,6 +32,7 @@ export function VideoPlayer({
   onToggleMute,
   onVolumeChange,
   onOptionsChange,
+  onOpenDanmakuSettings,
 }: VideoPlayerProps): React.JSX.Element {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isReady, setIsReady] = useState(false);
@@ -236,7 +238,7 @@ export function VideoPlayer({
         </button>
         <button
           type="button"
-          className={`icon-btn video-danmaku-button${settings.paused ? ' is-off' : ''}`}
+          className={`icon-btn video-danmaku-button video-pause-button${settings.paused ? ' is-off' : ''}`}
           onClick={() => update({ paused: !settings.paused })}
           aria-label={settings.paused ? '继续弹幕' : '暂停弹幕'}
           aria-pressed={settings.paused}
@@ -272,6 +274,15 @@ export function VideoPlayer({
             title={`优先使用 HLS（当前 ${playback.format.toUpperCase()}）`}
           >
             HLS
+          </button>
+          <button
+            type="button"
+            className="icon-btn video-settings-button"
+            onClick={onOpenDanmakuSettings}
+            aria-label="弹幕设置"
+            title="弹幕设置"
+          >
+            <Icon name="settings" size={16} />
           </button>
         </div>
       </div>
