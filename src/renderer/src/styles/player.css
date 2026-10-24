@@ -478,6 +478,25 @@
   color: inherit;
 }
 
+.danmaku-text.is-rainbow {
+  background: linear-gradient(
+    90deg,
+    #ff4d4d 0%,
+    #ffb84d 16%,
+    #ffe14d 33%,
+    #66e07a 50%,
+    #4dd7ff 66%,
+    #6c7cff 83%,
+    #d16bff 100%
+  );
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 75%));
+  -webkit-background-clip: text;
+}
+
 .danmaku-state {
   position: absolute;
   z-index: 3;

@@ -57,6 +57,7 @@ describe('douyu danmaku protocol', () => {
       [4, '#ff7f00'],
       [5, '#9b39f4'],
       [6, '#ff69b4'],
+      [7, 'rainbow'],
     ];
 
     for (const [index, color] of colors) {
@@ -71,9 +72,15 @@ describe('douyu danmaku protocol', () => {
       '#ffffff',
     );
     expect(
+      parseDouyuDanmaku('type@=chatmsg/uid@=123/nn@=Alice/txt@=hello/col@=8/', '9999')?.color,
+    ).toBe('#ffffff');
+    expect(
       parseDouyuDanmaku('type@=chatmsg/uid@=123/nn@=Alice/txt@=hello/col@=16711680/', '9999')
         ?.color,
     ).toBe('#ff0000');
+    expect(
+      parseDouyuDanmaku('type@=chatmsg/uid@=123/nn@=Alice/txt@=hello/col@=65535/', '9999')?.color,
+    ).toBe('#00ffff');
   });
 
   it('parses enter and gift messages', () => {

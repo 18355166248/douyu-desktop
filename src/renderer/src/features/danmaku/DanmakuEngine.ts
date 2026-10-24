@@ -440,9 +440,10 @@ export class DanmakuEngine {
     }
 
     const text = document.createElement('span');
-    text.className = 'danmaku-text';
+    const isRainbow = event.kind === 'chat' && event.color === 'rainbow';
+    text.className = isRainbow ? 'danmaku-text is-rainbow' : 'danmaku-text';
     text.textContent = event.text;
-    if (event.kind === 'chat') text.style.color = event.color;
+    if (event.kind === 'chat' && !isRainbow) text.style.color = event.color;
     element.appendChild(text);
   }
 

@@ -12,6 +12,7 @@ const DOUYU_COLOR_BY_INDEX: Readonly<Record<number, string>> = {
   4: '#ff7f00',
   5: '#9b39f4',
   6: '#ff69b4',
+  7: 'rainbow',
 };
 
 /**
@@ -97,12 +98,12 @@ function optionalText(value: string | undefined): string | undefined {
 
 function toColor(value: string | undefined): string {
   const parsed = toNumber(value);
-  if (parsed >= 1 && parsed <= 6) {
+  if (parsed >= 1 && parsed <= 7) {
     return DOUYU_COLOR_BY_INDEX[parsed] ?? DEFAULT_COLOR;
   }
   // Older/proxied payloads occasionally carry a packed RGB value instead of
-  // Douyu's small color index. Keep supporting it.
-  if (parsed <= 0 || parsed > 0xffffff) return DEFAULT_COLOR;
+  // Douyu's small color index. Only values above the palette range are RGB.
+  if (parsed <= 0 || parsed > 0xffffff || parsed < 0x100) return DEFAULT_COLOR;
   return `#${parsed.toString(16).padStart(6, '0')}`;
 }
 
