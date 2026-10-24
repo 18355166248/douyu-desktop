@@ -456,12 +456,19 @@
   width: 32px;
   height: 32px;
   flex: none;
+  overflow: hidden;
   place-items: center;
   border-radius: 9px;
   background: linear-gradient(145deg, #ffb27d, #ff6b35);
   color: #241108;
   font-size: 13px;
   font-weight: 800;
+}
+
+.avatar.image {
+  display: block;
+  object-fit: cover;
+  background: var(--panel-3);
 }
 
 .avatar.small {

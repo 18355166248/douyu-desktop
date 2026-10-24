@@ -4,9 +4,15 @@ import { AppError } from '@core/errors';
 import type { DouyuAuthContext, DouyuAuthKind } from '@core/douyu/auth/DouyuAuthContext';
 import { CHROME_UA, DOUYU_ORIGIN } from '../constants';
 import type { DouyuCredentials } from './DouyuCredentials';
+import {
+  parseProfilePayload,
+  readProfileFromCookies,
+  type DouyuProfile,
+} from './DouyuProfile';
 
 const DEFAULT_DID = '10000000000000000000000000001501';
 const CACHE_MS = 30_000;
+const PROFILE_TIMEOUT_MS = 3_500;
 
 interface CacheEntry {
   at: number;
@@ -45,6 +51,51 @@ export class DouyuAuthService {
     };
     this.cache.set(session, { at: Date.now(), credentials });
     return credentials;
+  }
+
+  async getProfile(session: Session): Promise<DouyuProfile> {
+    try {
+      const cookies = await session.cookies.get({});
+      const fromCookies = readProfileFromCookies(cookies);
+
+      try {
+        await this.getCredentials(session);
+      } catch {
+        return fromCookies;
+      }
+
+      const fromApi = await this.fetchProfile(session);
+      const profile: DouyuProfile = {};
+      const nickname = fromApi.nickname ?? fromCookies.nickname;
+      const avatarUrl = fromApi.avatarUrl ?? fromCookies.avatarUrl;
+      if (nickname) profile.nickname = nickname;
+      if (avatarUrl) profile.avatarUrl = avatarUrl;
+      return profile;
+    } catch {
+      return {};
+    }
+  }
+
+  private async fetchProfile(session: Session): Promise<DouyuProfile> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), PROFILE_TIMEOUT_MS);
+    try {
+      const response = await session.fetch(`${DOUYU_ORIGIN}/lapi/member/api/getInfo`, {
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': CHROME_UA,
+          Referer: `${DOUYU_ORIGIN}/`,
+        },
+        signal: controller.signal,
+      });
+      if (response.status !== 200) return {};
+      const payload: unknown = await response.json();
+      return parseProfilePayload(payload);
+    } catch {
+      return {};
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   async createAuthContext(session: Session): Promise<DouyuAuthContext> {

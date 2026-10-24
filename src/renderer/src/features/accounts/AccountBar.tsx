@@ -9,6 +9,35 @@ function initialOf(name: string): string {
   return name.trim().slice(0, 1) || '斗';
 }
 
+function AccountAvatar({
+  nickname,
+  avatarUrl,
+  small = false,
+}: {
+  nickname: string;
+  avatarUrl: string;
+  small?: boolean;
+}): React.JSX.Element {
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const className = `avatar${small ? ' small' : ''}`;
+
+  if (avatarUrl && failedUrl !== avatarUrl) {
+    return (
+      <img
+        className={`${className} image`}
+        src={avatarUrl}
+        alt=""
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        draggable={false}
+        onError={() => setFailedUrl(avatarUrl)}
+      />
+    );
+  }
+
+  return <span className={className}>{initialOf(nickname)}</span>;
+}
+
 export function AccountBar({ compact = false }: { compact?: boolean }): React.JSX.Element {
   const { query, accounts, activeAccount, login, switchAccount, logout, health } = useAccounts();
   const [open, setOpen] = useState(false);
@@ -81,7 +110,10 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
           aria-haspopup="menu"
           aria-expanded={open}
         >
-          <span className="avatar">{initialOf(activeAccount.nickname)}</span>
+          <AccountAvatar
+            nickname={activeAccount.nickname}
+            avatarUrl={activeAccount.avatarUrl}
+          />
           <span className="account-text">
             <strong>{activeAccount.nickname}</strong>
             <small>
@@ -114,7 +146,11 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
                   }}
                   disabled={account.isActive || busy}
                 >
-                  <span className="avatar small">{initialOf(account.nickname)}</span>
+                  <AccountAvatar
+                    nickname={account.nickname}
+                    avatarUrl={account.avatarUrl}
+                    small
+                  />
                   <span className="account-row-text">
                     <strong>{account.nickname}</strong>
                     <small>{account.status === 'active' ? '在线' : '登录过期'}</small>

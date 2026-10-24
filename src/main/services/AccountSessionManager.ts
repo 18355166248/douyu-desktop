@@ -6,6 +6,18 @@ import type { DouyuAuthContext } from '@core/douyu/auth/DouyuAuthContext';
 import { CHROME_UA, DOUYU_LOGIN_URL, isAllowedExternalUrl, isDouyuUrl } from '../constants';
 import type { JsonAccountStore, AccountRecord } from '../adapters/storage/JsonAccountStore';
 import type { DouyuAuthService } from './DouyuAuthService';
+import type { DouyuProfile } from './DouyuProfile';
+
+function isPlaceholderNickname(nickname: string): boolean {
+  return /^斗鱼用户\s+\d+$/u.test(nickname.trim());
+}
+
+function applyProfile(record: AccountRecord, profile: DouyuProfile): AccountRecord {
+  const nickname = profile.nickname?.trim() || record.nickname;
+  const avatarUrl = profile.avatarUrl ?? record.avatarUrl;
+  if (nickname === record.nickname && avatarUrl === record.avatarUrl) return record;
+  return { ...record, nickname, avatarUrl };
+}
 
 function toSummary(record: AccountRecord, activeId: string | null): AccountSummary {
   return {
@@ -21,6 +33,8 @@ function toSummary(record: AccountRecord, activeId: string | null): AccountSumma
 }
 
 export class AccountSessionManager {
+  private readonly profileRefreshed = new Set<string>();
+
   constructor(
     private readonly store: JsonAccountStore,
     private readonly auth: DouyuAuthService,
@@ -29,7 +43,9 @@ export class AccountSessionManager {
 
   async list(): Promise<AccountSummary[]> {
     const activeId = await this.store.getActiveId();
-    return (await this.store.list()).map((record) => toSummary(record, activeId));
+    const records = await this.store.list();
+    const resolved = await Promise.all(records.map((record) => this.refreshProfile(record)));
+    return resolved.map((record) => toSummary(record, activeId));
   }
 
   async getActiveId(): Promise<string | null> {
@@ -40,6 +56,21 @@ export class AccountSessionManager {
     const record = await this.store.get(accountId);
     if (!record) throw new AppError('AUTH_REQUIRED', '账号不存在，请重新登录');
     return session.fromPartition(record.partition);
+  }
+
+  private async refreshProfile(record: AccountRecord): Promise<AccountRecord> {
+    if (record.status !== 'active' || this.profileRefreshed.has(record.id)) return record;
+    this.profileRefreshed.add(record.id);
+    if (record.avatarUrl && !isPlaceholderNickname(record.nickname)) return record;
+
+    try {
+      const profile = await this.auth.getProfile(session.fromPartition(record.partition));
+      const next = applyProfile(record, profile);
+      if (next !== record) await this.store.upsert(next);
+      return next;
+    } catch {
+      return record;
+    }
   }
 
   async createAuthContext(accountId: string): Promise<DouyuAuthContext> {
@@ -123,11 +154,13 @@ export class AccountSessionManager {
       const succeed = async (): Promise<void> => {
         try {
           const credentials = await this.auth.getCredentials(loginSession);
+          const profile = await this.auth.getProfile(loginSession);
+          const nickname = profile.nickname?.trim();
           const record: AccountRecord = {
             id: accountId,
             uid: credentials.uid,
-            nickname: `斗鱼用户 ${credentials.uid}`,
-            avatarUrl: '',
+            nickname: nickname || `斗鱼用户 ${credentials.uid}`,
+            avatarUrl: profile.avatarUrl ?? '',
             partition,
             lastLoginAt: Date.now(),
             status: 'active',

@@ -62,6 +62,8 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - [x] 不再在每张卡片底部显示“已获取播放地址 / HTTP-FLV / 单路”状态行；画质和格式保留在卡片右上角标签，错误仍由卡片错误条提示
 - [x] 解析中/路数上限/重复房间/空输入的状态保护
 - [x] 斗鱼登录窗（独立 `persist:` 分区）
+- [x] 登录后尽力读取斗鱼昵称和头像：优先 `acf_nickname` Cookie 与 `/lapi/member/api/getInfo`，头像统一升级为 HTTPS；读取失败保留“斗鱼用户 UID”兜底
+- [x] 顶栏和账号菜单显示真实头像；远程头像加载失败时自动回退为首字头像，不出现破图
 - [x] 账号操作错误（含取消登录的“登录已取消”）在顶栏提示 4 秒后自动消失，不再常驻
 - [x] 读取 `acf_*` Cookie，拼 `dyToken`（只在 main）
 - [x] 斗鱼 `getEncryption` + `getH5PlayV1` 流解析
@@ -77,7 +79,7 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - [x] 房间签到任务（手动触发、dry-run、限速、逐房间结果）
 - [x] typed preload + IPC `Result` 封装
 - [x] 房间访问历史：成功解析过的房间按最近访问时间倒序记录，可点击重新打开，localStorage 最多保留 30 条
-- [x] 边界检查脚本 + 38 个单测
+- [x] 边界检查脚本 + 49 个单测
 - [x] electron-builder Windows 打包配置
 
 ## 多路操作
@@ -122,7 +124,7 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 
 ## 已验证
 
-- `npm run check`：类型、ESLint、架构边界、38 个单测全部通过
+- `npm run check`：类型、ESLint、架构边界、49 个单测全部通过
 - `npm run build`：main / preload / renderer 生产构建通过
 - `node scripts/probe-douyu.mjs 9999`：真实斗鱼签名接口返回 FLV 地址；CDN 返回 `Access-Control-Allow-Origin: *`
 - `node scripts/probe-danmaku.mjs 9999`：真实斗鱼弹幕连接；12 秒收到 90 个包，含 `chatmsg`/`uenter`/`dgb`
@@ -140,6 +142,8 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - 最小窗口联调：1084px 内容宽下顶栏无横向溢出，表单宽 547px、房间输入固定 220px、账号按钮显示“登录”；4 路控制条 508px 无溢出
 - 底部信息精简：移除整行 `.statusbar`，不再重复展示账号昵称、路数和“P2 · 多路 + 弹幕”；账号状态保留在顶栏账号按钮，路数保留在“直播”页签
 - 账号错误提示联调：登录失败后 `.account-error` 以 `role="status"` 显示，4 秒后自动移除；取消登录不会留下常驻红字
+- 账号资料联调：mock 账号的 64×64 头像在顶栏以 24×24、6px 圆角、`object-fit: cover` 显示，账号菜单同步显示；昵称显示为真实昵称；手动触发图片 `error` 后立即回退为首字“小”，不保留 `<img>`
+- 账号资料兜底：`acf_nickname` 支持 URL 解码；头像对象支持 `small/middle/big`，协议相对 URL 转为 HTTPS；接口 `error != 0` 时不采用资料
 - 签到弹窗联调：顶栏“签到”打开 430px 居中弹窗，关闭按钮、点击遮罩和 Esc 均可关闭；直播区不再渲染 `.task-panel`
 - 设置入口联调：右侧齿轮打开固定右下角面板（356×649，距右 24/距底 46，顶部留出 44px 自绘顶栏），关闭按钮生效；画质四项中选中项为橙色，其余为 `#eef3f7` 深色底高对比
 - 自绘顶栏联调（浏览器 CDP + mock window API）：顶栏高 44，拖拽区 `drag`、顶栏操作区和窗口控制区 `no-drag`，最大化图标切换，最小化/关闭调用已记录；真实无边框窗口拖拽和系统窗口按钮需在 Windows 桌面用安装包验证
