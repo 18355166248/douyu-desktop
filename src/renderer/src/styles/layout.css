@@ -176,6 +176,37 @@
   color: #ffc3a6;
 }
 
+.titlebar-task.is-running {
+  border-color: rgb(255 107 53 / 46%);
+  background: rgb(255 107 53 / 12%);
+  color: #ffd0b8;
+}
+
+.titlebar-task.is-success {
+  border-color: rgb(82 214 138 / 28%);
+  color: #9ce9b9;
+}
+
+.titlebar-task.is-partial,
+.titlebar-task.is-failed {
+  border-color: rgb(255 107 107 / 30%);
+  color: #ffc0c0;
+}
+
+.task-spin {
+  animation: spin 900ms linear infinite;
+}
+
+.task-running-dot {
+  width: 5px;
+  height: 5px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgb(255 107 53 / 16%);
+  animation: live-pulse 1.8s ease-in-out infinite;
+}
+
 .titlebar .account-area.is-compact .btn,
 .titlebar .account-retry {
   height: 32px;
@@ -1358,6 +1389,17 @@
   font-weight: 700;
 }
 
+.task-background {
+  padding: 4px 7px;
+  border: 1px solid rgb(255 107 53 / 30%);
+  border-radius: 6px;
+  background: rgb(255 107 53 / 8%);
+  color: #ffc3a6;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
 .task-skeleton {
   height: 210px;
   border: 1px solid var(--line-soft);
@@ -1524,6 +1566,20 @@
   border-radius: inherit;
   background: linear-gradient(90deg, var(--accent), var(--accent-strong));
   transition: width 220ms ease;
+}
+
+.task-progress-track.is-indeterminate span {
+  animation: task-indeterminate 1.3s ease-in-out infinite;
+}
+
+@keyframes task-indeterminate {
+  0% {
+    transform: translateX(-110%);
+  }
+
+  100% {
+    transform: translateX(330%);
+  }
 }
 
 .task-result {

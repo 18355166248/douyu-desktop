@@ -49,6 +49,17 @@ async function respond<T>(action: () => Promise<T> | T): Promise<Result<T>> {
   }
 }
 
+function broadcast(channel: string, payload: unknown): void {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (window.isDestroyed() || window.webContents.isDestroyed()) continue;
+    try {
+      window.webContents.send(channel, payload);
+    } catch {
+      // The window may close between the check and send.
+    }
+  }
+}
+
 export interface IpcServices {
   accounts: AccountSessionManager;
   streams: StreamService;
@@ -112,14 +123,17 @@ export function registerIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle(IPC.tasksList, () => respond(() => tasks.list()));
 
-  ipcMain.handle(IPC.tasksRun, (event, rawInput: unknown) =>
-    respond(async () => {
+  ipcMain.handle(IPC.tasksStatus, () => respond(() => tasks.status()));
+
+  ipcMain.handle(IPC.tasksRun, (_event, rawInput: unknown) => {
+    const run = respond(async () => {
       const input = runTaskSchema.parse(rawInput);
-      return tasks.run(input, (progress) => {
-        if (!event.sender.isDestroyed()) event.sender.send(IPC.tasksProgress, progress);
-      });
-    }),
-  );
+      return tasks.run(input, (progress) => broadcast(IPC.tasksProgress, progress));
+    });
+    broadcast(IPC.tasksState, tasks.status());
+    void run.then(() => broadcast(IPC.tasksState, tasks.status()));
+    return run;
+  });
 
   ipcMain.handle(IPC.appOpenExternal, (_event, rawUrl: unknown) =>
     respond(async () => {

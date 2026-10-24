@@ -1,7 +1,7 @@
 import type { AccountHealth, AccountSummary } from './account';
 import type { ResolveStreamInput, StreamPlayback } from './stream';
 import type { Result } from './result';
-import type { RunTaskInput, TaskDescriptor, TaskProgressEvent, TaskRunResult } from './task';
+import type { RunTaskInput, TaskDescriptor, TaskProgressEvent, TaskRunResult, TaskRunSnapshot } from './task';
 
 export interface DesktopApi {
   accounts: {
@@ -17,7 +17,9 @@ export interface DesktopApi {
   tasks: {
     list(): Promise<Result<TaskDescriptor[]>>;
     run(input: RunTaskInput): Promise<Result<TaskRunResult>>;
+    status(): Promise<Result<TaskRunSnapshot | null>>;
     onProgress(listener: (event: TaskProgressEvent) => void): () => void;
+    onState(listener: (state: TaskRunSnapshot | null) => void): () => void;
   };
   app: {
     openExternal(url: string): Promise<Result<void>>;
@@ -40,7 +42,9 @@ export const IPC = {
   streamsResolve: 'streams:resolve',
   tasksList: 'tasks:list',
   tasksRun: 'tasks:run',
+  tasksStatus: 'tasks:status',
   tasksProgress: 'tasks:progress',
+  tasksState: 'tasks:state',
   appOpenExternal: 'app:open-external',
   windowMinimize: 'window:minimize',
   windowToggleMaximize: 'window:toggle-maximize',

@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { App } from './App';
 import { DanmakuSettingsProvider } from './features/danmaku/DanmakuSettingsContext';
+import { TasksProvider } from './features/tasks/useTasks';
 import './styles/index.css';
 
 const queryClient = new QueryClient({
@@ -23,9 +24,11 @@ if (!rootElement) throw new Error('Root element not found');
 createRoot(rootElement).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <DanmakuSettingsProvider>
-        <App />
-      </DanmakuSettingsProvider>
+      <TasksProvider>
+        <DanmakuSettingsProvider>
+          <App />
+        </DanmakuSettingsProvider>
+      </TasksProvider>
     </QueryClientProvider>
   </StrictMode>,
 );

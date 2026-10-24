@@ -17,7 +17,8 @@ interface TaskPanelProps {
 }
 
 export function TaskPanel({ hasAccount, onClose }: TaskPanelProps): React.JSX.Element {
-  const { query, tasks, runTask, progress, result } = useTasks();
+  const { query, tasks, runTask, progress, result, running, autoSignEnabled, setAutoSignEnabled } =
+    useTasks();
   const [liveOnly, setLiveOnly] = useState(true);
   const [dryRun, setDryRun] = useState(false);
   const task = tasks[0];
@@ -35,14 +36,15 @@ export function TaskPanel({ hasAccount, onClose }: TaskPanelProps): React.JSX.El
           <h2>签到</h2>
         </div>
         <div className="panel-head-actions">
+          {running ? <span className="task-background">后台运行</span> : null}
           <span className="panel-count">{tasks.length}</span>
           {onClose ? (
             <button
               type="button"
               className="task-close"
               onClick={onClose}
-              aria-label="关闭签到"
-              title="关闭"
+              aria-label="关闭签到面板，任务会在后台继续"
+              title={running ? '关闭面板，任务会在后台继续' : '关闭'}
             >
               <Icon name="close" size={15} />
             </button>
@@ -87,6 +89,7 @@ export function TaskPanel({ hasAccount, onClose }: TaskPanelProps): React.JSX.El
                   <input
                     type="checkbox"
                     checked={liveOnly}
+                    disabled={running}
                     onChange={(event) => setLiveOnly(event.target.checked)}
                   />
                   <span>
@@ -98,6 +101,7 @@ export function TaskPanel({ hasAccount, onClose }: TaskPanelProps): React.JSX.El
                   <input
                     type="checkbox"
                     checked={dryRun}
+                    disabled={running}
                     onChange={(event) => setDryRun(event.target.checked)}
                   />
                   <span>
@@ -105,21 +109,44 @@ export function TaskPanel({ hasAccount, onClose }: TaskPanelProps): React.JSX.El
                     <small>只统计，不签到</small>
                   </span>
                 </label>
+                <label className="task-option">
+                  <input
+                    type="checkbox"
+                    checked={autoSignEnabled}
+                    onChange={(event) => setAutoSignEnabled(event.target.checked)}
+                  />
+                  <span>
+                    <strong>每天自动签到</strong>
+                    <small>启动后后台执行一次</small>
+                  </span>
+                </label>
               </div>
 
               <button
                 type="button"
                 className="btn primary task-run"
-                disabled={runTask.isPending}
+                disabled={running}
                 onClick={() => {
                   runTask.mutate({ taskId: task.id, options: { liveOnly }, dryRun });
                 }}
               >
                 <Icon name="play" size={16} />
-                {runTask.isPending ? '运行中…' : '运行任务'}
+                {running ? '后台运行中…' : '运行任务'}
               </button>
             </>
           )}
+
+          {running && !progress ? (
+            <div className="task-progress">
+              <div className="task-progress-head">
+                <span>正在准备签到…</span>
+                <span>后台</span>
+              </div>
+              <div className="task-progress-track is-indeterminate">
+                <span style={{ width: '35%' }} />
+              </div>
+            </div>
+          ) : null}
 
           {progress ? (
             <div className="task-progress">
@@ -160,7 +187,7 @@ export function TaskPanel({ hasAccount, onClose }: TaskPanelProps): React.JSX.El
 
       <div className="task-note">
         <Icon name="spark" size={16} />
-        <p>请求已做限速与重试；任务有超时和取消边界。签到失败会按房间记录，不会中断全部。</p>
+        <p>任务在后台继续，关闭面板或最小化应用不会中断；直播和弹幕不受影响。请求已限速，失败按房间记录。</p>
       </div>
     </aside>
   );

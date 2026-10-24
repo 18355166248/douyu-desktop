@@ -7,6 +7,7 @@ export type AppErrorCode =
   | 'NETWORK'
   | 'UPSTREAM'
   | 'CANCELLED'
+  | 'BUSY'
   | 'UNSUPPORTED'
   | 'INTERNAL';
 

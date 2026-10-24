@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { IPC } from '@shared/contracts/ipc';
 import type { DesktopApi } from '@shared/contracts/ipc';
-import type { TaskProgressEvent } from '@shared/contracts/task';
+import type { TaskProgressEvent, TaskRunSnapshot } from '@shared/contracts/task';
 
 const api: DesktopApi = {
   accounts: {
@@ -17,6 +17,7 @@ const api: DesktopApi = {
   tasks: {
     list: () => ipcRenderer.invoke(IPC.tasksList),
     run: (input) => ipcRenderer.invoke(IPC.tasksRun, input),
+    status: () => ipcRenderer.invoke(IPC.tasksStatus),
     onProgress: (listener) => {
       const handler = (_event: Electron.IpcRendererEvent, progress: TaskProgressEvent): void => {
         listener(progress);
@@ -24,6 +25,15 @@ const api: DesktopApi = {
       ipcRenderer.on(IPC.tasksProgress, handler);
       return () => {
         ipcRenderer.removeListener(IPC.tasksProgress, handler);
+      };
+    },
+    onState: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, state: TaskRunSnapshot | null): void => {
+        listener(state);
+      };
+      ipcRenderer.on(IPC.tasksState, handler);
+      return () => {
+        ipcRenderer.removeListener(IPC.tasksState, handler);
       };
     },
   },

@@ -76,10 +76,10 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - [x] 默认速度/字号 100%，粉丝牌/昵称默认关闭；旧 140% 配置自动迁移
 - [x] 进场提示默认关闭，避免高流量房间被“进入了直播间”刷屏
 - [x] 断线重连、连接超时、错误状态提示
-- [x] 房间签到任务（手动触发、dry-run、限速、逐房间结果）
+- [x] 房间签到任务：后台单飞、每天自动一次（可关闭）、手动触发、dry-run、限速、逐房间结果
 - [x] typed preload + IPC `Result` 封装
 - [x] 房间访问历史：成功解析过的房间按最近访问时间倒序记录，可点击重新打开，localStorage 最多保留 30 条
-- [x] 边界检查脚本 + 49 个单测
+- [x] 边界检查脚本 + 54 个单测
 - [x] electron-builder Windows 打包配置
 
 ## 多路操作
@@ -100,6 +100,9 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - 历史面板突出主播名和标题：主播名为橙色加粗，标题为 14px 白色加粗、最多两行；房间号和时间作为次要信息
 - 历史写入 `localStorage`（`douyu-desktop.room-history.v1`），最多保留 30 条；面板支持清空，点击外部或 Esc 关闭
 - 顶栏“签到”打开居中任务弹窗，不再占用右侧列；弹窗支持关闭按钮、点击遮罩或 Esc 关闭
+- 签到默认在每天首次启动后自动在后台跑一次；成功/部分完成/跳过会记录当天，同账号当天不再自动重复，失败下次启动可重试；可在弹窗内关闭“每天自动签到”，设置写入 `localStorage`（`douyu-desktop.auto-sign.v1`）
+- 手动或自动签到都在独立后台任务里运行；关闭签到面板、切换直播、最小化应用都不会中断，顶栏按钮实时显示“签到 x/y”和“已签到/部分失败”
+- 同一时间只允许一个签到任务；后台运行中再次触发会返回 BUSY，不会重复签到；请求仍走现有主进程限速，不阻塞播放和弹幕
 - 每路视频左下角显示实时弹幕；连接中/重连/失败会在右上角提示
 - 控制条最右侧齿轮打开全局弹幕设置面板；面板固定在窗口右下角，所有画面立即同步，点击外部或 Esc 关闭
 - 画质下拉使用深色菜单和显式文字颜色，未选中项保持高对比，不再出现深色字贴深色底
@@ -124,7 +127,7 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 
 ## 已验证
 
-- `npm run check`：类型、ESLint、架构边界、49 个单测全部通过
+- `npm run check`：类型、ESLint、架构边界、54 个单测全部通过
 - `npm run build`：main / preload / renderer 生产构建通过
 - `node scripts/probe-douyu.mjs 9999`：真实斗鱼签名接口返回 FLV 地址；CDN 返回 `Access-Control-Allow-Origin: *`
 - `node scripts/probe-danmaku.mjs 9999`：真实斗鱼弹幕连接；12 秒收到 90 个包，含 `chatmsg`/`uenter`/`dgb`
@@ -139,8 +142,10 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - 历史记录联调：依次添加 4 个房间后按最新访问倒序显示，时间为 `YYYY-MM-DD HH:mm`；关闭其中一路后从历史点击可重新加入并更新时间，刷新页面后记录仍存在
 - 历史面板联调：从顶栏“历史”打开，宽 380px，4 条记录内容区高 363px；面板紧贴顶栏下方，右边缘不超出窗口；主播名 12.5px/750、标题 14px/700，单条记录无横向溢出
 - 顶栏空间联调：1360×900 下顶栏高 44px，房间输入固定 220px，历史、添加、清空、签到和登录都在同一行，播放卡片从 50px 开始、宽 1328px、高 693px，底部只留 6px；4 路卡片宽 658px
-- 最小窗口联调：1084px 内容宽下顶栏无横向溢出，表单宽 547px、房间输入固定 220px、账号按钮显示“登录”；4 路控制条 508px 无溢出
+- 最小窗口联调：1084px 内容宽下顶栏无横向溢出；签到按钮显示“已签到”时表单宽 486px，运行态最宽“签到 10/12”时表单仍保留 454px；房间输入固定 220px，账号按钮显示“登录”；4 路控制条 508px 无溢出
 - 底部信息精简：移除整行 `.statusbar`，不再重复展示账号昵称、路数和“P2 · 多路 + 弹幕”；账号状态保留在顶栏账号按钮，路数保留在“直播”页签
+- 后台签到联调：自动任务启动后顶栏显示“签到 2/12”，关闭面板后继续推进到“签到 3/12”，完成后变“已签到”并显示绿色状态；重新打开面板仍显示 12/12 和成功结果，`taskRunCalls` 始终为 1
+- 自动签到节流联调：同一天已有记录时刷新不再自动运行（调用 0 次）；关闭“每天自动签到”后持久化为 `enabled:false`；清空当天记录并保持开启后刷新会重新自动运行
 - 账号错误提示联调：登录失败后 `.account-error` 以 `role="status"` 显示，4 秒后自动移除；取消登录不会留下常驻红字
 - 账号资料联调：mock 账号的 64×64 头像在顶栏以 24×24、6px 圆角、`object-fit: cover` 显示，账号菜单同步显示；昵称显示为真实昵称；手动触发图片 `error` 后立即回退为首字“小”，不保留 `<img>`
 - 账号资料兜底：`acf_nickname` 支持 URL 解码；头像对象支持 `small/middle/big`，协议相对 URL 转为 HTTPS；接口 `error != 0` 时不采用资料
@@ -173,6 +178,7 @@ renderer → 匿名弹幕 WebSocket（只读，不携带 Cookie）
 - 弹幕设置通过 Context 全局共享，持久化在 renderer `localStorage`，不进入 main/IPC
 - Cookie、`dyToken`、CSRF 只在 main；renderer 只拿 `AccountSummary`
 - 任务通过 `TaskDefinition + TaskRunner + TaskRegistry` 注册，不在 UI 里写业务
+- 签到运行状态由 main 的 `TaskService` 持有，通过 `tasks:state` / `tasks:progress` 广播；renderer 的 `TasksProvider` 在应用级订阅，弹窗关闭不会丢进度，同一时刻只允许一个运行中的 run
 - 请求级限速/重试在 `DouyuHttpClient`，任务级超时/取消在 `TaskRunner`
 
 ## 免责声明

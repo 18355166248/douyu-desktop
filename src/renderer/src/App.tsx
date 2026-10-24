@@ -11,6 +11,8 @@ import { StreamGrid } from './features/player/StreamGrid';
 import { MAX_STREAMS, canAddStream } from './features/player/streamGridLayout';
 import { DEFAULT_STREAM_OPTIONS, useStreamGrid } from './features/player/useStreamGrid';
 import type { StreamResolveOptions } from './features/player/useStreamGrid';
+import { AutoSignRunner } from './features/tasks/AutoSignRunner';
+import { TaskButton } from './features/tasks/TaskButton';
 import { TaskPanel } from './features/tasks/TaskPanel';
 
 export function App(): React.JSX.Element {
@@ -154,6 +156,7 @@ export function App(): React.JSX.Element {
 
   return (
     <div className="window-frame">
+      <AutoSignRunner account={activeAccount} />
       <TitleBar>
         <div className="titlebar-tab" aria-label={`直播工作台，当前 ${streams.length} 路`}>
           <Icon name="live" size={14} />
@@ -226,17 +229,7 @@ export function App(): React.JSX.Element {
           ) : null}
         </form>
 
-        <button
-          type="button"
-          className={`titlebar-task${isTaskOpen ? ' is-active' : ''}`}
-          onClick={() => setTaskOpen((open) => !open)}
-          aria-expanded={isTaskOpen}
-          aria-haspopup="dialog"
-          title="打开签到任务"
-        >
-          <Icon name="check" size={14} />
-          签到
-        </button>
+        <TaskButton open={isTaskOpen} onToggle={() => setTaskOpen((open) => !open)} />
 
         <AccountBar compact />
       </TitleBar>

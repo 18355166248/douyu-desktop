@@ -40,3 +40,11 @@ export interface TaskProgressEvent {
   total: number;
   message: string;
 }
+
+export interface TaskRunSnapshot {
+  taskId: string;
+  startedAt: number;
+  running: boolean;
+  progress: TaskProgressEvent | null;
+  result: TaskRunResult | null;
+}
