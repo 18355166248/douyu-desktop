@@ -1270,22 +1270,6 @@
   }
 }
 
-.statusbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding-top: 12px;
-  color: var(--dim);
-  font-size: 10px;
-}
-
-.statusbar span {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-
 .task-modal-backdrop {
   position: fixed;
   z-index: 200;

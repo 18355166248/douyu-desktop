@@ -278,25 +278,6 @@ export function App(): React.JSX.Element {
               )}
             </div>
           </div>
-
-          <footer className="statusbar">
-            <span>
-              <i
-                className={`status-dot ${
-                  activeAccount ? (activeAccount.status === 'active' ? 'active' : 'expired') : ''
-                }`}
-              />
-              {activeAccount
-                ? `账号 ${activeAccount.nickname}${
-                    activeAccount.status === 'active' ? '' : ' · 登录过期'
-                  }`
-                : '未登录斗鱼'}
-            </span>
-            <span>
-              {streams.length > 0 ? `${streams.length} / ${MAX_STREAMS} 路 · 多路同屏` : '等待播放'}
-            </span>
-            <span>P2 · 多路 + 弹幕</span>
-          </footer>
         </main>
       </div>
 

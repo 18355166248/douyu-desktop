@@ -1,6 +1,6 @@
 {
   "name": "douyu-desktop",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "private": true,
   "description": "Multi-room Douyu desktop client with danmaku and task center",
   "author": "douyu-desktop",
