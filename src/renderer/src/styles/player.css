@@ -260,7 +260,9 @@
 }
 
 .volume-range {
-  width: 64px;
+  flex: 0 0 96px;
+  width: 96px;
+  min-width: 96px;
   height: 16px;
   margin: 0;
   accent-color: var(--accent);
@@ -797,7 +799,9 @@
 }
 
 .player-card.is-compact .volume-range {
-  width: 30px;
+  flex-basis: 72px;
+  width: 72px;
+  min-width: 72px;
 }
 
 .player-card.is-compact .video-sound,
