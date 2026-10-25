@@ -25,6 +25,7 @@ interface PlayerTileProps {
   onToggleMute: () => void;
   onVolumeChange: (volume: number) => void;
   onOpenDanmakuSettings: () => void;
+  onToggleImmersive: () => void;
 }
 
 export function PlayerTile({
@@ -45,6 +46,7 @@ export function PlayerTile({
   onToggleMute,
   onVolumeChange,
   onOpenDanmakuSettings,
+  onToggleImmersive,
 }: PlayerTileProps): React.JSX.Element {
   const queryClient = useQueryClient();
   const anchorName = playback.anchorName?.trim() || `${platformLabel(playback.platform)}主播`;
@@ -130,11 +132,13 @@ export function PlayerTile({
         preferHls={preferHls}
         isReloading={isReloading}
         shortcutsEnabled={shortcutsEnabled}
+        immersive={immersive}
         onReload={reloadPlaybackAndAudience}
         onToggleMute={onToggleMute}
         onVolumeChange={onVolumeChange}
         onOptionsChange={onOptionsChange}
         onOpenDanmakuSettings={onOpenDanmakuSettings}
+        onToggleImmersive={onToggleImmersive}
         onStop={onStop}
       />
 

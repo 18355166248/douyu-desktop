@@ -99,6 +99,7 @@ export function App(): React.JSX.Element {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent): void {
       if (event.key === 'Escape') {
+        if (document.querySelector('.room-context-menu')) return;
         setImmersive(false);
         return;
       }
@@ -187,6 +188,14 @@ export function App(): React.JSX.Element {
     setTaskOpen(false);
     setDanmakuSettingsOpen(false);
     setImmersive(true);
+  }
+
+  function toggleImmersive(): void {
+    if (isImmersive) {
+      setImmersive(false);
+      return;
+    }
+    enterImmersive();
   }
 
   function handleStreamOptionsChange(key: string, patch: Partial<StreamResolveOptions>): void {
@@ -347,6 +356,7 @@ export function App(): React.JSX.Element {
                   onToggleMute={toggleMute}
                   onVolumeChange={setVolume}
                   onOpenDanmakuSettings={() => setDanmakuSettingsOpen(true)}
+                  onToggleImmersive={toggleImmersive}
                   onRequestAdd={focusRoomInput}
                 />
               )}

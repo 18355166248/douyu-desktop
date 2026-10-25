@@ -18,6 +18,7 @@ interface StreamGridProps {
   onToggleMute: (key: string) => void;
   onVolumeChange: (key: string, volume: number) => void;
   onOpenDanmakuSettings: () => void;
+  onToggleImmersive: () => void;
   onRequestAdd: () => void;
 }
 
@@ -33,6 +34,7 @@ export function StreamGrid({
   onToggleMute,
   onVolumeChange,
   onOpenDanmakuSettings,
+  onToggleImmersive,
   onRequestAdd,
 }: StreamGridProps): React.JSX.Element {
   const [activeKey, setActiveKey] = useState<string | null>(null);
@@ -69,6 +71,7 @@ export function StreamGrid({
             onToggleMute={() => onToggleMute(key)}
             onVolumeChange={(volume) => onVolumeChange(key, volume)}
             onOpenDanmakuSettings={onOpenDanmakuSettings}
+            onToggleImmersive={onToggleImmersive}
           />
         );
       })}
