@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, screen } from 'electron';
 import { JsonAccountStore } from './adapters/storage/JsonAccountStore';
 import { JsonRoomHistoryStore } from './adapters/storage/JsonRoomHistoryStore';
 import { JsonLogger } from './adapters/electron/JsonLogger';
@@ -14,20 +14,61 @@ import { TaskService } from './services/TaskService';
 import { LegacyDevHistoryMigration } from './services/LegacyDevHistoryMigration';
 import { registerIpcHandlers } from './ipc';
 import { createMainWindow } from './window';
+import type { CreateMainWindowOptions } from './window';
+import { chooseNewWindowBounds } from './windowPlacement';
 
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
+const MAX_APP_WINDOWS = 4;
+const appWindows = new Set<BrowserWindow>();
 let mainWindow: BrowserWindow | null = null;
 let hasCreatedMainWindow = false;
+
+function createAppWindow(options: CreateMainWindowOptions = {}): BrowserWindow {
+  const window = createMainWindow(options);
+  appWindows.add(window);
+  window.on('closed', () => appWindows.delete(window));
+  return window;
+}
+
+function openSecondaryWindow(source: BrowserWindow | null): void {
+  for (const window of appWindows) {
+    if (window.isDestroyed()) appWindows.delete(window);
+  }
+  if (appWindows.size >= MAX_APP_WINDOWS) {
+    source?.focus();
+    return;
+  }
+
+  const displays = screen.getAllDisplays();
+  const occupied = [...appWindows]
+    .filter((window) => !window.isDestroyed())
+    .map((window) => screen.getDisplayMatching(window.getBounds()).id);
+  const sourceDisplayId =
+    source && !source.isDestroyed() ? screen.getDisplayMatching(source.getBounds()).id : undefined;
+  const bounds = chooseNewWindowBounds(displays, occupied, sourceDisplayId);
+  const options: CreateMainWindowOptions = {
+    secondary: true,
+    title: '斗鱼多屏 · 副屏',
+  };
+  if (bounds) options.bounds = bounds;
+
+  const window = createAppWindow(options);
+  window.once('ready-to-show', () => window.focus());
+}
 
 const hasLock = app.requestSingleInstanceLock();
 if (!hasLock) {
   app.quit();
 } else {
   app.on('second-instance', () => {
-    if (!mainWindow) return;
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.focus();
+    const target =
+      mainWindow && !mainWindow.isDestroyed()
+        ? mainWindow
+        : [...appWindows].find((window) => !window.isDestroyed());
+    if (!target) return;
+    if (target.isMinimized()) target.restore();
+    target.focus();
   });
 
   app
@@ -68,17 +109,18 @@ if (!hasLock) {
         history,
         douyuDanmaku,
         huyaDanmaku,
+        createWindow: (source) => openSecondaryWindow(source),
       });
 
-      mainWindow = createMainWindow();
+      mainWindow = createAppWindow();
       hasCreatedMainWindow = true;
       mainWindow.on('closed', () => {
         mainWindow = null;
       });
 
       app.on('activate', () => {
-        if (BrowserWindow.getAllWindows().length === 0) {
-          mainWindow = createMainWindow();
+        if (appWindows.size === 0) {
+          mainWindow = createAppWindow();
           mainWindow.on('closed', () => {
             mainWindow = null;
           });

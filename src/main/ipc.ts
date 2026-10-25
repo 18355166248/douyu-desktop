@@ -1,6 +1,7 @@
 import { BrowserWindow, ipcMain, shell } from 'electron';
 import { z } from 'zod';
 import { IPC } from '@shared/contracts/ipc';
+import { MAX_ROOM_HISTORY } from '@shared/contracts/history';
 import type { AppErrorPayload, Result } from '@shared/contracts/result';
 import { fail, ok } from '@shared/contracts/result';
 import { AppError, toAppError } from '@core/errors';
@@ -36,6 +37,16 @@ const accountIdSchema = z.string().min(1);
 const platformLoginSchema = z.enum(['bilibili', 'huya']);
 const huyaRoomIdSchema = z.string().trim().min(1).max(32);
 const huyaSubscriptionSchema = z.string().uuid();
+const historyKeysSchema = z
+  .array(
+    z
+      .string()
+      .trim()
+      .min(1)
+      .max(80)
+      .regex(/^(douyu|bilibili|huya):.+$/),
+  )
+  .max(MAX_ROOM_HISTORY);
 
 function toPayload(error: unknown): AppErrorPayload {
   if (error instanceof z.ZodError) {
@@ -81,6 +92,7 @@ export interface IpcServices {
   history: JsonRoomHistoryStore;
   douyuDanmaku: DouyuDanmakuSession;
   huyaDanmaku: HuyaDanmakuSession;
+  createWindow?: (source: BrowserWindow | null) => void;
 }
 
 export function registerIpcHandlers(services: IpcServices): void {
@@ -92,6 +104,10 @@ export function registerIpcHandlers(services: IpcServices): void {
 
   ipcMain.on(IPC.windowClose, (event) => {
     BrowserWindow.fromWebContents(event.sender)?.close();
+  });
+
+  ipcMain.on(IPC.windowOpenNew, (event) => {
+    services.createWindow?.(BrowserWindow.fromWebContents(event.sender));
   });
 
   ipcMain.handle(IPC.windowToggleMaximize, (event) => {
@@ -161,8 +177,29 @@ export function registerIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle(IPC.historyLoad, () => respond(() => history.load()));
 
-  ipcMain.handle(IPC.historySave, (_event, rawEntries: unknown) =>
-    respond(() => history.save(rawEntries)),
+  ipcMain.handle(IPC.historyMerge, (_event, rawEntries: unknown) =>
+    respond(async () => {
+      const entries = await history.merge(rawEntries);
+      broadcast(IPC.historyChanged, entries);
+      return entries;
+    }),
+  );
+
+  ipcMain.handle(IPC.historyRemove, (_event, rawKeys: unknown) =>
+    respond(async () => {
+      const keys = historyKeysSchema.parse(rawKeys);
+      const entries = await history.remove(keys);
+      broadcast(IPC.historyChanged, entries);
+      return entries;
+    }),
+  );
+
+  ipcMain.handle(IPC.historyClear, () =>
+    respond(async () => {
+      const entries = await history.clear();
+      broadcast(IPC.historyChanged, entries);
+      return entries;
+    }),
   );
 
   ipcMain.handle(IPC.streamsAudience, (_event, rawInput: unknown) =>

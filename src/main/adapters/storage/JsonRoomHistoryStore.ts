@@ -47,8 +47,15 @@ function isMissingFile(error: unknown): boolean {
  */
 export class JsonRoomHistoryStore {
   private writeQueue: Promise<void> = Promise.resolve();
+  private mutationQueue: Promise<unknown> = Promise.resolve();
 
   constructor(private readonly filePath: string) {}
+
+  private enqueueMutation<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.mutationQueue.then(operation, operation);
+    this.mutationQueue = result.catch(() => undefined);
+    return result;
+  }
 
   async load(): Promise<RoomHistoryEntry[]> {
     await this.writeQueue;
@@ -83,8 +90,24 @@ export class JsonRoomHistoryStore {
    * packaged builds cannot read through localStorage.
    */
   async merge(rawEntries: unknown): Promise<RoomHistoryEntry[]> {
-    const existing = await this.load();
-    const incoming = normalize(roomHistoryEntriesSchema.parse(rawEntries));
-    return this.save(normalize([...existing, ...incoming]));
+    return this.enqueueMutation(async () => {
+      const existing = await this.load();
+      const incoming = normalize(roomHistoryEntriesSchema.parse(rawEntries));
+      return this.save(normalize([...existing, ...incoming]));
+    });
+  }
+
+  async remove(keys: readonly string[]): Promise<RoomHistoryEntry[]> {
+    const removeKeys = new Set(keys);
+    return this.enqueueMutation(async () => {
+      const existing = await this.load();
+      return this.save(
+        existing.filter((entry) => !removeKeys.has(`${entry.platform}:${entry.roomId}`)),
+      );
+    });
+  }
+
+  async clear(): Promise<RoomHistoryEntry[]> {
+    return this.enqueueMutation(() => this.save([]));
   }
 }

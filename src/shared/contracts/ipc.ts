@@ -28,7 +28,10 @@ export interface DesktopApi {
   };
   history: {
     load(): Promise<Result<RoomHistoryEntry[]>>;
-    save(entries: RoomHistoryEntry[]): Promise<Result<RoomHistoryEntry[]>>;
+    merge(entries: RoomHistoryEntry[]): Promise<Result<RoomHistoryEntry[]>>;
+    remove(keys: string[]): Promise<Result<RoomHistoryEntry[]>>;
+    clear(): Promise<Result<RoomHistoryEntry[]>>;
+    onChange(listener: (entries: RoomHistoryEntry[]) => void): () => void;
   };
   streams: {
     resolve(input: ResolveStreamInput): Promise<Result<StreamPlayback>>;
@@ -56,6 +59,7 @@ export interface DesktopApi {
     toggleMaximize(): Promise<boolean>;
     close(): void;
     isMaximized(): Promise<boolean>;
+    openNew(): void;
     onMaximizedChange(listener: (maximized: boolean) => void): () => void;
   };
 }
@@ -70,7 +74,10 @@ export const IPC = {
   platformsLogin: 'platforms:login',
   platformsLogout: 'platforms:logout',
   historyLoad: 'history:load',
-  historySave: 'history:save',
+  historyMerge: 'history:merge',
+  historyRemove: 'history:remove',
+  historyClear: 'history:clear',
+  historyChanged: 'history:changed',
   streamsResolve: 'streams:resolve',
   streamsAudience: 'streams:audience',
   danmakuBilibiliConfig: 'danmaku:bilibili-config',
@@ -88,5 +95,6 @@ export const IPC = {
   windowToggleMaximize: 'window:toggle-maximize',
   windowClose: 'window:close',
   windowIsMaximized: 'window:is-maximized',
+  windowOpenNew: 'window:open-new',
   windowMaximizedChange: 'window:maximized-change',
 } as const;

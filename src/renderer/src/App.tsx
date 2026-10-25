@@ -28,6 +28,7 @@ function roomPlaceholder(platform: StreamPlatform): string {
 }
 
 const IMMERSIVE_EXIT_HIDE_MS = 4000;
+const isSecondaryWindow = new URLSearchParams(window.location.search).get('role') === 'secondary';
 
 export function App(): React.JSX.Element {
   const { activeAccount } = useAccounts();
@@ -98,6 +99,17 @@ export function App(): React.JSX.Element {
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent): void {
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        !event.altKey &&
+        !event.shiftKey &&
+        !event.repeat &&
+        event.key.toLowerCase() === 'n'
+      ) {
+        event.preventDefault();
+        window.api.window.openNew();
+        return;
+      }
       if (event.key === 'Escape') {
         if (document.querySelector('.room-context-menu')) return;
         setImmersive(false);
@@ -227,11 +239,14 @@ export function App(): React.JSX.Element {
       onPointerLeave={hideImmersiveExit}
       onPointerMove={isImmersive ? showImmersiveExit : undefined}
     >
-      <AutoSignRunner account={activeAccount} />
+      {isSecondaryWindow ? null : <AutoSignRunner account={activeAccount} />}
       <TitleBar>
-        <div className="titlebar-tab" aria-label={`直播工作台，当前 ${streams.length} 路`}>
+        <div
+          className="titlebar-tab"
+          aria-label={`${isSecondaryWindow ? '副屏' : '直播'}工作台，当前 ${streams.length} 路`}
+        >
           <Icon name="live" size={14} />
-          <strong>直播</strong>
+          <strong>{isSecondaryWindow ? '副屏' : '直播'}</strong>
           <span className="titlebar-count">
             {streams.length}/{MAX_STREAMS}
           </span>
@@ -302,6 +317,17 @@ export function App(): React.JSX.Element {
             </button>
           ) : null}
         </form>
+
+        <button
+          type="button"
+          className="titlebar-new-window"
+          onClick={() => window.api.window.openNew()}
+          title="新建副屏窗口（Ctrl+N）"
+          aria-label="新建副屏窗口"
+          aria-keyshortcuts="Control+N"
+        >
+          <Icon name="grid" size={14} />
+        </button>
 
         {streams.length > 0 ? (
           <button

@@ -26,11 +26,13 @@ const entry: RoomHistoryEntry = {
 };
 
 describe('room history IPC', () => {
-  const history = { load: vi.fn(), save: vi.fn() };
+  const history = { load: vi.fn(), merge: vi.fn(), remove: vi.fn(), clear: vi.fn() };
 
   beforeEach(() => {
     history.load.mockReset();
-    history.save.mockReset();
+    history.merge.mockReset();
+    history.remove.mockReset();
+    history.clear.mockReset();
     electron.handlers.clear();
     registerIpcHandlers({ history } as unknown as IpcServices);
   });
@@ -44,13 +46,40 @@ describe('room history IPC', () => {
     });
   });
 
-  it('passes renderer history through to the global store and returns normalized data', async () => {
-    history.save.mockResolvedValue([entry]);
+  it('merges renderer history through the global store and returns normalized data', async () => {
+    history.merge.mockResolvedValue([entry]);
 
-    expect(await electron.handlers.get(IPC.historySave)?.(null, [entry])).toEqual({
+    expect(await electron.handlers.get(IPC.historyMerge)?.(null, [entry])).toEqual({
       ok: true,
       data: [entry],
     });
-    expect(history.save).toHaveBeenCalledWith([entry]);
+    expect(history.merge).toHaveBeenCalledWith([entry]);
+  });
+
+  it('removes validated room keys through the global store', async () => {
+    history.remove.mockResolvedValue([]);
+
+    expect(await electron.handlers.get(IPC.historyRemove)?.(null, ['douyu:111'])).toEqual({
+      ok: true,
+      data: [],
+    });
+    expect(history.remove).toHaveBeenCalledWith(['douyu:111']);
+  });
+
+  it('rejects malformed history keys before touching the store', async () => {
+    expect(await electron.handlers.get(IPC.historyRemove)?.(null, ['111'])).toMatchObject({
+      ok: false,
+      error: { code: 'INVALID_INPUT' },
+    });
+    expect(history.remove).not.toHaveBeenCalled();
+  });
+
+  it('clears the global history', async () => {
+    history.clear.mockResolvedValue([]);
+
+    expect(await electron.handlers.get(IPC.historyClear)?.(null, undefined)).toEqual({
+      ok: true,
+      data: [],
+    });
   });
 });

@@ -314,6 +314,36 @@
   color: #ffc3a6;
 }
 
+.titlebar-new-window {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgb(20 27 34 / 70%);
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease,
+    color 120ms ease;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-new-window:hover {
+  border-color: rgb(255 107 53 / 38%);
+  background: rgb(255 107 53 / 9%);
+  color: #ffc3a6;
+}
+
+.titlebar-new-window:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .titlebar-task:hover,
 .titlebar-task.is-active {
   border-color: rgb(255 107 53 / 38%);

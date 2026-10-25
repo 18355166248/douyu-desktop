@@ -1,12 +1,18 @@
 import { join } from 'node:path';
 import { BrowserWindow, shell } from 'electron';
+import type { Rectangle } from 'electron';
 import { IPC } from '@shared/contracts/ipc';
 import { isAllowedExternalUrl } from './constants';
 
-export function createMainWindow(): BrowserWindow {
+export interface CreateMainWindowOptions {
+  bounds?: Rectangle;
+  secondary?: boolean;
+  title?: string;
+}
+
+export function createMainWindow(options: CreateMainWindowOptions = {}): BrowserWindow {
   const window = new BrowserWindow({
-    width: 1440,
-    height: 900,
+    ...(options.bounds ?? { width: 1440, height: 900 }),
     minWidth: 1100,
     minHeight: 700,
     show: false,
@@ -15,7 +21,7 @@ export function createMainWindow(): BrowserWindow {
     hasShadow: true,
     autoHideMenuBar: true,
     backgroundColor: '#0b0d10',
-    title: '斗鱼多屏',
+    title: options.title ?? '斗鱼多屏',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true,
@@ -50,8 +56,15 @@ export function createMainWindow(): BrowserWindow {
   });
 
   const devUrl = process.env.ELECTRON_RENDERER_URL;
-  if (devUrl) void window.loadURL(devUrl);
-  else void window.loadFile(join(__dirname, '../renderer/index.html'));
+  if (devUrl) {
+    const url = new URL(devUrl);
+    if (options.secondary) url.searchParams.set('role', 'secondary');
+    void window.loadURL(url.toString());
+  } else {
+    const file = join(__dirname, '../renderer/index.html');
+    if (options.secondary) void window.loadFile(file, { query: { role: 'secondary' } });
+    else void window.loadFile(file);
+  }
 
   return window;
 }

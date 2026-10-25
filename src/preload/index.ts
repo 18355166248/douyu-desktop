@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import { IPC } from '@shared/contracts/ipc';
 import type { DesktopApi } from '@shared/contracts/ipc';
 import type { HuyaDanmakuUpdate } from '@shared/contracts/danmaku';
+import type { RoomHistoryEntry } from '@shared/contracts/history';
 import type { TaskProgressEvent, TaskRunSnapshot } from '@shared/contracts/task';
 
 const api: DesktopApi = {
@@ -19,7 +20,18 @@ const api: DesktopApi = {
   },
   history: {
     load: () => ipcRenderer.invoke(IPC.historyLoad),
-    save: (entries) => ipcRenderer.invoke(IPC.historySave, entries),
+    merge: (entries) => ipcRenderer.invoke(IPC.historyMerge, entries),
+    remove: (keys) => ipcRenderer.invoke(IPC.historyRemove, keys),
+    clear: () => ipcRenderer.invoke(IPC.historyClear),
+    onChange: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, entries: RoomHistoryEntry[]): void => {
+        listener(entries);
+      };
+      ipcRenderer.on(IPC.historyChanged, handler);
+      return () => {
+        ipcRenderer.removeListener(IPC.historyChanged, handler);
+      };
+    },
   },
   streams: {
     resolve: (input) => ipcRenderer.invoke(IPC.streamsResolve, input),
@@ -71,6 +83,7 @@ const api: DesktopApi = {
     toggleMaximize: () => ipcRenderer.invoke(IPC.windowToggleMaximize),
     close: () => ipcRenderer.send(IPC.windowClose),
     isMaximized: () => ipcRenderer.invoke(IPC.windowIsMaximized),
+    openNew: () => ipcRenderer.send(IPC.windowOpenNew),
     onMaximizedChange: (listener) => {
       const handler = (_event: Electron.IpcRendererEvent, maximized: boolean): void => {
         listener(maximized);

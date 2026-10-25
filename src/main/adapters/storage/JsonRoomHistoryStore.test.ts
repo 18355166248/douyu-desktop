@@ -81,6 +81,32 @@ describe('JsonRoomHistoryStore', () => {
     expect(merged[0]?.roomId).toBe('60');
   });
 
+  it('serializes concurrent merges so neither window loses an entry', async () => {
+    const store = new JsonRoomHistoryStore(historyPath);
+
+    await Promise.all([store.merge([entry('111', 10)]), store.merge([entry('222', 20)])]);
+
+    await expect(store.load()).resolves.toEqual([entry('222', 20), entry('111', 10)]);
+  });
+
+  it('removes only the requested room keys', async () => {
+    const store = new JsonRoomHistoryStore(historyPath);
+    await store.save([entry('111', 10), entry('222', 20)]);
+
+    const remaining = await store.remove(['douyu:111']);
+
+    expect(remaining.map((item) => item.roomId)).toEqual(['222']);
+    await expect(new JsonRoomHistoryStore(historyPath).load()).resolves.toEqual(remaining);
+  });
+
+  it('clears the global history', async () => {
+    const store = new JsonRoomHistoryStore(historyPath);
+    await store.save([entry('111', 10)]);
+
+    await expect(store.clear()).resolves.toEqual([]);
+    await expect(new JsonRoomHistoryStore(historyPath).load()).resolves.toEqual([]);
+  });
+
   it('rejects a renderer list larger than the shared maximum', async () => {
     const store = new JsonRoomHistoryStore(historyPath);
 

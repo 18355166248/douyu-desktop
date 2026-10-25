@@ -68,6 +68,7 @@ npm run package
 
 - [x] 深色桌面壳 + 单路播放器
 - [x] 无边框窗口 + 自绘顶栏：品牌、房间输入/添加/历史/清空、签到入口、账号登录、最小化/最大化/关闭
+- [x] 双屏：标题栏副屏按钮或 `Ctrl+N` 新建独立窗口；检测到第二块屏幕时自动铺到副屏工作区，两个窗口可各自添加最多 4 路直播；副屏不重复执行自动签到，历史通过 main 广播跨窗口同步
 - [x] 顶部单行操作栏：房间号、历史、登录和签到都在 44px 自绘顶栏内，不再占用直播区
 - [x] 房间输入固定 220px，不再拉满顶栏；其余空间留给窗口拖拽和右侧账号/窗口按钮
 - [x] 不再保留左侧导航、右侧任务栏和底部状态栏，播放区铺满窗口；账号状态在顶栏，路数在“直播”页签，签到改为顶栏入口打开的居中弹窗
@@ -133,7 +134,7 @@ npm run package
 - 历史卡片左侧为平台徽标（本地官方 favicon：斗鱼鱼形、B站 TV、虎牙虎形，来源见 [assets/platforms/README.md](src/renderer/src/assets/platforms/README.md)），整行垂直居中；主播名 13.5px 橙色、标题 15.5px 白色、房间号和时间 10.5px
 - 历史支持单条删除、管理多选（全选/删除 N）、全部清空；清空需二次确认，3 秒未确认自动回退
 - 桌面端默认禁止选中界面文本（顶栏、按钮、历史、弹幕和播放覆盖层）；房间/任务输入框仍可编辑和选中；错误提示通过 `.selectable` 保留复制排障能力
-- 历史保存在用户主目录的全局文件 `%USERPROFILE%\.douyu-desktop\room-history.json`（非安装目录、非 Electron userData），按 `${platform}:${roomId}` 去重，最多保留 30 条；首次启动会把旧 `localStorage`（v2/v1）和开发模式 `http://localhost:5173` 的历史合并进全局文件，成功后再清除本地副本；旧 v1 记录自动迁移；点击外部或 Esc 关闭
+- 历史保存在用户主目录的全局文件 `%USERPROFILE%\.douyu-desktop\room-history.json`（非安装目录、非 Electron userData），按 `${platform}:${roomId}` 去重，最多保留 30 条；首次启动会把旧 `localStorage`（v2/v1）和开发模式 `http://localhost:5173` 的历史合并进全局文件，成功后再清除本地副本；旧 v1 记录自动迁移；多窗口通过 main 广播同步；点击外部或 Esc 关闭
 - 顶栏“签到”打开居中任务弹窗，不再占用右侧列；弹窗支持关闭按钮、点击遮罩或 Esc 关闭
 - 签到默认在每天首次启动后自动在后台跑一次；成功/部分完成/跳过会记录当天，同账号当天不再自动重复，失败下次启动可重试；可在弹窗内关闭“每天自动签到”，设置写入 `localStorage`（`douyu-desktop.auto-sign.v1`）
 - 手动或自动签到都在独立后台任务里运行；关闭签到面板、切换直播、最小化应用都不会中断，顶栏按钮实时显示“签到 x/y”和“已签到/部分失败”
@@ -242,7 +243,7 @@ renderer → 匿名弹幕 WebSocket（斗鱼设备 Cookie / B 站 token 由 main
 - 弹幕协议编解码在 `shared/douyu` 和 `shared/bilibili`，纯函数、可单测，供 renderer 复用
 - 弹幕飞行引擎、过滤规则、轨道布局在 `renderer/features/danmaku`；布局和过滤是纯函数
 - 弹幕设置通过 Context 全局共享，持久化在 renderer `localStorage`，不进入 main/IPC
-- 房间历史通过 main 的 `JsonRoomHistoryStore` 写入用户主目录全局 JSON；renderer 只通过 `history:load` / `history:save` IPC 读写，首次启动合并旧 `localStorage`
+- 房间历史通过 main 的 `JsonRoomHistoryStore` 写入用户主目录全局 JSON；renderer 只通过 `history:load` / `history:merge` / `history:remove` / `history:clear` IPC 读写；main 串行化读改写，并在变更后广播 `history:changed`，多窗口不会用旧快照互相覆盖
 - 开发模式的历史 origin 是 `http://localhost:5173`，打包版是 `file://`，两者 localStorage 不互通；main 在首次启动用临时隐藏页读取开发 origin，并写入一次性迁移标记
 - Cookie、`dyToken`、CSRF 只在 main；renderer 只拿 `AccountSummary` / `PlatformLoginStatus`；斗鱼弹幕设备 Cookie 由 main 注入，B 站弹幕只下发 token
 - B 站/虎牙登录分区由 main 持有；renderer 只能触发登录/退出并读取昵称、头像和登录状态，不接触 Cookie
