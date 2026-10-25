@@ -9,7 +9,7 @@ function initialOf(name: string): string {
   return name.trim().slice(0, 1) || '斗';
 }
 
-function AccountAvatar({
+export function AccountAvatar({
   nickname,
   avatarUrl,
   small = false,

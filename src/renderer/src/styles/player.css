@@ -300,6 +300,14 @@
   margin-left: auto;
 }
 
+.video-login-hint {
+  color: #ffbd8a;
+  font-size: 9px;
+  font-weight: 650;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 55%);
+}
+
 .video-select-wrap {
   display: flex;
   min-width: 0;
@@ -845,6 +853,10 @@
   height: 24px;
   padding: 0 5px;
   font-size: 8px;
+}
+
+.player-card.is-compact .video-login-hint {
+  display: none;
 }
 
 .player-card.is-compact .video-pause-button {

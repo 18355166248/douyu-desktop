@@ -3,6 +3,7 @@ import Hls from 'hls.js';
 import mpegts from 'mpegts.js';
 import type { StreamPlayback, StreamQuality } from '@shared/contracts/stream';
 import { Icon } from '../../components/Icon';
+import { usePlatformLoginStatus } from '../accounts/usePlatformLogin';
 import { DanmakuOverlay } from '../danmaku/DanmakuOverlay';
 import { useDanmakuSettings } from '../danmaku/DanmakuSettingsContext';
 import { qualityOptionsFor } from './streamQuality';
@@ -47,6 +48,9 @@ export function VideoPlayer({
   const { settings, update } = useDanmakuSettings();
   const stall = useStreamStall(videoRef, isReady && !error && !isReloading);
   const qualityOptions = qualityOptionsFor(playback.platform);
+  const bilibiliLogin = usePlatformLoginStatus('bilibili', playback.platform === 'bilibili');
+  const needsBilibiliLogin =
+    playback.platform === 'bilibili' && bilibiliLogin.data?.loggedIn === false;
 
   useEffect(() => {
     const video = videoRef.current;
@@ -335,7 +339,11 @@ export function VideoPlayer({
               onChange={(event) => onOptionsChange({ quality: event.target.value as StreamQuality })}
               disabled={isReloading}
               aria-label="画质"
-              title="切换画质并重新解析"
+              title={
+                needsBilibiliLogin
+                  ? 'B站高画质需要登录，请点右上角登录'
+                  : '切换画质并重新解析'
+              }
             >
               {qualityOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -344,6 +352,11 @@ export function VideoPlayer({
               ))}
             </select>
           </label>
+          {needsBilibiliLogin ? (
+            <span className="video-login-hint" title="点击右上角登录 B 站">
+              登录解锁高画质
+            </span>
+          ) : null}
           <button
             type="button"
             className={`video-hls${preferHls ? ' is-on' : ''}`}

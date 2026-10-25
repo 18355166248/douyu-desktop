@@ -6,6 +6,7 @@ import { configureMediaCors } from './mediaCors';
 import { AccountSessionManager } from './services/AccountSessionManager';
 import { DouyuAuthService } from './services/DouyuAuthService';
 import { DouyuDanmakuSession } from './services/DouyuDanmakuSession';
+import { PlatformLoginManager } from './services/PlatformLoginManager';
 import { StreamService } from './services/StreamService';
 import { TaskService } from './services/TaskService';
 import { registerIpcHandlers } from './ipc';
@@ -35,11 +36,12 @@ if (!hasLock) {
       const store = new JsonAccountStore(join(app.getPath('userData'), 'accounts.json'));
       const auth = new DouyuAuthService();
       const accounts = new AccountSessionManager(store, auth, () => mainWindow);
-      const streams = new StreamService();
+      const platforms = new PlatformLoginManager(() => mainWindow);
+      const streams = new StreamService(platforms);
       const tasks = new TaskService(accounts, logger);
       const douyuDanmaku = new DouyuDanmakuSession();
 
-      registerIpcHandlers({ accounts, streams, tasks, douyuDanmaku });
+      registerIpcHandlers({ accounts, platforms, streams, tasks, douyuDanmaku });
 
       mainWindow = createMainWindow();
       mainWindow.on('closed', () => {

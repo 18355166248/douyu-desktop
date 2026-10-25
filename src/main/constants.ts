@@ -3,7 +3,7 @@ const chromeMajor = process.versions.chrome?.split('.')[0] ?? '131';
 export const CHROME_UA = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajor}.0.0.0 Safari/537.36`;
 
 export const DOUYU_ORIGIN = 'https://www.douyu.com';
-export const DOUYU_LOGIN_URL = `${DOUYU_ORIGIN}/`;
+export const DOUYU_LOGIN_URL = `${DOUYU_ORIGIN}/member/login`;
 
 export function isDouyuUrl(value: string): boolean {
   try {

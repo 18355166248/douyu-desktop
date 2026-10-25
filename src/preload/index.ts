@@ -11,6 +11,11 @@ const api: DesktopApi = {
     logout: (accountId) => ipcRenderer.invoke(IPC.accountsLogout, accountId),
     health: (accountId) => ipcRenderer.invoke(IPC.accountsHealth, accountId),
   },
+  platforms: {
+    status: (platform) => ipcRenderer.invoke(IPC.platformsStatus, platform),
+    login: (platform) => ipcRenderer.invoke(IPC.platformsLogin, platform),
+    logout: (platform) => ipcRenderer.invoke(IPC.platformsLogout, platform),
+  },
   streams: {
     resolve: (input) => ipcRenderer.invoke(IPC.streamsResolve, input),
   },

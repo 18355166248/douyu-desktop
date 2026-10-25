@@ -697,6 +697,18 @@
   text-transform: uppercase;
 }
 
+.platform-login-note {
+  margin: 0;
+  padding: 0 8px 8px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.platform-login-note.is-warning {
+  color: #ffbd8a;
+}
+
 .account-row {
   display: flex;
   align-items: center;

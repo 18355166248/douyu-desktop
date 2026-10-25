@@ -4,6 +4,7 @@ import { Icon } from './components/Icon';
 import { PlatformPicker } from './components/PlatformPicker';
 import { TitleBar } from './components/TitleBar';
 import { AccountBar } from './features/accounts/AccountBar';
+import { PlatformLoginBar } from './features/accounts/PlatformLoginBar';
 import { useAccounts } from './features/accounts/useAccounts';
 import { DanmakuSettingsPanel } from './features/danmaku/DanmakuSettingsPanel';
 import { RoomHistoryPanel } from './features/history/RoomHistoryPanel';
@@ -21,6 +22,7 @@ import { TaskPanel } from './features/tasks/TaskPanel';
 
 function roomPlaceholder(platform: StreamPlatform): string {
   if (platform === 'bilibili') return 'B站房间号，如 6';
+  if (platform === 'huya') return '虎牙房间号（播放适配中）';
   return '房间号，如 9999';
 }
 
@@ -110,9 +112,13 @@ export function App(): React.JSX.Element {
   }, [isTaskOpen]);
 
   const canAdd = canAddStream(streams.length);
-  const canSubmit = canAdd && roomId.trim().length > 0;
+  const canSubmit = canAdd && roomId.trim().length > 0 && platform !== 'huya';
 
   async function handleAdd(targetPlatform: StreamPlatform, targetRoomId: string): Promise<void> {
+    if (targetPlatform === 'huya') {
+      setError('虎牙播放仍在适配中，右上角可先登录保存账号状态。');
+      return;
+    }
     setError(null);
     const message = await addStream(
       {
@@ -165,12 +171,14 @@ export function App(): React.JSX.Element {
   }
 
   function addButtonLabel(): string {
+    if (platform === 'huya') return '适配中';
     if (isAdding) return '解析中…';
     if (!canAdd) return `已满 ${MAX_STREAMS} 路`;
     return streams.length > 0 ? '添加' : '播放';
   }
 
-  function addButtonIcon(): 'refresh' | 'plus' | 'play' {
+  function addButtonIcon(): 'refresh' | 'plus' | 'play' | 'alert' {
+    if (platform === 'huya') return 'alert';
     if (isAdding) return 'refresh';
     return streams.length > 0 ? 'plus' : 'play';
   }
@@ -236,6 +244,7 @@ export function App(): React.JSX.Element {
             type="submit"
             className="btn primary titlebar-add"
             disabled={isAdding || !canSubmit}
+            title={platform === 'huya' ? '虎牙播放适配中，可先登录保存账号状态' : undefined}
           >
             <Icon name={addButtonIcon()} size={15} />
             {addButtonLabel()}
@@ -255,9 +264,12 @@ export function App(): React.JSX.Element {
 
         <TaskButton open={isTaskOpen} onToggle={() => setTaskOpen((open) => !open)} />
 
-        <AccountBar compact />
-      </TitleBar>
-      <div className="app-shell">
+        {platform === 'douyu' ? (
+          <AccountBar compact />
+        ) : (
+          <PlatformLoginBar compact platform={platform} />
+        )}
+      </TitleBar>      <div className="app-shell">
         <main className="main">
           {error ? (
             <div className="alert" role="alert">

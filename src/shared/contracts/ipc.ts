@@ -1,5 +1,6 @@
 import type { AccountHealth, AccountSummary } from './account';
 import type { BilibiliDanmakuConfig, DouyuDanmakuConfig } from './danmaku';
+import type { GuidedPlatform, PlatformLoginStatus } from './platformLogin';
 import type { ResolveStreamInput, StreamPlayback } from './stream';
 import type { Result } from './result';
 import type { RunTaskInput, TaskDescriptor, TaskProgressEvent, TaskRunResult, TaskRunSnapshot } from './task';
@@ -11,6 +12,11 @@ export interface DesktopApi {
     switch(accountId: string): Promise<Result<void>>;
     logout(accountId: string): Promise<Result<void>>;
     health(accountId: string): Promise<Result<AccountHealth>>;
+  };
+  platforms: {
+    status(platform: GuidedPlatform): Promise<Result<PlatformLoginStatus>>;
+    login(platform: GuidedPlatform): Promise<Result<PlatformLoginStatus>>;
+    logout(platform: GuidedPlatform): Promise<Result<void>>;
   };
   streams: {
     resolve(input: ResolveStreamInput): Promise<Result<StreamPlayback>>;
@@ -44,6 +50,9 @@ export const IPC = {
   accountsSwitch: 'accounts:switch',
   accountsLogout: 'accounts:logout',
   accountsHealth: 'accounts:health',
+  platformsStatus: 'platforms:status',
+  platformsLogin: 'platforms:login',
+  platformsLogout: 'platforms:logout',
   streamsResolve: 'streams:resolve',
   danmakuBilibiliConfig: 'danmaku:bilibili-config',
   danmakuDouyuConfig: 'danmaku:douyu-config',

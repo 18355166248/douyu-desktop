@@ -31,6 +31,7 @@ export class SessionHttpClient implements HttpClient {
     try {
       const response = await this.session.fetch(request.url, {
         method: request.method ?? 'GET',
+        credentials: 'include',
         headers: {
           'User-Agent': this.userAgent,
           ...(request.headers ?? {}),

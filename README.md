@@ -1,8 +1,8 @@
 # 斗鱼多屏（douyu-desktop）
 
-Windows 桌面端多直播间客户端。当前是 **P2 多路播放 + P3 B 站接入**：斗鱼/B 站最多 4 路同屏、每路实时弹幕、单路重载/关闭、画质切换、房间签到。
+Windows 桌面端多直播间客户端。当前是 **P2 多路播放 + P3 B 站接入 + 平台登录引导**：斗鱼/B 站最多 4 路同屏、每路实时弹幕、单路重载/关闭、画质切换、房间签到。
 
-多平台评估见 [docs/platform-support.md](docs/platform-support.md)：B 站已落地；虎牙接口可解析，但 FLV 只返回短块、HLS 403，P4 暂不暴露入口。
+多平台评估见 [docs/platform-support.md](docs/platform-support.md)：B 站已落地；虎牙已接入独立扫码登录，但 FLV 只返回短块、HLS 403，P4 播放仍未暴露入口。
 
 ## 技术栈
 
@@ -48,7 +48,7 @@ npm run package       # NSIS 安装包
 npx electron-builder --win nsis --config.directories.output=release-nsis
 ```
 
-## 当前范围（P2 + P3）
+## 当前范围（P2 + P3 + 平台登录引导）
 
 - [x] 深色桌面壳 + 单路播放器
 - [x] 无边框窗口 + 自绘顶栏：品牌、房间输入/添加/历史/清空、签到入口、账号登录、最小化/最大化/关闭
@@ -61,7 +61,9 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - [x] 每路底部控制条：贴底显示，背景为从下到上逐渐透明的渐隐层；画面播放/暂停、音量、弹幕显示/暂停、画质、HLS、弹幕设置；默认隐藏，鼠标进入显示，离开或静止 4 秒收起
 - [x] 不再在每张卡片底部显示“已获取播放地址 / HTTP-FLV / 单路”状态行；画质和格式保留在卡片右上角标签，错误仍由卡片错误条提示
 - [x] 解析中/路数上限/重复房间/空输入的状态保护
-- [x] 斗鱼登录窗（独立 `persist:` 分区）
+- [x] 斗鱼登录窗（独立 `persist:` 分区），直接打开 `https://www.douyu.com/member/login` 扫码页，不再先落首页
+- [x] B 站/虎牙登录引导：独立持久分区；B 站保存 `SESSDATA`，虎牙直接打开 `https://aq.huya.com/p/udb_login.html` 扫码页并读取 `udb_uid`
+- [x] 平台账号区随顶部平台切换：斗鱼显示多账号管理，B 站/虎牙显示对应平台的登录/已登录状态；不会把 B 站登录态混进斗鱼账号列表
 - [x] 登录后尽力读取斗鱼昵称和头像：优先 `acf_nickname` Cookie 与 `/lapi/member/api/getInfo`，头像统一升级为 HTTPS；读取失败保留“斗鱼用户 UID”兜底
 - [x] 顶栏和账号菜单显示真实头像；远程头像加载失败时自动回退为首字头像，不出现破图
 - [x] 账号操作错误（含取消登录的“登录已取消”）在顶栏提示 4 秒后自动消失，不再常驻
@@ -69,10 +71,11 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - [x] 斗鱼 `getEncryption` + `getH5PlayV1` 流解析
 - [x] FLV/HLS 播放（HLS 不可用时自动回退 FLV）
 - [x] 房间标题/主播名补全（`betard`，失败不影响播放）
-- [x] 顶栏平台选择器：斗鱼 / B 站；房间按 `${platform}:${roomId}` 隔离；自绘深色下拉，12px 高对比文字，支持方向键、Esc、外部点击和 Tab 离开
+- [x] 顶栏平台选择器：斗鱼 / B 站 / 虎牙（虎牙当前仅开放登录，播放待 P4）；房间按 `${platform}:${roomId}` 隔离；自绘深色下拉，12px 高对比文字，支持方向键、Esc、外部点击和 Tab 离开
 - [x] B 站短号/真实房间号解析、开播状态、标题和主播名
 - [x] B 站 FLV/HLS 播放：main 补 Referer，HLS 优先选 ts/fmp4，FLV 优先 avc
 - [x] B 站画质 `80/150/250/400/10000`；匿名实际最高 250，UI 自动回写到实际画质
+- [x] B 站高画质登录引导：流解析改用 `persist:bilibili-login` 分区；已登录时 API 请求带 `SESSDATA`，未登录时画质下拉旁提示“登录解锁高画质”；弹幕 token 仍走匿名通道，不受登录态影响
 - [x] B 站实时弹幕：legacy `getConf` 取 token/host，op 7 认证、op 2 心跳、op 5 消息、zlib 解压
 - [x] B 站已解析 `DANMU_MSG`、`SEND_GIFT`、`INTERACT_WORD`、`SUPER_CHAT_MESSAGE`
 - [x] 每路斗鱼实时弹幕：聊天/进场/礼物、斗鱼颜色索引、粉丝牌、贵族/房管标识
@@ -89,7 +92,7 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - [x] 房间签到任务：后台单飞、每天自动一次（可关闭）、手动触发、dry-run、限速、逐房间结果
 - [x] typed preload + IPC `Result` 封装
 - [x] 房间访问历史：成功解析过的房间按最近访问时间倒序记录，可点击重新打开，localStorage 最多保留 30 条
-- [x] 边界检查脚本 + 73 个单测
+- [x] 边界检查脚本 + 80 个单测
 - [x] electron-builder Windows 打包配置
 
 ## 多路操作
@@ -148,12 +151,15 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 
 ## 已验证
 
-- `npm run check`：类型、ESLint、架构边界、73 个单测全部通过
+- `npm run check`：类型、ESLint、架构边界、80 个单测全部通过
 - `npm run build`：main / preload / renderer 生产构建通过
 - 斗鱼实时弹幕联调：`24422` 房间 20 秒收到 3 条 `chatmsg`，`subres` 正常，界面渲染 2 条；`wsproxy` 仅历史消息
 - B 站流解析联调：短号 `6` → 真实房间 `7734200`，FLV/HLS 均可取流，匿名画质回写为 `250`
+- 登录页联调：斗鱼 `member/login`、B 站 `passport.bilibili.com/login`、虎牙 `aq.huya.com/p/udb_login.html` 均直接返回登录/扫码页；虎牙不再落到 `www.huya.com` 首页
+- B 站登录状态接口联调：未登录请求 `/x/web-interface/nav` 返回 `code=-101 / isLogin=false`；登录窗口只有在同时看到 `SESSDATA` 且 `nav.isLogin=true` 时才把状态置为已登录
+- 平台登录隔离：B 站 `persist:bilibili-login`、虎牙 `persist:huya-login` 与斗鱼 `persist:douyu-account-*` 分开；B 站流解析读取 B 站分区，弹幕 token 保持匿名
 - B 站弹幕联调：legacy `getConf` 成功取到 token/host，WS 认证后解析 `DANMU_MSG`/`SEND_GIFT`/`INTERACT_WORD`
-- 虎牙验证：`mp.huya.com` 返回 FLV/HLS，但 FLV 每次只下发 0.2–0.5 秒短块，HLS 403，故 P4 暂不暴露 UI
+- 虎牙验证：`mp.huya.com` 返回 FLV/HLS，但 FLV 每次只下发 0.2–0.5 秒短块，HLS 403；登录扫码页 `aq.huya.com/p/udb_login.html` 已接入，播放按钮继续禁用
 - `node scripts/probe-douyu.mjs 9999`：真实斗鱼签名接口返回 FLV 地址；CDN 返回 `Access-Control-Allow-Origin: *`
 - `node scripts/probe-danmaku.mjs 9999`：真实斗鱼弹幕连接；12 秒收到 90 个包，含 `chatmsg`/`uenter`/`dgb`
 - `node --experimental-strip-types scripts/verify-danmaku.mjs 9999`：用应用自身的编解码器解析真实帧；10 秒解码出 22 条聊天、60 条进场、2 条礼物，真实消息带 `dms`
@@ -184,7 +190,7 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 
 ## 暂未做
 
-- 虎牙直播/弹幕（P4；FLV 短块 + HLS 403，待专用分块代理或 P2P 适配器）
+- 虎牙直播/弹幕（P4；登录扫码页已接入，FLV 短块 + HLS 403，待专用分块代理或 P2P 适配器）
 - 9 宫格、拖拽排序、画中画
 - 弹幕屏蔽词/用户屏蔽/重复弹幕合并/发送弹幕
 - 弹幕 Net/Render Worker（当前 4 路用独立 RAF 轨道引擎；9 路或高流量再拆）
@@ -204,7 +210,9 @@ renderer → 匿名弹幕 WebSocket（斗鱼设备 Cookie / B 站 token 由 main
 - 弹幕协议编解码在 `shared/douyu` 和 `shared/bilibili`，纯函数、可单测，供 renderer 复用
 - 弹幕飞行引擎、过滤规则、轨道布局在 `renderer/features/danmaku`；布局和过滤是纯函数
 - 弹幕设置通过 Context 全局共享，持久化在 renderer `localStorage`，不进入 main/IPC
-- Cookie、`dyToken`、CSRF 只在 main；renderer 只拿 `AccountSummary`；斗鱼弹幕设备 Cookie 由 main 注入，B 站弹幕只下发匿名 token
+- Cookie、`dyToken`、CSRF 只在 main；renderer 只拿 `AccountSummary` / `PlatformLoginStatus`；斗鱼弹幕设备 Cookie 由 main 注入，B 站弹幕只下发 token
+- B 站/虎牙登录分区由 main 持有；renderer 只能触发登录/退出并读取昵称、头像和登录状态，不接触 Cookie
+- 主进程 HTTP 统一 `credentials: 'include'`，B 站解析请求才能携带登录分区的 `SESSDATA`
 - 任务通过 `TaskDefinition + TaskRunner + TaskRegistry` 注册，不在 UI 里写业务
 - 签到运行状态由 main 的 `TaskService` 持有，通过 `tasks:state` / `tasks:progress` 广播；renderer 的 `TasksProvider` 在应用级订阅，弹窗关闭不会丢进度，同一时刻只允许一个运行中的 run
 - 请求级限速/重试在 `DouyuHttpClient`，任务级超时/取消在 `TaskRunner`

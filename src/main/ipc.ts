@@ -7,6 +7,7 @@ import { AppError, toAppError } from '@core/errors';
 import { isAllowedExternalUrl } from './constants';
 import type { AccountSessionManager } from './services/AccountSessionManager';
 import type { DouyuDanmakuSession } from './services/DouyuDanmakuSession';
+import type { PlatformLoginManager } from './services/PlatformLoginManager';
 import type { StreamService } from './services/StreamService';
 import type { TaskService } from './services/TaskService';
 
@@ -25,6 +26,7 @@ const runTaskSchema = z.object({
 });
 
 const accountIdSchema = z.string().min(1);
+const platformLoginSchema = z.enum(['bilibili', 'huya']);
 
 function toPayload(error: unknown): AppErrorPayload {
   if (error instanceof z.ZodError) {
@@ -64,13 +66,14 @@ function broadcast(channel: string, payload: unknown): void {
 
 export interface IpcServices {
   accounts: AccountSessionManager;
+  platforms: PlatformLoginManager;
   streams: StreamService;
   tasks: TaskService;
   douyuDanmaku: DouyuDanmakuSession;
 }
 
 export function registerIpcHandlers(services: IpcServices): void {
-  const { accounts, streams, tasks, douyuDanmaku } = services;
+  const { accounts, platforms, streams, tasks, douyuDanmaku } = services;
 
   ipcMain.on(IPC.windowMinimize, (event) => {
     BrowserWindow.fromWebContents(event.sender)?.minimize();
@@ -114,6 +117,27 @@ export function registerIpcHandlers(services: IpcServices): void {
     respond(async () => {
       const accountId = accountIdSchema.parse(rawAccountId);
       return accounts.health(accountId);
+    }),
+  );
+
+  ipcMain.handle(IPC.platformsStatus, (_event, rawPlatform: unknown) =>
+    respond(async () => {
+      const platform = platformLoginSchema.parse(rawPlatform);
+      return platforms.status(platform);
+    }),
+  );
+
+  ipcMain.handle(IPC.platformsLogin, (_event, rawPlatform: unknown) =>
+    respond(async () => {
+      const platform = platformLoginSchema.parse(rawPlatform);
+      return platforms.login(platform);
+    }),
+  );
+
+  ipcMain.handle(IPC.platformsLogout, (_event, rawPlatform: unknown) =>
+    respond(async () => {
+      const platform = platformLoginSchema.parse(rawPlatform);
+      await platforms.logout(platform);
     }),
   );
 
