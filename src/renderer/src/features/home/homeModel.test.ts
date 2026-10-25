@@ -10,12 +10,18 @@ import {
   targetFromHistory,
 } from './homeModel';
 
-const room = (roomId: string, name: string, isLive: boolean): FollowedRoom => ({
+const room = (
+  roomId: string,
+  name: string,
+  isLive: boolean,
+  cover?: string,
+): FollowedRoom => ({
   platform: 'douyu',
   roomId,
   name,
   title: `${name}的直播间`,
   isLive,
+  ...(cover ? { cover } : {}),
 });
 
 const pinned = (roomId: string, addedAt: number): SpecialFollowEntry => ({
@@ -38,13 +44,17 @@ describe('homeModel', () => {
 
   it('hydrates pinned rooms with fresh follow state', () => {
     expect(
-      resolveSpecialRooms([pinned('138243', 10)], [room('138243', '新名字', true)]),
+      resolveSpecialRooms(
+        [pinned('138243', 10)],
+        [room('138243', '新名字', true, 'https://rpic.douyucdn.cn/cover.avif')],
+      ),
     ).toEqual([
       {
         platform: 'douyu',
         roomId: '138243',
         name: '新名字',
         title: '新名字的直播间',
+        cover: 'https://rpic.douyucdn.cn/cover.avif',
         addedAt: 10,
         isLive: true,
       },
@@ -69,6 +79,9 @@ describe('homeModel', () => {
       roomId: '6',
       name: '房间 6',
       title: '房间 6',
+    });
+    expect(targetFromHistory(history, 'https://rpic.douyucdn.cn/cover.avif')).toMatchObject({
+      cover: 'https://rpic.douyucdn.cn/cover.avif',
     });
     expect(specialFollowKey({ platform: 'huya', roomId: '9' })).toBe('huya:9');
   });

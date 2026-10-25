@@ -7,6 +7,8 @@ export interface SpecialFollowEntry {
   roomId: string;
   name: string;
   title: string;
+  /** HTTPS room cover captured when the room was pinned. */
+  cover?: string | undefined;
   /** Epoch milliseconds when the room was pinned. */
   addedAt: number;
 }
@@ -17,4 +19,5 @@ export interface SpecialFollowTarget {
   roomId: string;
   name?: string | undefined;
   title?: string | undefined;
+  cover?: string | undefined;
 }

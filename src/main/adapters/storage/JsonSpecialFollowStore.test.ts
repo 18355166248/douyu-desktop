@@ -28,6 +28,7 @@ describe('JsonSpecialFollowStore', () => {
       roomId: '138243',
       name: '洞主',
       title: '洞主的直播间',
+      cover: 'https://rpic.douyucdn.cn/cover.avif',
     });
     expect(pinned).toHaveLength(1);
     expect(pinned[0]).toMatchObject({
@@ -35,6 +36,7 @@ describe('JsonSpecialFollowStore', () => {
       roomId: '138243',
       name: '洞主',
       title: '洞主的直播间',
+      cover: 'https://rpic.douyucdn.cn/cover.avif',
     });
 
     await expect(new JsonSpecialFollowStore(filePath).load()).resolves.toEqual(pinned);

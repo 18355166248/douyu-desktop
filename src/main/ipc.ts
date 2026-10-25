@@ -56,6 +56,7 @@ const specialTargetSchema: z.ZodType<SpecialFollowTarget> = z.object({
   roomId: z.string().trim().min(1).max(32),
   name: z.string().trim().max(80).optional(),
   title: z.string().trim().max(200).optional(),
+  cover: z.string().trim().max(500).optional(),
 });
 
 function toPayload(error: unknown): AppErrorPayload {

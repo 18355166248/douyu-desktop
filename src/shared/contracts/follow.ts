@@ -11,4 +11,6 @@ export interface FollowedRoom {
   /** Room title. */
   title: string;
   isLive: boolean;
+  /** HTTPS room cover, when the platform follow API provides one. */
+  cover?: string | undefined;
 }

@@ -35,6 +35,7 @@ export function resolveSpecialRooms(
       ...entry,
       name: fresh?.name ?? entry.name,
       title: fresh?.title ?? entry.title,
+      ...(fresh?.cover ? { cover: fresh.cover } : {}),
       isLive: fresh?.isLive ?? false,
     };
   });
@@ -46,14 +47,19 @@ export function targetFromFollowed(room: FollowedRoom): SpecialFollowTarget {
     roomId: room.roomId,
     name: room.name,
     title: room.title,
+    ...(room.cover ? { cover: room.cover } : {}),
   };
 }
 
-export function targetFromHistory(entry: RoomHistoryEntry): SpecialFollowTarget {
+export function targetFromHistory(
+  entry: RoomHistoryEntry,
+  cover?: string | undefined,
+): SpecialFollowTarget {
   return {
     platform: entry.platform,
     roomId: entry.roomId,
     name: entry.anchorName || `房间 ${entry.roomId}`,
     title: entry.title || `房间 ${entry.roomId}`,
+    ...(cover ? { cover } : {}),
   };
 }

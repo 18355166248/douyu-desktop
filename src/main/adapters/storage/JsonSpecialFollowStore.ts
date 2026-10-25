@@ -9,6 +9,7 @@ const targetSchema = z.object({
   roomId: z.string().trim().min(1).max(32),
   name: z.string().trim().max(80).optional(),
   title: z.string().trim().max(200).optional(),
+  cover: z.string().trim().max(500).optional(),
 });
 
 const entrySchema = z.object({
@@ -16,6 +17,7 @@ const entrySchema = z.object({
   roomId: z.string().trim().min(1).max(32),
   name: z.string().trim().max(80),
   title: z.string().trim().max(200),
+  cover: z.string().trim().max(500).optional(),
   addedAt: z.number().finite().positive().max(8_640_000_000_000_000),
 });
 
@@ -93,11 +95,13 @@ export class JsonSpecialFollowStore {
   async toggle(rawTarget: SpecialFollowTarget): Promise<SpecialFollowEntry[]> {
     const target = targetSchema.parse(rawTarget);
     const name = target.name?.trim() || `房间 ${target.roomId}`;
+    const cover = target.cover?.trim();
     const entry: SpecialFollowEntry = {
       platform: target.platform,
       roomId: target.roomId,
       name,
       title: target.title?.trim() || name,
+      ...(cover ? { cover } : {}),
       addedAt: Date.now(),
     };
 

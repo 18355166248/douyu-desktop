@@ -3,18 +3,24 @@ import type { FollowedRoom } from '@shared/contracts/follow';
 import { AppError } from '../../errors';
 import type { HttpClient } from '../../ports/HttpClient';
 
+interface FollowListItem {
+  room_id?: string | number;
+  room_name?: string;
+  nickname?: string;
+  show_status?: string | number;
+  room_src?: string;
+  avatar_small?: string;
+  rs16_avif?: string;
+  rs_ext?: Array<{ type?: string; rs16?: string; ratio?: number }>;
+}
+
 interface FollowListResponse {
   error: number | string;
   msg?: string;
   data?: {
     pageCount?: number | string;
     total?: number | string;
-    list?: Array<{
-      room_id?: string | number;
-      room_name?: string;
-      nickname?: string;
-      show_status?: string | number;
-    }>;
+    list?: FollowListItem[];
   };
 }
 
@@ -26,6 +32,26 @@ export interface FollowedRoomsOptions {
 
 function clean(value: unknown, maxLength: number): string {
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
+}
+
+function cleanUrl(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  let url = value.trim();
+  if (url.startsWith('//')) url = `https:${url}`;
+  if (url.startsWith('http://')) url = `https://${url.slice(7)}`;
+  if (!url.startsWith('https://')) return undefined;
+  return url.slice(0, 500);
+}
+
+/** Prefer the 16:9 cover, then fall back to the square/vertical follow image. */
+function coverFor(item: FollowListItem): string | undefined {
+  const wide = item.rs_ext?.find((entry) => entry.ratio === 2 && entry.rs16);
+  return (
+    cleanUrl(item.rs16_avif) ??
+    cleanUrl(wide?.rs16) ??
+    cleanUrl(item.room_src) ??
+    cleanUrl(item.avatar_small)
+  );
 }
 
 /**
@@ -75,12 +101,14 @@ export class FollowedRoomsQuery {
       if (!roomId || result.has(roomId)) continue;
       const roomTitle = clean(item.room_name, 200);
       const anchorName = clean(item.nickname, 80);
+      const cover = coverFor(item);
       result.set(roomId, {
         platform: 'douyu',
         roomId,
         name: anchorName || roomTitle || `房间 ${roomId}`,
         title: roomTitle || anchorName || `房间 ${roomId}`,
         isLive: String(item.show_status ?? '0') === '1',
+        ...(cover ? { cover } : {}),
       });
     }
   }

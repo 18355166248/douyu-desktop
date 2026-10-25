@@ -50,9 +50,15 @@ describe('special follow IPC', () => {
         platform: 'douyu',
         roomId: ' 138243 ',
         name: '洞主',
+        cover: 'https://rpic.douyucdn.cn/cover.avif',
       }),
     ).toEqual({ ok: true, data: [] });
-    expect(special.toggle).toHaveBeenCalledWith({ platform: 'douyu', roomId: '138243', name: '洞主' });
+    expect(special.toggle).toHaveBeenCalledWith({
+      platform: 'douyu',
+      roomId: '138243',
+      name: '洞主',
+      cover: 'https://rpic.douyucdn.cn/cover.avif',
+    });
   });
 
   it('rejects malformed targets before touching the store', async () => {

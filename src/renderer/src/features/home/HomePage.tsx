@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import type { AccountSummary } from '@shared/contracts/account';
 import type { FollowedRoom } from '@shared/contracts/follow';
 import type { RoomHistoryEntry } from '@shared/contracts/history';
@@ -35,7 +36,9 @@ interface HomeRoomRowProps {
   name: string;
   title: string;
   meta?: string | undefined;
+  cover?: string | undefined;
   isLive?: boolean | undefined;
+  showStatus?: boolean;
   pinned: boolean;
   onOpen: () => void;
   onToggle: () => void;
@@ -47,12 +50,21 @@ function HomeRoomRow({
   name,
   title,
   meta,
+  cover,
   isLive = false,
+  showStatus = false,
   pinned,
   onOpen,
   onToggle,
 }: HomeRoomRowProps): React.JSX.Element {
+  const [coverFailed, setCoverFailed] = useState(false);
+  useEffect(() => {
+    setCoverFailed(false);
+  }, [cover]);
+
   const subtitle = title && title !== name ? title : `房间 ${roomId}`;
+  const thumbnail = cover && !coverFailed ? cover : null;
+
   return (
     <article className={`home-room-row${isLive ? ' is-live' : ''}`}>
       <button
@@ -61,22 +73,36 @@ function HomeRoomRow({
         onClick={onOpen}
         title={`打开${platformLabel(platform)}房间 ${roomId}`}
       >
-        <span className={`home-platform home-platform-${platform}`}>
-          <img src={PLATFORM_ICON_URLS[platform]} width={18} height={18} alt="" draggable={false} />
+        <span className={`home-room-thumb home-room-thumb-${platform}`}>
+          <span className="home-thumb-fallback" aria-hidden="true">
+            <img src={PLATFORM_ICON_URLS[platform]} width={24} height={24} alt="" draggable={false} />
+          </span>
+          {thumbnail ? (
+            <img
+              className="home-thumb-image"
+              src={thumbnail}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              draggable={false}
+              onError={() => setCoverFailed(true)}
+            />
+          ) : null}
+          {isLive ? (
+            <span className="home-thumb-live">
+              <i />
+              LIVE
+            </span>
+          ) : null}
         </span>
         <span className="home-room-copy">
           <strong>{name}</strong>
-          <span>{subtitle}</span>
-        </span>
-        <span className="home-room-side">
-          {isLive ? (
-            <span className="home-live">
-              <i />
-              直播中
-            </span>
-          ) : null}
-          {meta ? <small>{meta}</small> : null}
-          <span className="home-room-id">#{roomId}</span>
+          <span className="home-room-subtitle">{subtitle}</span>
+          <span className="home-room-meta">
+            {showStatus && !isLive ? <small className="home-offline">未开播</small> : null}
+            {meta ? <small>{meta}</small> : null}
+            <span className="home-room-id">#{roomId}</span>
+          </span>
         </span>
       </button>
       <button
@@ -119,6 +145,15 @@ export function HomePage({
   const sortedFollowed = sortFollowedRooms(followed);
   const specialRooms = resolveSpecialRooms(specials, followed);
   const specialKeys = new Set(specials.map((entry) => specialFollowKey(entry)));
+  const coverByKey = new Map<string, string>();
+  for (const room of followed) {
+    if (room.cover) coverByKey.set(specialFollowKey(room), room.cover);
+  }
+  for (const entry of specials) {
+    if (entry.cover && !coverByKey.has(specialFollowKey(entry))) {
+      coverByKey.set(specialFollowKey(entry), entry.cover);
+    }
+  }
   const liveCount = followed.filter((room) => room.isLive).length;
   const accountIsActive = activeAccount?.status === 'active';
 
@@ -175,7 +210,9 @@ export function HomePage({
                 roomId={room.roomId}
                 name={room.name}
                 title={room.title}
+                cover={room.cover}
                 isLive={room.isLive}
+                showStatus
                 pinned
                 onOpen={() => onOpen(room.platform, room.roomId)}
                 onToggle={() =>
@@ -184,6 +221,7 @@ export function HomePage({
                     roomId: room.roomId,
                     name: room.name,
                     title: room.title,
+                    ...(room.cover ? { cover: room.cover } : {}),
                   })
                 }
               />
@@ -249,7 +287,9 @@ export function HomePage({
                   roomId={room.roomId}
                   name={room.name}
                   title={room.title}
+                  cover={room.cover}
                   isLive={room.isLive}
+                  showStatus
                   pinned={specialKeys.has(specialFollowKey(room))}
                   onOpen={() => onOpen(room.platform, room.roomId)}
                   onToggle={() => onToggleSpecial(targetFromFollowed(room))}
@@ -281,6 +321,7 @@ export function HomePage({
               const key = roomKey(entry.platform, entry.roomId);
               const name = entry.anchorName || `房间 ${entry.roomId}`;
               const title = entry.title || `房间 ${entry.roomId}`;
+              const historyCover = coverByKey.get(key);
               return (
                 <div role="listitem" key={key}>
                   <HomeRoomRow
@@ -289,9 +330,10 @@ export function HomePage({
                     name={name}
                     title={title}
                     meta={formatHistoryTime(entry.visitedAt)}
+                    cover={historyCover}
                     pinned={specialKeys.has(key)}
                     onOpen={() => onOpen(entry.platform, entry.roomId)}
-                    onToggle={() => onToggleSpecial(targetFromHistory(entry))}
+                    onToggle={() => onToggleSpecial(targetFromHistory(entry, historyCover))}
                   />
                 </div>
               );

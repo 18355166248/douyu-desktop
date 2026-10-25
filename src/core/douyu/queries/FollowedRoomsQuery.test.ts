@@ -33,7 +33,13 @@ const PAGE = {
   data: {
     pageCount: 2,
     list: [
-      { room_id: 138243, room_name: '洞主的直播间', nickname: '洞主', show_status: '1' },
+      {
+        room_id: 138243,
+        room_name: '洞主的直播间',
+        nickname: '洞主',
+        show_status: '1',
+        rs16_avif: 'https://rpic.douyucdn.cn/cover/138243.avif',
+      },
       { room_id: '9999', room_name: '', nickname: '主播乙', show_status: 0 },
       { room_id: 138243, room_name: '重复', nickname: '重复主播', show_status: '1' },
     ],
@@ -52,6 +58,7 @@ describe('FollowedRoomsQuery', () => {
         name: '洞主',
         title: '洞主的直播间',
         isLive: true,
+        cover: 'https://rpic.douyucdn.cn/cover/138243.avif',
       },
       { platform: 'douyu', roomId: '9999', name: '主播乙', title: '主播乙', isLive: false },
     ]);
@@ -72,5 +79,27 @@ describe('FollowedRoomsQuery', () => {
     await expect(new FollowedRoomsQuery(http).list()).rejects.toMatchObject({
       code: 'AUTH_REQUIRED',
     });
+  });
+
+  it('falls back to room_src and upgrades protocol-relative covers', async () => {
+    const { http } = client([
+      response({
+        error: 0,
+        data: {
+          pageCount: 1,
+          list: [
+            {
+              room_id: 7,
+              room_name: '封面房间',
+              nickname: '封面主播',
+              show_status: 0,
+              room_src: '//rpic.douyucdn.cn/cover.png',
+            },
+          ],
+        },
+      }),
+    ]);
+    const rooms = await new FollowedRoomsQuery(http).list({ maxPages: 1 });
+    expect(rooms[0]?.cover).toBe('https://rpic.douyucdn.cn/cover.png');
   });
 });
