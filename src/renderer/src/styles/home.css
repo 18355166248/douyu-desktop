@@ -91,36 +91,9 @@
   animation: none;
 }
 
-.home-history-drawer .history-head {
-  padding: 16px 16px 12px;
-}
-
-.home-history-drawer .history-head strong {
-  font-size: 15px;
-}
-
-.home-history-drawer .history-list {
-  flex: 1;
-  min-height: 0;
-  padding: 10px 12px;
-}
-
 @media (max-width: 560px) {
   .home-history-drawer {
     width: 100vw;
-  }
-
-  .home-history-drawer .history-item-open {
-    grid-template-columns: 132px minmax(0, 1fr) auto;
-    gap: 10px;
-  }
-
-  .home-history-drawer .history-item.is-managing .history-item-open {
-    grid-template-columns: 18px 132px minmax(0, 1fr) auto;
-  }
-
-  .home-history-drawer .history-item time {
-    font-size: 9.5px;
   }
 }
 
