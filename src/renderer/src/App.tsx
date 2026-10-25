@@ -14,7 +14,13 @@ import { useFollowedRooms } from './features/home/useFollowedRooms';
 import { useSpecialFollows } from './features/home/useSpecialFollows';
 import { EmptyStage } from './features/player/EmptyStage';
 import { StreamGrid } from './features/player/StreamGrid';
-import { MAX_STREAMS, canAddStream } from './features/player/streamGridLayout';
+import {
+  MAX_STREAMS,
+  canAddStream,
+  loadStreamLayoutMode,
+  saveStreamLayoutMode,
+} from './features/player/streamGridLayout';
+import type { StreamLayoutMode } from './features/player/streamGridLayout';
 import { defaultStreamOptions, useStreamGrid } from './features/player/useStreamGrid';
 import type { StreamResolveOptions } from './features/player/useStreamGrid';
 import { isEditableTarget } from './lib/keyboard';
@@ -53,6 +59,8 @@ export function App(): React.JSX.Element {
   const [platform, setPlatform] = useState<StreamPlatform>('douyu');
   const [roomId, setRoomId] = useState('9999');
   const [activeView, setActiveView] = useState<WorkspaceView>('home');
+  const [layoutMode, setLayoutMode] = useState<StreamLayoutMode>(() => loadStreamLayoutMode());
+  const [mainStreamKey, setMainStreamKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDanmakuSettingsOpen, setDanmakuSettingsOpen] = useState(false);
   const [isHistoryOpen, setHistoryOpen] = useState(false);
@@ -193,6 +201,17 @@ export function App(): React.JSX.Element {
 
   const canAdd = canAddStream(streams.length);
   const canSubmit = canAdd && roomId.trim().length > 0;
+  const effectiveMainKey = streams.some(
+    (entry) => mainStreamKey !== null && streamKey(entry.playback) === mainStreamKey,
+  )
+    ? mainStreamKey
+    : streams[0]
+      ? streamKey(streams[0].playback)
+      : null;
+
+  useEffect(() => {
+    saveStreamLayoutMode(layoutMode);
+  }, [layoutMode]);
 
   async function handleAdd(targetPlatform: StreamPlatform, targetRoomId: string): Promise<void> {
     setError(null);
@@ -331,6 +350,28 @@ export function App(): React.JSX.Element {
               {streams.length}/{MAX_STREAMS}
             </span>
           </button>
+          {activeView === 'live' && streams.length > 1 ? (
+            <div className="layout-switch" role="group" aria-label="直播画面布局">
+              <button
+                type="button"
+                className={layoutMode === 'even' ? 'is-active' : ''}
+                aria-pressed={layoutMode === 'even'}
+                onClick={() => setLayoutMode('even')}
+                title="所有直播间等分屏幕"
+              >
+                均分
+              </button>
+              <button
+                type="button"
+                className={layoutMode === 'focus' ? 'is-active' : ''}
+                aria-pressed={layoutMode === 'focus'}
+                onClick={() => setLayoutMode('focus')}
+                title="主直播间占大画面，其他直播间分剩余区域"
+              >
+                主画面
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <form
@@ -486,6 +527,8 @@ export function App(): React.JSX.Element {
                 ) : (
                   <StreamGrid
                     streams={streams}
+                    layoutMode={layoutMode}
+                    mainKey={effectiveMainKey}
                     immersive={isImmersive}
                     keyboardActive={activeView === 'live'}
                     reloadingKey={reloadingKey}
@@ -494,6 +537,7 @@ export function App(): React.JSX.Element {
                     onReload={handleReload}
                     onOptionsChange={handleStreamOptionsChange}
                     onRemove={handleRemoveStream}
+                    onSetMain={setMainStreamKey}
                     onToggleMute={toggleMute}
                     onVolumeChange={setVolume}
                     onOpenDanmakuSettings={() => setDanmakuSettingsOpen(true)}

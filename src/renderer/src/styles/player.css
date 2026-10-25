@@ -102,6 +102,23 @@
   box-shadow: 0 20px 60px rgb(0 0 0 / 16%);
 }
 
+.player-card.is-main {
+  border-color: rgb(255 107 53 / 28%);
+}
+
+.player-main-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 6px;
+  background: rgb(255 107 53 / 14%);
+  color: #ffc3a6;
+  font-size: 9.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .player-head {
   position: relative;
   display: flex;

@@ -13,6 +13,7 @@ interface PlayerTileProps {
   compact?: boolean;
   error?: string | null;
   immersive?: boolean;
+  isMain?: boolean;
   shortcutsEnabled?: boolean;
   onActivate?: () => void;
   muted: boolean;
@@ -22,6 +23,7 @@ interface PlayerTileProps {
   onReload: () => void;
   onOptionsChange: (patch: Partial<StreamResolveOptions>) => void;
   onStop: () => void;
+  onSetMain?: () => void;
   onToggleMute: () => void;
   onVolumeChange: (volume: number) => void;
   onOpenDanmakuSettings: () => void;
@@ -34,6 +36,7 @@ export function PlayerTile({
   compact = false,
   error = null,
   immersive = false,
+  isMain = false,
   shortcutsEnabled = false,
   onActivate,
   muted,
@@ -43,6 +46,7 @@ export function PlayerTile({
   onReload,
   onOptionsChange,
   onStop,
+  onSetMain,
   onToggleMute,
   onVolumeChange,
   onOpenDanmakuSettings,
@@ -60,7 +64,7 @@ export function PlayerTile({
 
   return (
     <section
-      className={`player-card${compact ? ' is-compact' : ''}`}
+      className={`player-card${compact ? ' is-compact' : ''}${isMain ? ' is-main' : ''}`}
       onPointerEnter={onActivate}
       onFocusCapture={onActivate}
     >
@@ -86,6 +90,18 @@ export function PlayerTile({
           <span className="tag">{platformLabel(playback.platform)}</span>
           <span className="tag">{playback.quality}</span>
           <span className="tag">{playback.format.toUpperCase()}</span>
+          {isMain ? <span className="player-main-badge">主画面</span> : null}
+          {onSetMain ? (
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={onSetMain}
+              aria-label={`将${anchorName}设为主画面`}
+              title="设为主画面"
+            >
+              <Icon name="expand" size={compact ? 15 : 17} />
+            </button>
+          ) : null}
           <button
             type="button"
             className="icon-btn"

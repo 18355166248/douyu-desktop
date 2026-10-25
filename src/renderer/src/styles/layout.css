@@ -131,7 +131,48 @@
 .titlebar-tabs {
   display: flex;
   flex: none;
+  align-items: center;
   gap: 4px;
+}
+
+.layout-switch {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 3%);
+}
+
+.layout-switch button {
+  height: 26px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.layout-switch button:hover:not(.is-active) {
+  background: rgb(255 255 255 / 6%);
+  color: var(--text);
+}
+
+.layout-switch button.is-active {
+  background: rgb(255 107 53 / 15%);
+  color: #ffc3a6;
+}
+
+.layout-switch button:focus-visible {
+  outline: 1px solid rgb(255 107 53 / 55%);
+  outline-offset: 1px;
 }
 
 .titlebar-tab svg {
@@ -1019,6 +1060,28 @@
 .stream-grid.is-quad {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.stream-grid.is-focus-2 {
+  grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.stream-grid.is-focus-3 {
+  grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.stream-grid.is-focus-4 {
+  grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+}
+
+.stream-grid.is-focus-2 > .player-card.is-main,
+.stream-grid.is-focus-3 > .player-card.is-main,
+.stream-grid.is-focus-4 > .player-card.is-main {
+  grid-column: 1;
+  grid-row: 1 / -1;
 }
 
 .stream-grid > * {
@@ -2333,9 +2396,19 @@
 
 @media (max-width: 720px) {
   .stream-grid.is-duo,
-  .stream-grid.is-quad {
+  .stream-grid.is-quad,
+  .stream-grid.is-focus-2,
+  .stream-grid.is-focus-3,
+  .stream-grid.is-focus-4 {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: none;
+  }
+
+  .stream-grid.is-focus-2 > .player-card.is-main,
+  .stream-grid.is-focus-3 > .player-card.is-main,
+  .stream-grid.is-focus-4 > .player-card.is-main {
+    grid-column: auto;
+    grid-row: auto;
   }
 
   .stage {
