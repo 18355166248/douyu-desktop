@@ -432,6 +432,8 @@ export function App(): React.JSX.Element {
                 onRefreshFollowed={followed.reload}
                 onOpen={handleRoomQuickOpen}
                 onToggleSpecial={special.toggle}
+                onRemoveHistory={removeHistory}
+                onClearHistory={clearHistory}
               />
             </section>
 

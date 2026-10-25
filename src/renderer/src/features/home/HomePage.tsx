@@ -7,12 +7,12 @@ import type { StreamPlatform } from '@shared/contracts/stream';
 import { Icon } from '../../components/Icon';
 import { PLATFORM_ICON_URLS } from '../../lib/platformAssets';
 import { platformLabel, roomKey } from '../../lib/streamIdentity';
+import { RoomHistoryPanel } from '../history/RoomHistoryPanel';
 import {
   resolveSpecialRooms,
   sortFollowedRooms,
   specialFollowKey,
   targetFromFollowed,
-  targetFromHistory,
 } from './homeModel';
 
 interface HomePageProps {
@@ -27,6 +27,8 @@ interface HomePageProps {
   onRefreshFollowed: () => void;
   onOpen: (platform: StreamPlatform, roomId: string) => void;
   onToggleSpecial: (target: SpecialFollowTarget) => void;
+  onRemoveHistory: (keys: readonly string[]) => void;
+  onClearHistory: () => void;
 }
 
 interface HomeRoomRowProps {
@@ -158,7 +160,20 @@ export function HomePage({
   onRefreshFollowed,
   onOpen,
   onToggleSpecial,
+  onRemoveHistory,
+  onClearHistory,
 }: HomePageProps): React.JSX.Element {
+  const [isHistoryOpen, setHistoryOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isHistoryOpen) return;
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key === 'Escape') setHistoryOpen(false);
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isHistoryOpen]);
+
   const sortedFollowed = sortFollowedRooms(followed);
   const officialSpecials = followed.filter((room) => room.isSpecial);
   const officialKeys = new Set(officialSpecials.map((room) => specialFollowKey(room)));
@@ -181,18 +196,6 @@ export function HomePage({
   const visibleFollowed = sortedFollowed.filter(
     (room) => !specialKeys.has(specialFollowKey(room)),
   );
-  const followedByKey = new Map(
-    followed.map((room) => [specialFollowKey(room), room]),
-  );
-  const coverByKey = new Map<string, string>();
-  for (const room of followed) {
-    if (room.cover) coverByKey.set(specialFollowKey(room), room.cover);
-  }
-  for (const entry of specials) {
-    if (entry.cover && !coverByKey.has(specialFollowKey(entry))) {
-      coverByKey.set(specialFollowKey(entry), entry.cover);
-    }
-  }
   const liveCount = followed.filter((room) => room.isLive).length;
   const accountIsActive = activeAccount?.status === 'active';
 
@@ -217,6 +220,18 @@ export function HomePage({
             历史
           </span>
         </div>
+        <button
+          type="button"
+          className="home-history-button"
+          onClick={() => setHistoryOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={isHistoryOpen}
+          aria-controls="room-history-panel"
+          title="打开最近观看记录"
+        >
+          <Icon name="history" size={14} />
+          历史记录
+        </button>
       </header>
 
       <section className="home-section home-special-section" aria-labelledby="home-special-title">
@@ -345,51 +360,28 @@ export function HomePage({
         )}
       </section>
 
-      <section className="home-section" aria-labelledby="home-history-title">
-        <header className="home-section-head">
-          <div>
-            <span className="home-kicker">RECENT</span>
-            <h3 id="home-history-title">最近观看</h3>
-          </div>
-          <span className="home-section-count">{history.length}</span>
-        </header>
-
-        {history.length === 0 ? (
-          <div className="home-empty">
-            <Icon name="history" size={19} />
-            <span>还没有观看记录</span>
-            <small>打开过的房间会按最近访问时间出现在这里。</small>
-          </div>
-        ) : (
-          <div className="home-room-list" role="list">
-            {history.map((entry) => {
-              const key = roomKey(entry.platform, entry.roomId);
-              const name = entry.anchorName || `房间 ${entry.roomId}`;
-              const title = entry.title || `房间 ${entry.roomId}`;
-              const historyCover = coverByKey.get(key);
-              const historyRoom = followedByKey.get(key);
-              return (
-                <div role="listitem" key={key}>
-                  <HomeRoomRow
-                    platform={entry.platform}
-                    roomId={entry.roomId}
-                    name={name}
-                    title={title}
-                    cover={historyCover}
-                    isLive={historyRoom?.isLive ?? false}
-                    hasVideo={historyRoom?.hasVideo ?? false}
-                    showStatus={Boolean(historyRoom)}
-                    official={officialKeys.has(key)}
-                    pinned={specialKeys.has(key)}
-                    onOpen={() => onOpen(entry.platform, entry.roomId)}
-                    onToggle={() => onToggleSpecial(targetFromHistory(entry, historyCover))}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
+      {isHistoryOpen ? (
+        <div
+          className="home-history-layer"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setHistoryOpen(false);
+          }}
+        >
+          <aside className="home-history-drawer" aria-label="最近观看">
+            <RoomHistoryPanel
+              entries={history}
+              onSelect={(entry) => {
+                setHistoryOpen(false);
+                onOpen(entry.platform, entry.roomId);
+              }}
+              onRemove={onRemoveHistory}
+              onClear={onClearHistory}
+              onClose={() => setHistoryOpen(false)}
+            />
+          </aside>
+        </div>
+      ) : null}
     </div>
   );
 }
