@@ -14,6 +14,7 @@ import { StreamGrid } from './features/player/StreamGrid';
 import { MAX_STREAMS, canAddStream } from './features/player/streamGridLayout';
 import { defaultStreamOptions, useStreamGrid } from './features/player/useStreamGrid';
 import type { StreamResolveOptions } from './features/player/useStreamGrid';
+import { isEditableTarget } from './lib/keyboard';
 import { platformLabel } from './lib/streamIdentity';
 import { useDismissableLayer } from './lib/useDismissableLayer';
 import { AutoSignRunner } from './features/tasks/AutoSignRunner';
@@ -72,15 +73,38 @@ export function App(): React.JSX.Element {
   });
 
   useEffect(() => {
-    if (!isImmersive) return;
-
     function handleKeyDown(event: KeyboardEvent): void {
-      if (event.key === 'Escape') setImmersive(false);
+      if (event.key === 'Escape') {
+        setImmersive(false);
+        return;
+      }
+      if (
+        event.defaultPrevented ||
+        event.repeat ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        event.isComposing ||
+        isEditableTarget(event.target)
+      ) {
+        return;
+      }
+      if (event.key.toLowerCase() !== 'f' || streams.length === 0) return;
+
+      event.preventDefault();
+      setHistoryOpen(false);
+      setTaskOpen(false);
+      setDanmakuSettingsOpen(false);
+      setImmersive((value) => !value);
     }
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isImmersive]);
+  }, [streams.length]);
+
+  useEffect(() => {
+    if (isImmersive && streams.length === 0) setImmersive(false);
+  }, [isImmersive, streams.length]);
 
   const canAdd = canAddStream(streams.length);
   const canSubmit = canAdd && roomId.trim().length > 0;
@@ -124,6 +148,7 @@ export function App(): React.JSX.Element {
   }
 
   function enterImmersive(): void {
+    if (streams.length === 0) return;
     setHistoryOpen(false);
     setTaskOpen(false);
     setDanmakuSettingsOpen(false);
@@ -239,8 +264,9 @@ export function App(): React.JSX.Element {
             type="button"
             className="titlebar-immersive"
             onClick={enterImmersive}
-            title="进入沉浸模式"
+            title="进入沉浸模式 (F)"
             aria-label="进入沉浸模式"
+            aria-keyshortcuts="F"
           >
             <Icon name="expand" size={14} />
             <span>沉浸</span>
@@ -276,6 +302,7 @@ export function App(): React.JSX.Element {
               ) : (
                 <StreamGrid
                   streams={streams}
+                  immersive={isImmersive}
                   reloadingKey={reloadingKey}
                   mutedRooms={mutedRooms}
                   volumes={volumes}
@@ -300,6 +327,7 @@ export function App(): React.JSX.Element {
           onClick={() => setImmersive(false)}
           title="退出沉浸模式（Esc）"
           aria-label="退出沉浸模式"
+          aria-keyshortcuts="Escape"
         >
           <Icon name="minimize" size={14} />
           <span>退出沉浸</span>

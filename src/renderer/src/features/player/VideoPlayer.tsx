@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { StreamPlayback, StreamQuality } from '@shared/contracts/stream';
 import { Icon } from '../../components/Icon';
+import { isEditableTarget, isInteractiveTarget } from '../../lib/keyboard';
 import { usePlatformLoginStatus } from '../accounts/usePlatformLogin';
 import { DanmakuOverlay } from '../danmaku/DanmakuOverlay';
 import { useDanmakuSettings } from '../danmaku/DanmakuSettingsContext';
@@ -18,11 +19,13 @@ interface VideoPlayerProps {
   quality: StreamQuality;
   preferHls: boolean;
   isReloading: boolean;
+  shortcutsEnabled: boolean;
   onReload: () => void;
   onToggleMute: () => void;
   onVolumeChange: (volume: number) => void;
   onOptionsChange: (patch: Partial<StreamResolveOptions>) => void;
   onOpenDanmakuSettings: () => void;
+  onStop: () => void;
 }
 
 export function VideoPlayer({
@@ -32,11 +35,13 @@ export function VideoPlayer({
   quality,
   preferHls,
   isReloading,
+  shortcutsEnabled,
   onReload,
   onToggleMute,
   onVolumeChange,
   onOptionsChange,
   onOpenDanmakuSettings,
+  onStop,
 }: VideoPlayerProps): React.JSX.Element {
   const videoRef = useRef<HTMLVideoElement>(null);
   const userPausedRef = useRef(false);
@@ -44,6 +49,7 @@ export function VideoPlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const controls = useAutoHideControls();
+  const showControls = controls.show;
   const { settings, update } = useDanmakuSettings();
   const stall = useStreamStall(videoRef, isReady && !error && !isReloading);
   const qualityOptions = qualityOptionsFor(playback.platform);
@@ -75,7 +81,7 @@ export function VideoPlayer({
     if (video) video.volume = Math.min(1, Math.max(0, volume));
   }, [volume]);
 
-  function togglePlayback(): void {
+  const togglePlayback = useCallback((): void => {
     const video = videoRef.current;
     if (!video) return;
     if (video.paused) {
@@ -87,7 +93,91 @@ export function VideoPlayer({
       userPausedRef.current = true;
       video.pause();
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    if (!shortcutsEnabled) return undefined;
+
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (
+        event.defaultPrevented ||
+        event.repeat ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        event.isComposing ||
+        isEditableTarget(event.target)
+      ) {
+        return;
+      }
+
+      const target = event.target;
+      const key = event.key;
+
+      if (key === ' ' || key === 'Spacebar' || key === 'Space') {
+        if (isInteractiveTarget(target)) return;
+        event.preventDefault();
+        togglePlayback();
+        showControls();
+        return;
+      }
+
+      if (key === 'ArrowUp' || key === 'ArrowDown') {
+        if (isInteractiveTarget(target)) return;
+        event.preventDefault();
+        const next = Math.min(1, Math.max(0, volume + (key === 'ArrowUp' ? 0.05 : -0.05)));
+        if (muted && next > 0) onToggleMute();
+        onVolumeChange(next);
+        showControls();
+        return;
+      }
+
+      switch (key.toLowerCase()) {
+        case 'm':
+          event.preventDefault();
+          onToggleMute();
+          showControls();
+          break;
+        case 'r':
+          if (isReloading) return;
+          event.preventDefault();
+          onReload();
+          showControls();
+          break;
+        case 'd':
+          event.preventDefault();
+          update({ visible: !settings.visible });
+          showControls();
+          break;
+        case 'p':
+          event.preventDefault();
+          update({ paused: !settings.paused });
+          showControls();
+          break;
+        case 'x':
+          event.preventDefault();
+          onStop();
+          break;
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [
+    isReloading,
+    muted,
+    onReload,
+    onStop,
+    onToggleMute,
+    onVolumeChange,
+    settings.paused,
+    settings.visible,
+    shortcutsEnabled,
+    showControls,
+    togglePlayback,
+    volume,
+    update,
+  ]);
 
   return (
     <div
@@ -187,7 +277,8 @@ export function VideoPlayer({
           className="icon-btn video-playback-toggle"
           onClick={togglePlayback}
           aria-label={isPlaying ? '暂停播放' : '继续播放'}
-          title={isPlaying ? '暂停播放' : '继续播放'}
+          aria-keyshortcuts="Space"
+          title={isPlaying ? '暂停播放 (Space)' : '继续播放 (Space)'}
         >
           <Icon name={isPlaying ? 'pause' : 'play'} size={17} />
         </button>
@@ -197,6 +288,8 @@ export function VideoPlayer({
             className="icon-btn"
             onClick={onToggleMute}
             aria-label={muted ? '取消静音' : '静音'}
+            aria-keyshortcuts="M"
+            title={muted ? '取消静音 (M)' : '静音 (M)'}
           >
             <Icon name={muted ? 'volumeOff' : 'volume'} size={18} />
           </button>
@@ -210,7 +303,8 @@ export function VideoPlayer({
             onChange={(event) => onVolumeChange(Number(event.target.value) / 100)}
             aria-label="音量"
             aria-valuetext={`${Math.round(volume * 100)}%`}
-            title={`音量 ${Math.round(volume * 100)}%`}
+            aria-keyshortcuts="ArrowUp ArrowDown"
+            title={`音量 ${Math.round(volume * 100)}%（↑ / ↓）`}
           />
           <span className="video-sound">{muted ? '已静音' : `${Math.round(volume * 100)}%`}</span>
         </div>
@@ -222,8 +316,9 @@ export function VideoPlayer({
           className={`icon-btn video-danmaku-button${settings.visible ? '' : ' is-off'}`}
           onClick={() => update({ visible: !settings.visible })}
           aria-label={settings.visible ? '隐藏弹幕' : '显示弹幕'}
+          aria-keyshortcuts="D"
           aria-pressed={settings.visible}
-          title={settings.visible ? '隐藏弹幕' : '显示弹幕'}
+          title={settings.visible ? '隐藏弹幕 (D)' : '显示弹幕 (D)'}
         >
           <Icon name={settings.visible ? 'eye' : 'eyeOff'} size={17} />
         </button>
@@ -232,8 +327,9 @@ export function VideoPlayer({
           className={`icon-btn video-danmaku-button video-pause-button${settings.paused ? ' is-off' : ''}`}
           onClick={() => update({ paused: !settings.paused })}
           aria-label={settings.paused ? '继续弹幕' : '暂停弹幕'}
+          aria-keyshortcuts="P"
           aria-pressed={settings.paused}
-          title={settings.paused ? '继续弹幕' : '暂停弹幕'}
+          title={settings.paused ? '继续弹幕 (P)' : '暂停弹幕 (P)'}
         >
           <Icon name={settings.paused ? 'play' : 'pause'} size={17} />
         </button>

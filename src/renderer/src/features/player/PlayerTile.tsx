@@ -12,6 +12,9 @@ interface PlayerTileProps {
   isReloading: boolean;
   compact?: boolean;
   error?: string | null;
+  immersive?: boolean;
+  shortcutsEnabled?: boolean;
+  onActivate?: () => void;
   muted: boolean;
   volume: number;
   quality: StreamQuality;
@@ -29,6 +32,9 @@ export function PlayerTile({
   isReloading,
   compact = false,
   error = null,
+  immersive = false,
+  shortcutsEnabled = false,
+  onActivate,
   muted,
   volume,
   quality,
@@ -41,6 +47,7 @@ export function PlayerTile({
   onOpenDanmakuSettings,
 }: PlayerTileProps): React.JSX.Element {
   const queryClient = useQueryClient();
+  const anchorName = playback.anchorName?.trim() || `${platformLabel(playback.platform)}主播`;
 
   function reloadPlaybackAndAudience(): void {
     onReload();
@@ -50,7 +57,11 @@ export function PlayerTile({
   }
 
   return (
-    <section className={`player-card${compact ? ' is-compact' : ''}`}>
+    <section
+      className={`player-card${compact ? ' is-compact' : ''}`}
+      onPointerEnter={onActivate}
+      onFocusCapture={onActivate}
+    >
       <header className="player-head">
         <div className="player-title">
           <span className="live-pill">
@@ -60,8 +71,7 @@ export function PlayerTile({
           <div>
             <h2>{playback.title || `房间 ${playback.roomId}`}</h2>
             <p>
-              {playback.anchorName || `${platformLabel(playback.platform)}主播`} · 房间{' '}
-              {playback.roomId}
+              {anchorName} · 房间 {playback.roomId}
             </p>
           </div>
         </div>
@@ -80,7 +90,8 @@ export function PlayerTile({
             onClick={reloadPlaybackAndAudience}
             disabled={isReloading}
             aria-label="重新解析并刷新房间统计"
-            title={isReloading ? '正在重新解析并刷新统计' : '重新解析播放并刷新房间统计'}
+            aria-keyshortcuts="R"
+            title={isReloading ? '正在重新解析并刷新统计' : '重新解析播放并刷新房间统计 (R)'}
           >
             <Icon name="refresh" size={compact ? 15 : 17} />
           </button>
@@ -89,7 +100,8 @@ export function PlayerTile({
             className="icon-btn"
             onClick={onStop}
             aria-label="关闭播放"
-            title="关闭播放"
+            aria-keyshortcuts="X"
+            title="关闭播放 (X)"
           >
             <Icon name="close" size={compact ? 15 : 17} />
           </button>
@@ -117,12 +129,21 @@ export function PlayerTile({
         quality={quality}
         preferHls={preferHls}
         isReloading={isReloading}
-        onReload={onReload}
+        shortcutsEnabled={shortcutsEnabled}
+        onReload={reloadPlaybackAndAudience}
         onToggleMute={onToggleMute}
         onVolumeChange={onVolumeChange}
         onOptionsChange={onOptionsChange}
         onOpenDanmakuSettings={onOpenDanmakuSettings}
+        onStop={onStop}
       />
+
+      {immersive ? (
+        <div className="immersive-anchor" title={`${anchorName} · 房间 ${playback.roomId}`}>
+          <strong>{anchorName}</strong>
+          <span>房间 {playback.roomId}</span>
+        </div>
+      ) : null}
     </section>
   );
 }
