@@ -4,6 +4,7 @@ import { IPC } from '@shared/contracts/ipc';
 import type { AppErrorPayload, Result } from '@shared/contracts/result';
 import { fail, ok } from '@shared/contracts/result';
 import { AppError, toAppError } from '@core/errors';
+import type { JsonRoomHistoryStore } from './adapters/storage/JsonRoomHistoryStore';
 import { isAllowedExternalUrl } from './constants';
 import type { AccountSessionManager } from './services/AccountSessionManager';
 import type { DouyuDanmakuSession } from './services/DouyuDanmakuSession';
@@ -77,12 +78,13 @@ export interface IpcServices {
   platforms: PlatformLoginManager;
   streams: StreamService;
   tasks: TaskService;
+  history: JsonRoomHistoryStore;
   douyuDanmaku: DouyuDanmakuSession;
   huyaDanmaku: HuyaDanmakuSession;
 }
 
 export function registerIpcHandlers(services: IpcServices): void {
-  const { accounts, platforms, streams, tasks, douyuDanmaku, huyaDanmaku } = services;
+  const { accounts, platforms, streams, tasks, history, douyuDanmaku, huyaDanmaku } = services;
 
   ipcMain.on(IPC.windowMinimize, (event) => {
     BrowserWindow.fromWebContents(event.sender)?.minimize();
@@ -155,6 +157,12 @@ export function registerIpcHandlers(services: IpcServices): void {
       const input = resolveStreamSchema.parse(rawInput);
       return streams.resolve(input);
     }),
+  );
+
+  ipcMain.handle(IPC.historyLoad, () => respond(() => history.load()));
+
+  ipcMain.handle(IPC.historySave, (_event, rawEntries: unknown) =>
+    respond(() => history.save(rawEntries)),
   );
 
   ipcMain.handle(IPC.streamsAudience, (_event, rawInput: unknown) =>

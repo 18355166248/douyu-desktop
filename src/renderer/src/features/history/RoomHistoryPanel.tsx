@@ -97,7 +97,9 @@ export function RoomHistoryPanel({
       <header className="history-head">
         <div>
           <strong>{isManaging ? `已选 ${selectedCount} 条` : '访问历史'}</strong>
-          <small>{isManaging ? `共 ${entries.length} 条，点击记录选择` : '按最近访问时间排序'}</small>
+          <small>
+            {isManaging ? `共 ${entries.length} 条，点击记录选择` : '全局保存 · 最近访问优先'}
+          </small>
         </div>
         <div className="history-actions">
           {isManaging ? (
@@ -163,7 +165,7 @@ export function RoomHistoryPanel({
           <div className="history-empty">
             <Icon name="history" size={22} />
             <span>还没有访问记录</span>
-            <small>播放过的房间会按时间出现在这里</small>
+            <small>播放过的房间会出现在这里，历史不随卸载丢失</small>
           </div>
         ) : (
           entries.map((entry) => {

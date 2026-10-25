@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   MAX_ROOM_HISTORY,
   formatHistoryTime,
+  mergeRoomHistory,
   parseRoomHistory,
   removeRoomHistory,
   upsertRoomHistory,
@@ -64,6 +65,26 @@ describe('room history', () => {
     expect(entries).toHaveLength(2);
     expect(entries[0]).toMatchObject({ platform: 'douyu', title: '旧版本记录' });
     expect(entries[1]).toMatchObject({ platform: 'bilibili', title: 'B站' });
+  });
+
+  it('merges legacy and global copies, keeping the newest visit per room', () => {
+    const global = parseRoomHistory([
+      { platform: 'douyu', roomId: '111', title: '全局标题', anchorName: 'A', visitedAt: t(20) },
+      { platform: 'huya', roomId: '6', title: '虎牙', anchorName: 'H', visitedAt: t(21) },
+    ]);
+    const legacy = parseRoomHistory([
+      { platform: 'douyu', roomId: '111', title: '本地新标题', anchorName: 'A', visitedAt: t(23) },
+      { platform: 'bilibili', roomId: '6', title: 'B站', anchorName: 'B', visitedAt: t(22) },
+    ]);
+
+    const merged = mergeRoomHistory(legacy, global);
+
+    expect(merged.map((entry) => `${entry.platform}:${entry.roomId}`)).toEqual([
+      'douyu:111',
+      'bilibili:6',
+      'huya:6',
+    ]);
+    expect(merged[0]?.title).toBe('本地新标题');
   });
 
   it('formats local date and time and rejects invalid timestamps', () => {

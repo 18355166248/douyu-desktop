@@ -1,6 +1,7 @@
 import type { AccountHealth, AccountSummary } from './account';
 import type { RoomAudienceInput, RoomAudienceSnapshot } from './audience';
 import type { BilibiliDanmakuConfig, DouyuDanmakuConfig, HuyaDanmakuUpdate } from './danmaku';
+import type { RoomHistoryEntry } from './history';
 import type { GuidedPlatform, PlatformLoginStatus } from './platformLogin';
 import type { ResolveStreamInput, StreamPlayback } from './stream';
 import type { Result } from './result';
@@ -24,6 +25,10 @@ export interface DesktopApi {
     status(platform: GuidedPlatform): Promise<Result<PlatformLoginStatus>>;
     login(platform: GuidedPlatform): Promise<Result<PlatformLoginStatus>>;
     logout(platform: GuidedPlatform): Promise<Result<void>>;
+  };
+  history: {
+    load(): Promise<Result<RoomHistoryEntry[]>>;
+    save(entries: RoomHistoryEntry[]): Promise<Result<RoomHistoryEntry[]>>;
   };
   streams: {
     resolve(input: ResolveStreamInput): Promise<Result<StreamPlayback>>;
@@ -64,6 +69,8 @@ export const IPC = {
   platformsStatus: 'platforms:status',
   platformsLogin: 'platforms:login',
   platformsLogout: 'platforms:logout',
+  historyLoad: 'history:load',
+  historySave: 'history:save',
   streamsResolve: 'streams:resolve',
   streamsAudience: 'streams:audience',
   danmakuBilibiliConfig: 'danmaku:bilibili-config',

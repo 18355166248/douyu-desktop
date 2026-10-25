@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { app, BrowserWindow } from 'electron';
 import { JsonAccountStore } from './adapters/storage/JsonAccountStore';
+import { JsonRoomHistoryStore } from './adapters/storage/JsonRoomHistoryStore';
 import { JsonLogger } from './adapters/electron/JsonLogger';
 import { configureMediaCors } from './mediaCors';
 import { AccountSessionManager } from './services/AccountSessionManager';
@@ -35,6 +36,9 @@ if (!hasLock) {
 
       const logger = new JsonLogger();
       const store = new JsonAccountStore(join(app.getPath('userData'), 'accounts.json'));
+      const history = new JsonRoomHistoryStore(
+        join(app.getPath('home'), '.douyu-desktop', 'room-history.json'),
+      );
       const auth = new DouyuAuthService();
       const accounts = new AccountSessionManager(store, auth, () => mainWindow);
       const platforms = new PlatformLoginManager(() => mainWindow);
@@ -49,7 +53,15 @@ if (!hasLock) {
       });
       await streams.start();
 
-      registerIpcHandlers({ accounts, platforms, streams, tasks, douyuDanmaku, huyaDanmaku });
+      registerIpcHandlers({
+        accounts,
+        platforms,
+        streams,
+        tasks,
+        history,
+        douyuDanmaku,
+        huyaDanmaku,
+      });
 
       mainWindow = createMainWindow();
       mainWindow.on('closed', () => {

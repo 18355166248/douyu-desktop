@@ -110,7 +110,7 @@ npm run package
 - [x] 断线重连、连接超时、错误状态提示
 - [x] 房间签到任务：后台单飞、每天自动一次（可关闭）、手动触发、dry-run、限速、逐房间结果
 - [x] typed preload + IPC `Result` 封装
-- [x] 房间访问历史：成功解析过的房间按最近访问时间倒序记录，可点击重新打开，localStorage 最多保留 30 条
+- [x] 房间访问历史：成功解析过的房间按最近访问时间倒序记录，可点击重新打开，全局 JSON 最多保留 30 条
 - [x] 边界检查脚本 + 89 个单测
 - [x] electron-builder Windows 打包配置
 
@@ -133,7 +133,7 @@ npm run package
 - 历史卡片左侧为平台徽标（本地官方 favicon：斗鱼鱼形、B站 TV、虎牙虎形，来源见 [assets/platforms/README.md](src/renderer/src/assets/platforms/README.md)），整行垂直居中；主播名 13.5px 橙色、标题 15.5px 白色、房间号和时间 10.5px
 - 历史支持单条删除、管理多选（全选/删除 N）、全部清空；清空需二次确认，3 秒未确认自动回退
 - 桌面端默认禁止选中界面文本（顶栏、按钮、历史、弹幕和播放覆盖层）；房间/任务输入框仍可编辑和选中；错误提示通过 `.selectable` 保留复制排障能力
-- 历史写入 `localStorage`（`douyu-desktop.room-history.v2`），按 `${platform}:${roomId}` 去重，最多保留 30 条；旧 v1 记录自动迁移；点击外部或 Esc 关闭
+- 历史保存在用户主目录的全局文件 `%USERPROFILE%\.douyu-desktop\room-history.json`（非安装目录、非 Electron userData），按 `${platform}:${roomId}` 去重，最多保留 30 条；首次启动会把旧 `localStorage`（v2/v1）历史合并进全局文件，成功后再清除本地副本；旧 v1 记录自动迁移；点击外部或 Esc 关闭
 - 顶栏“签到”打开居中任务弹窗，不再占用右侧列；弹窗支持关闭按钮、点击遮罩或 Esc 关闭
 - 签到默认在每天首次启动后自动在后台跑一次；成功/部分完成/跳过会记录当天，同账号当天不再自动重复，失败下次启动可重试；可在弹窗内关闭“每天自动签到”，设置写入 `localStorage`（`douyu-desktop.auto-sign.v1`）
 - 手动或自动签到都在独立后台任务里运行；关闭签到面板、切换直播、最小化应用都不会中断，顶栏按钮实时显示“签到 x/y”和“已签到/部分失败”
@@ -191,7 +191,7 @@ npm run package
 - 播放卡片底栏移除：DOM 中不再有 `.player-foot`，单路视频区高 631px；卡片总高 693px 不变，视频直接使用原来状态行的高度
 - 画面角标联调：初始 LIVE/ROOM `opacity: 0` 且 `aria-hidden=true`，鼠标进入后 `opacity: 1`，静止/移出后重新隐藏，与底部控制条同步
 - 画面播放联调：点击视频不再触发 `play/pause`；音量键左侧按钮从“继续播放”切到“暂停播放”，再点击触发暂停并恢复“继续播放”
-- 历史记录联调：依次添加 4 个房间后按最新访问倒序显示，时间为 `YYYY-MM-DD HH:mm`；关闭其中一路后从历史点击可重新加入并更新时间，刷新页面后记录仍存在
+- 历史记录联调：依次添加 4 个房间后按最新访问倒序显示，时间为 `YYYY-MM-DD HH:mm`；关闭其中一路后从历史点击可重新加入并更新时间，刷新/重启后记录仍存在，并写入全局文件
 - 历史面板联调：宽 400px、高 460px；首列平台徽标（B站 53×26），主播名 13.5px/750、标题 15.5px/700、房间号和时间 10.5px；平台徽标、正文和时间中心线一致（164.8px），单条高度 101px；10 条记录正常滚动，无横向溢出
 - 历史删除联调：10 条时单删 1 条剩 9；管理多选 2 条后“删除 2”剩 7；全选显示“已选 7 条/删除 7”；清空第一次进入“确认清空”，第二次才清空；刷新后恢复 10 条测试数据
 - 文本选中联调：`body`、顶栏品牌、历史按钮、历史标题、平台徽标、删除按钮的 `user-select` 均为 `none`；房间输入框和所有 `input` 为 `text`，`setSelectionRange(0,2)` 成功；`.selectable` 错误详情为 `text`
@@ -242,6 +242,7 @@ renderer → 匿名弹幕 WebSocket（斗鱼设备 Cookie / B 站 token 由 main
 - 弹幕协议编解码在 `shared/douyu` 和 `shared/bilibili`，纯函数、可单测，供 renderer 复用
 - 弹幕飞行引擎、过滤规则、轨道布局在 `renderer/features/danmaku`；布局和过滤是纯函数
 - 弹幕设置通过 Context 全局共享，持久化在 renderer `localStorage`，不进入 main/IPC
+- 房间历史通过 main 的 `JsonRoomHistoryStore` 写入用户主目录全局 JSON；renderer 只通过 `history:load` / `history:save` IPC 读写，首次启动合并旧 `localStorage`
 - Cookie、`dyToken`、CSRF 只在 main；renderer 只拿 `AccountSummary` / `PlatformLoginStatus`；斗鱼弹幕设备 Cookie 由 main 注入，B 站弹幕只下发 token
 - B 站/虎牙登录分区由 main 持有；renderer 只能触发登录/退出并读取昵称、头像和登录状态，不接触 Cookie
 - 主进程 HTTP 统一 `credentials: 'include'`，B 站解析请求才能携带登录分区的 `SESSDATA`

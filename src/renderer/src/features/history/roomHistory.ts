@@ -1,18 +1,13 @@
+import { MAX_ROOM_HISTORY } from '@shared/contracts/history';
+import type { RoomHistoryEntry } from '@shared/contracts/history';
 import type { StreamPlatform } from '@shared/contracts/stream';
 import { roomKey } from '../../lib/streamIdentity';
 
+export { MAX_ROOM_HISTORY };
+export type { RoomHistoryEntry };
+
 export const ROOM_HISTORY_STORAGE_KEY = 'douyu-desktop.room-history.v2';
 export const LEGACY_ROOM_HISTORY_STORAGE_KEY = 'douyu-desktop.room-history.v1';
-export const MAX_ROOM_HISTORY = 30;
-
-export interface RoomHistoryEntry {
-  platform: StreamPlatform;
-  roomId: string;
-  title: string;
-  anchorName: string;
-  /** Epoch milliseconds of the most recent visit. */
-  visitedAt: number;
-}
 
 export interface RoomVisit {
   platform?: StreamPlatform | undefined;
@@ -101,6 +96,16 @@ export function removeRoomHistory(
   return entries.filter((entry) => !remove.has(roomKey(entry.platform, entry.roomId)));
 }
 
+/**
+ * Merges legacy/global history groups by platform-scoped room key. The newest
+ * visit for a room wins; this is used during one-time localStorage migration.
+ */
+export function mergeRoomHistory(
+  ...groups: readonly (readonly RoomHistoryEntry[])[]
+): RoomHistoryEntry[] {
+  return parseRoomHistory(groups.flat());
+}
+
 export function historyLabel(entry: RoomHistoryEntry): string {
   return `房间 ${entry.roomId}`;
 }
@@ -124,25 +129,25 @@ function getStorage(): Storage | null {
   }
 }
 
-export function loadRoomHistory(): RoomHistoryEntry[] {
+export function loadLegacyRoomHistory(): RoomHistoryEntry[] {
   const storage = getStorage();
   if (!storage) return [];
   try {
     const raw =
-      storage.getItem(ROOM_HISTORY_STORAGE_KEY) ??
-      storage.getItem(LEGACY_ROOM_HISTORY_STORAGE_KEY);
+      storage.getItem(ROOM_HISTORY_STORAGE_KEY) ?? storage.getItem(LEGACY_ROOM_HISTORY_STORAGE_KEY);
     return raw ? parseRoomHistory(JSON.parse(raw)) : [];
   } catch {
     return [];
   }
 }
 
-export function saveRoomHistory(entries: readonly RoomHistoryEntry[]): void {
+export function clearLegacyRoomHistory(): void {
   const storage = getStorage();
   if (!storage) return;
   try {
-    storage.setItem(ROOM_HISTORY_STORAGE_KEY, JSON.stringify(entries));
+    storage.removeItem(ROOM_HISTORY_STORAGE_KEY);
+    storage.removeItem(LEGACY_ROOM_HISTORY_STORAGE_KEY);
   } catch {
-    // Storage can be unavailable or full; history remains session-local.
+    // Storage can be unavailable; the global file is already the source of truth.
   }
 }

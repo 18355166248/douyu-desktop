@@ -17,6 +17,10 @@ const api: DesktopApi = {
     login: (platform) => ipcRenderer.invoke(IPC.platformsLogin, platform),
     logout: (platform) => ipcRenderer.invoke(IPC.platformsLogout, platform),
   },
+  history: {
+    load: () => ipcRenderer.invoke(IPC.historyLoad),
+    save: (entries) => ipcRenderer.invoke(IPC.historySave, entries),
+  },
   streams: {
     resolve: (input) => ipcRenderer.invoke(IPC.streamsResolve, input),
     audience: (input) => ipcRenderer.invoke(IPC.streamsAudience, input),
