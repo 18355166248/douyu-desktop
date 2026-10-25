@@ -38,9 +38,10 @@ const PAGE = {
         room_name: '洞主的直播间',
         nickname: '洞主',
         show_status: '1',
+        is_special: 1,
         rs16_avif: 'https://rpic.douyucdn.cn/cover/138243.avif',
       },
-      { room_id: '9999', room_name: '', nickname: '主播乙', show_status: 0 },
+      { room_id: '9999', room_name: '', nickname: '主播乙', show_status: 0, is_special: 0 },
       { room_id: 138243, room_name: '重复', nickname: '重复主播', show_status: '1' },
     ],
   },
@@ -58,9 +59,17 @@ describe('FollowedRoomsQuery', () => {
         name: '洞主',
         title: '洞主的直播间',
         isLive: true,
+        isSpecial: true,
         cover: 'https://rpic.douyucdn.cn/cover/138243.avif',
       },
-      { platform: 'douyu', roomId: '9999', name: '主播乙', title: '主播乙', isLive: false },
+      {
+        platform: 'douyu',
+        roomId: '9999',
+        name: '主播乙',
+        title: '主播乙',
+        isLive: false,
+        isSpecial: false,
+      },
     ]);
     expect(requests[0]?.url).toContain('follow/list?page=1');
   });

@@ -21,6 +21,7 @@ const room = (
   name,
   title: `${name}的直播间`,
   isLive,
+  isSpecial: false,
   ...(cover ? { cover } : {}),
 });
 

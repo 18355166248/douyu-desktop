@@ -11,6 +11,8 @@ export interface FollowedRoom {
   /** Room title. */
   title: string;
   isLive: boolean;
+  /** Douyu's official "特别关注" flag. */
+  isSpecial: boolean;
   /** HTTPS room cover, when the platform follow API provides one. */
   cover?: string | undefined;
 }

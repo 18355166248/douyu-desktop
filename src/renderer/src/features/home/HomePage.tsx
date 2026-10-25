@@ -39,6 +39,7 @@ interface HomeRoomRowProps {
   cover?: string | undefined;
   isLive?: boolean | undefined;
   showStatus?: boolean;
+  official?: boolean;
   pinned: boolean;
   onOpen: () => void;
   onToggle: () => void;
@@ -53,6 +54,7 @@ function HomeRoomRow({
   cover,
   isLive = false,
   showStatus = false,
+  official = false,
   pinned,
   onOpen,
   onToggle,
@@ -99,22 +101,36 @@ function HomeRoomRow({
           <strong>{name}</strong>
           <span className="home-room-subtitle">{subtitle}</span>
           <span className="home-room-meta">
-            {showStatus && !isLive ? <small className="home-offline">未开播</small> : null}
+            {official ? (
+              <small className="home-official">斗鱼特别关注</small>
+            ) : showStatus && !isLive ? (
+              <small className="home-offline">未开播</small>
+            ) : null}
             {meta ? <small>{meta}</small> : null}
             <span className="home-room-id">#{roomId}</span>
           </span>
         </span>
       </button>
-      <button
-        type="button"
-        className={`home-star${pinned ? ' is-active' : ''}`}
-        onClick={onToggle}
-        aria-pressed={pinned}
-        aria-label={pinned ? `取消特别关注 ${name}` : `特别关注 ${name}`}
-        title={pinned ? '取消特别关注' : '特别关注'}
-      >
-        <Icon name="star" size={15} />
-      </button>
+      {official ? (
+        <span
+          className="home-star is-active home-star-official"
+          title="斗鱼特别关注"
+          aria-label="斗鱼特别关注"
+        >
+          <Icon name="star" size={15} />
+        </span>
+      ) : (
+        <button
+          type="button"
+          className={`home-star${pinned ? ' is-active' : ''}`}
+          onClick={onToggle}
+          aria-pressed={pinned}
+          aria-label={pinned ? `取消特别关注 ${name}` : `特别关注 ${name}`}
+          title={pinned ? '取消特别关注' : '特别关注'}
+        >
+          <Icon name="star" size={15} />
+        </button>
+      )}
     </article>
   );
 }
@@ -143,8 +159,20 @@ export function HomePage({
   onToggleSpecial,
 }: HomePageProps): React.JSX.Element {
   const sortedFollowed = sortFollowedRooms(followed);
-  const specialRooms = resolveSpecialRooms(specials, followed);
-  const specialKeys = new Set(specials.map((entry) => specialFollowKey(entry)));
+  const officialSpecials = followed.filter((room) => room.isSpecial);
+  const officialKeys = new Set(officialSpecials.map((room) => specialFollowKey(room)));
+  const manualSpecialRooms = resolveSpecialRooms(specials, followed).filter(
+    (room) => !officialKeys.has(specialFollowKey(room)),
+  );
+  const specialCards = [
+    ...officialSpecials.map((room) => ({ ...room, official: true })),
+    ...manualSpecialRooms.map((room) => ({ ...room, official: false })),
+  ];
+  const specialKeys = new Set([
+    ...officialKeys,
+    ...specials.map((entry) => specialFollowKey(entry)),
+  ]);
+  const specialCount = specialCards.length;
   const coverByKey = new Map<string, string>();
   for (const room of followed) {
     if (room.cover) coverByKey.set(specialFollowKey(room), room.cover);
@@ -159,23 +187,18 @@ export function HomePage({
 
   return (
     <div className="home-page">
-      <header className="home-hero">
-        <div className="home-hero-copy">
-          <span className="eyebrow">HOME · QUICK START</span>
-          <h2>从常看的开始</h2>
-          <p>特别关注置顶，关注和最近观看一键进房。切到首页会暂停当前直播声音，选房后自动回到直播。</p>
-        </div>
-        <div className="home-stats" aria-label="首页统计">
+      <header className="home-summary" aria-label="首页统计">
+        <div className="home-stats">
           <span>
             <strong>{followed.length}</strong>
             关注
           </span>
           <span>
             <strong>{liveCount}</strong>
-            正在直播
+            直播
           </span>
           <span>
-            <strong>{specials.length}</strong>
+            <strong>{specialCount}</strong>
             特别关注
           </span>
           <span>
@@ -191,19 +214,19 @@ export function HomePage({
             <span className="home-kicker">PINNED</span>
             <h3 id="home-special-title">特别关注</h3>
           </div>
-          <span className="home-section-count">{specialRooms.length}</span>
+          <span className="home-section-count">{specialCount}</span>
         </header>
 
         {specialError ? <p className="home-inline-error">{specialError}</p> : null}
 
-        {specialRooms.length === 0 ? (
+        {specialCards.length === 0 ? (
           <div className="home-pin-hint">
             <Icon name="star" size={17} />
-            <span>在关注或最近观看里点星标，把常看的房间放到这里。</span>
+            <span>斗鱼特别关注会自动显示；也可以在关注或最近观看里点星标补充。</span>
           </div>
         ) : (
           <div className="home-special-grid">
-            {specialRooms.map((room) => (
+            {specialCards.map((room) => (
               <HomeRoomRow
                 key={specialFollowKey(room)}
                 platform={room.platform}
@@ -213,6 +236,7 @@ export function HomePage({
                 cover={room.cover}
                 isLive={room.isLive}
                 showStatus
+                official={room.official}
                 pinned
                 onOpen={() => onOpen(room.platform, room.roomId)}
                 onToggle={() =>
@@ -290,6 +314,7 @@ export function HomePage({
                   cover={room.cover}
                   isLive={room.isLive}
                   showStatus
+                  official={officialKeys.has(specialFollowKey(room))}
                   pinned={specialKeys.has(specialFollowKey(room))}
                   onOpen={() => onOpen(room.platform, room.roomId)}
                   onToggle={() => onToggleSpecial(targetFromFollowed(room))}
@@ -331,6 +356,7 @@ export function HomePage({
                     title={title}
                     meta={formatHistoryTime(entry.visitedAt)}
                     cover={historyCover}
+                    official={officialKeys.has(key)}
                     pinned={specialKeys.has(key)}
                     onOpen={() => onOpen(entry.platform, entry.roomId)}
                     onToggle={() => onToggleSpecial(targetFromHistory(entry, historyCover))}

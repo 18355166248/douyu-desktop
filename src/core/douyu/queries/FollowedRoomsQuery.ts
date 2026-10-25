@@ -8,6 +8,7 @@ interface FollowListItem {
   room_name?: string;
   nickname?: string;
   show_status?: string | number;
+  is_special?: string | number;
   room_src?: string;
   avatar_small?: string;
   rs16_avif?: string;
@@ -108,6 +109,7 @@ export class FollowedRoomsQuery {
         name: anchorName || roomTitle || `房间 ${roomId}`,
         title: roomTitle || anchorName || `房间 ${roomId}`,
         isLive: String(item.show_status ?? '0') === '1',
+        isSpecial: String(item.is_special ?? '0') === '1',
         ...(cover ? { cover } : {}),
       });
     }
