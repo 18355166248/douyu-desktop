@@ -260,7 +260,6 @@
 
 .douyu-audience {
   position: relative;
-  z-index: 2;
   flex: none;
   min-width: 0;
 }
@@ -276,7 +275,7 @@
   border-radius: 5px;
   background: transparent;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -293,37 +292,37 @@
 
 .room-rankings {
   position: absolute;
-  z-index: 20;
+  z-index: 40;
   top: calc(100% + 6px);
   right: 10px;
   display: flex;
   flex-direction: column;
-  width: min(430px, calc(100% - 20px));
-  max-height: 270px;
+  width: min(560px, calc(100% - 24px));
+  max-height: 360px;
   overflow: hidden;
-  padding: 8px 12px 8px;
+  padding: 9px 14px 9px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 14px;
   background: rgb(14 19 25 / 97%);
-  box-shadow: 0 18px 48px rgb(0 0 0 / 52%);
-  backdrop-filter: blur(12px);
+  box-shadow: 0 22px 60px rgb(0 0 0 / 58%);
+  backdrop-filter: blur(14px);
 }
 
 .room-ranking-tabs {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 6px;
-  min-height: 40px;
+  gap: 7px;
+  min-height: 42px;
 }
 
 .room-ranking-tabs button {
-  padding: 6px 10px;
+  padding: 7px 12px;
   border: 0;
-  border-radius: 5px;
+  border-radius: 6px;
   background: transparent;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -346,13 +345,13 @@
 .room-ranking-note {
   margin-left: auto;
   color: var(--dim);
-  font-size: 10px;
+  font-size: 11px;
   white-space: nowrap;
 }
 
 .room-ranking-panel {
   min-height: 0;
-  max-height: 196px;
+  max-height: 300px;
   overflow: auto;
   scrollbar-width: thin;
 }
@@ -362,15 +361,15 @@
   border-collapse: collapse;
   table-layout: fixed;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
 
 .room-ranking-table th,
 .room-ranking-table td {
-  height: 30px;
+  height: 32px;
   overflow: hidden;
-  padding: 3px 8px;
+  padding: 3px 9px;
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -381,19 +380,19 @@
   top: 0;
   background: #121920;
   color: var(--dim);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
 }
 
 .room-ranking-table th:first-child,
 .room-ranking-table td:first-child {
-  width: 44px;
+  width: 48px;
   padding-left: 3px;
 }
 
 .room-ranking-table th:last-child,
 .room-ranking-table td:last-child {
-  width: 104px;
+  width: 120px;
   text-align: right;
 }
 
@@ -413,7 +412,7 @@
   margin: 0;
   padding: 14px 4px 18px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   text-align: center;
 }
 
@@ -1032,36 +1031,36 @@
 
 .player-card.is-compact .room-rankings {
   right: 8px;
-  width: min(380px, calc(100% - 16px));
-  max-height: 240px;
-  padding: 7px 10px;
+  width: min(500px, calc(100% - 16px));
+  max-height: 330px;
+  padding: 9px 12px;
 }
 
 .player-card.is-compact .room-ranking-tabs {
-  gap: 4px;
-  min-height: 34px;
+  gap: 5px;
+  min-height: 36px;
 }
 
 .player-card.is-compact .room-ranking-tabs button {
-  padding: 5px 8px;
-  font-size: 12px;
+  padding: 6px 9px;
+  font-size: 13px;
 }
 
 .player-card.is-compact .room-ranking-note {
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .player-card.is-compact .room-ranking-panel {
-  max-height: 150px;
+  max-height: 250px;
 }
 
 .player-card.is-compact .room-ranking-table {
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .player-card.is-compact .room-ranking-table td,
 .player-card.is-compact .room-ranking-table th {
-  height: 27px;
+  height: 30px;
 }
 
 .player-card.is-compact .player-title {
