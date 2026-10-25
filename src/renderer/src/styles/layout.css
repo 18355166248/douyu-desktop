@@ -1023,7 +1023,6 @@
     transform 160ms ease;
 }
 
-.window-frame.is-immersive:hover .immersive-exit,
 .immersive-exit.is-visible,
 .immersive-exit:focus-visible {
   opacity: 1;

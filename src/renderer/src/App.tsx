@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { StreamPlatform } from '@shared/contracts/stream';
 import { Icon } from './components/Icon';
 import { PlatformPicker } from './components/PlatformPicker';
@@ -27,6 +27,8 @@ function roomPlaceholder(platform: StreamPlatform): string {
   return '房间号，如 9999';
 }
 
+const IMMERSIVE_EXIT_HIDE_MS = 4000;
+
 export function App(): React.JSX.Element {
   const { activeAccount } = useAccounts();
   const {
@@ -54,6 +56,7 @@ export function App(): React.JSX.Element {
   const roomInputRef = useRef<HTMLInputElement>(null);
   const danmakuSettingsRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);
+  const immersiveExitTimerRef = useRef<number | null>(null);
   const { entries: roomHistory, recordVisit, removeHistory, clearHistory } = useRoomHistory();
 
   useDismissableLayer({
@@ -71,6 +74,27 @@ export function App(): React.JSX.Element {
     onClose: () => setTaskOpen(false),
     closeOnPointerDown: false,
   });
+
+  const clearImmersiveExitTimer = useCallback((): void => {
+    if (immersiveExitTimerRef.current !== null) {
+      window.clearTimeout(immersiveExitTimerRef.current);
+      immersiveExitTimerRef.current = null;
+    }
+  }, []);
+
+  const hideImmersiveExit = useCallback((): void => {
+    clearImmersiveExitTimer();
+    setImmersiveExitVisible(false);
+  }, [clearImmersiveExitTimer]);
+
+  const showImmersiveExit = useCallback((): void => {
+    setImmersiveExitVisible(true);
+    clearImmersiveExitTimer();
+    immersiveExitTimerRef.current = window.setTimeout(() => {
+      immersiveExitTimerRef.current = null;
+      setImmersiveExitVisible(false);
+    }, IMMERSIVE_EXIT_HIDE_MS);
+  }, [clearImmersiveExitTimer]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent): void {
@@ -105,6 +129,16 @@ export function App(): React.JSX.Element {
   useEffect(() => {
     if (isImmersive && streams.length === 0) setImmersive(false);
   }, [isImmersive, streams.length]);
+
+  useEffect(() => {
+    if (!isImmersive) {
+      hideImmersiveExit();
+      return undefined;
+    }
+
+    showImmersiveExit();
+    return clearImmersiveExitTimer;
+  }, [clearImmersiveExitTimer, hideImmersiveExit, isImmersive, showImmersiveExit]);
 
   const canAdd = canAddStream(streams.length);
   const canSubmit = canAdd && roomId.trim().length > 0;
@@ -180,8 +214,9 @@ export function App(): React.JSX.Element {
   return (
     <div
       className={`window-frame${isImmersive ? ' is-immersive' : ''}`}
-      onPointerEnter={() => setImmersiveExitVisible(true)}
-      onPointerLeave={() => setImmersiveExitVisible(false)}
+      onPointerEnter={isImmersive ? showImmersiveExit : undefined}
+      onPointerLeave={hideImmersiveExit}
+      onPointerMove={isImmersive ? showImmersiveExit : undefined}
     >
       <AutoSignRunner account={activeAccount} />
       <TitleBar>
