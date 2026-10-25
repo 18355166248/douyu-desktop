@@ -7,6 +7,7 @@ import type {
 
 export interface SpecialRoom extends SpecialFollowEntry {
   isLive: boolean;
+  heat: number;
 }
 
 export function specialFollowKey(
@@ -15,9 +16,10 @@ export function specialFollowKey(
   return `${target.platform}:${target.roomId}`;
 }
 
-/** Live rooms first, then anchor name, preserving the API order for ties. */
+/** Hottest first; live state and name only break ties. */
 export function sortFollowedRooms(rooms: readonly FollowedRoom[]): FollowedRoom[] {
   return [...rooms].sort((left, right) => {
+    if (right.heat !== left.heat) return right.heat - left.heat;
     if (left.isLive !== right.isLive) return left.isLive ? -1 : 1;
     return left.name.localeCompare(right.name, 'zh-CN');
   });
@@ -37,6 +39,7 @@ export function resolveSpecialRooms(
       title: fresh?.title ?? entry.title,
       ...(fresh?.cover ? { cover: fresh.cover } : {}),
       isLive: fresh?.isLive ?? false,
+      heat: fresh?.heat ?? 0,
     };
   });
 }

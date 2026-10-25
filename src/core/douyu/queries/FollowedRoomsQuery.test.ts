@@ -39,9 +39,17 @@ const PAGE = {
         nickname: '洞主',
         show_status: '1',
         is_special: 1,
+        online: '269.5万',
         rs16_avif: 'https://rpic.douyucdn.cn/cover/138243.avif',
       },
-      { room_id: '9999', room_name: '', nickname: '主播乙', show_status: 0, is_special: 0 },
+      {
+        room_id: '9999',
+        room_name: '',
+        nickname: '主播乙',
+        show_status: 0,
+        is_special: 0,
+        online: '9800',
+      },
       { room_id: 138243, room_name: '重复', nickname: '重复主播', show_status: '1' },
     ],
   },
@@ -60,6 +68,7 @@ describe('FollowedRoomsQuery', () => {
         title: '洞主的直播间',
         isLive: true,
         isSpecial: true,
+        heat: 2_695_000,
         cover: 'https://rpic.douyucdn.cn/cover/138243.avif',
       },
       {
@@ -69,6 +78,7 @@ describe('FollowedRoomsQuery', () => {
         title: '主播乙',
         isLive: false,
         isSpecial: false,
+        heat: 9800,
       },
     ]);
     expect(requests[0]?.url).toContain('follow/list?page=1');
@@ -102,6 +112,7 @@ describe('FollowedRoomsQuery', () => {
               room_name: '封面房间',
               nickname: '封面主播',
               show_status: 0,
+              online: '1.2亿',
               room_src: '//rpic.douyucdn.cn/cover.png',
             },
           ],
@@ -109,6 +120,9 @@ describe('FollowedRoomsQuery', () => {
       }),
     ]);
     const rooms = await new FollowedRoomsQuery(http).list({ maxPages: 1 });
-    expect(rooms[0]?.cover).toBe('https://rpic.douyucdn.cn/cover.png');
+    expect(rooms[0]).toMatchObject({
+      cover: 'https://rpic.douyucdn.cn/cover.png',
+      heat: 120_000_000,
+    });
   });
 });

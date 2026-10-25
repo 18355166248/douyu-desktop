@@ -167,12 +167,19 @@ export function HomePage({
   const specialCards = [
     ...officialSpecials.map((room) => ({ ...room, official: true })),
     ...manualSpecialRooms.map((room) => ({ ...room, official: false })),
-  ];
+  ].sort((left, right) => {
+    if (right.heat !== left.heat) return right.heat - left.heat;
+    if (left.official !== right.official) return left.official ? -1 : 1;
+    return left.name.localeCompare(right.name, 'zh-CN');
+  });
   const specialKeys = new Set([
     ...officialKeys,
     ...specials.map((entry) => specialFollowKey(entry)),
   ]);
   const specialCount = specialCards.length;
+  const visibleFollowed = sortedFollowed.filter(
+    (room) => !specialKeys.has(specialFollowKey(room)),
+  );
   const coverByKey = new Map<string, string>();
   for (const room of followed) {
     if (room.cover) coverByKey.set(specialFollowKey(room), room.cover);
@@ -190,7 +197,7 @@ export function HomePage({
       <header className="home-summary" aria-label="首页统计">
         <div className="home-stats">
           <span>
-            <strong>{followed.length}</strong>
+            <strong>{visibleFollowed.length}</strong>
             关注
           </span>
           <span>
@@ -260,16 +267,19 @@ export function HomePage({
             <span className="home-kicker">DOUYU</span>
             <h3 id="home-follow-title">我的关注</h3>
           </div>
-          <button
-            type="button"
-            className="home-refresh"
-            onClick={onRefreshFollowed}
-            disabled={followedLoading || !accountIsActive}
-            title="刷新关注列表"
-          >
-            <Icon name="refresh" size={14} />
-            {followedLoading ? '刷新中' : '刷新'}
-          </button>
+          <div className="home-section-actions">
+            <span className="home-section-count">{visibleFollowed.length}</span>
+            <button
+              type="button"
+              className="home-refresh"
+              onClick={onRefreshFollowed}
+              disabled={followedLoading || !accountIsActive}
+              title="刷新关注列表"
+            >
+              <Icon name="refresh" size={14} />
+              {followedLoading ? '刷新中' : '刷新'}
+            </button>
+          </div>
         </header>
 
         {accountsLoading ? (
@@ -296,15 +306,19 @@ export function HomePage({
               重试
             </button>
           </div>
-        ) : sortedFollowed.length === 0 ? (
+        ) : visibleFollowed.length === 0 ? (
           <div className="home-empty">
             <Icon name="user" size={19} />
-            <span>还没有关注</span>
-            <small>在斗鱼关注主播后，刷新这里就会出现。</small>
+            <span>{sortedFollowed.length > 0 ? '关注的房间都在特别关注里' : '还没有关注'}</span>
+            <small>
+              {sortedFollowed.length > 0
+                ? '特别关注优先显示，这里不再重复。'
+                : '在斗鱼关注主播后，刷新这里就会出现。'}
+            </small>
           </div>
         ) : (
           <div className="home-room-list" role="list">
-            {sortedFollowed.map((room) => (
+            {visibleFollowed.map((room) => (
               <div role="listitem" key={roomKey(room.platform, room.roomId)}>
                 <HomeRoomRow
                   platform={room.platform}

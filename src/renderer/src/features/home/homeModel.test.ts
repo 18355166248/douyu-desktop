@@ -15,6 +15,7 @@ const room = (
   name: string,
   isLive: boolean,
   cover?: string,
+  heat = 0,
 ): FollowedRoom => ({
   platform: 'douyu',
   roomId,
@@ -22,6 +23,7 @@ const room = (
   title: `${name}的直播间`,
   isLive,
   isSpecial: false,
+  heat,
   ...(cover ? { cover } : {}),
 });
 
@@ -34,20 +36,20 @@ const pinned = (roomId: string, addedAt: number): SpecialFollowEntry => ({
 });
 
 describe('homeModel', () => {
-  it('puts live followed rooms first and keeps stable names', () => {
+  it('sorts followed rooms by heat, using live state and name for ties', () => {
     const rooms = sortFollowedRooms([
-      room('2', '乙', false),
-      room('1', '甲', true),
-      room('3', '丙', true),
+      room('2', '乙', false, undefined, 100),
+      room('1', '甲', true, undefined, 300),
+      room('3', '丙', true, undefined, 200),
     ]);
-    expect(rooms.map((item) => item.roomId)).toEqual(['3', '1', '2']);
+    expect(rooms.map((item) => item.roomId)).toEqual(['1', '3', '2']);
   });
 
-  it('hydrates pinned rooms with fresh follow state', () => {
+  it('hydrates pinned rooms with fresh follow state and heat', () => {
     expect(
       resolveSpecialRooms(
         [pinned('138243', 10)],
-        [room('138243', '新名字', true, 'https://rpic.douyucdn.cn/cover.avif')],
+        [room('138243', '新名字', true, 'https://rpic.douyucdn.cn/cover.avif', 88)],
       ),
     ).toEqual([
       {
@@ -58,6 +60,7 @@ describe('homeModel', () => {
         cover: 'https://rpic.douyucdn.cn/cover.avif',
         addedAt: 10,
         isLive: true,
+        heat: 88,
       },
     ]);
   });
