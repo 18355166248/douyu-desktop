@@ -10,6 +10,7 @@ export type IconName =
   | 'logout'
   | 'volume'
   | 'volumeOff'
+  | 'headphones'
   | 'eye'
   | 'eyeOff'
   | 'pause'
@@ -76,6 +77,13 @@ const paths: Record<IconName, ReactNode> = {
     <>
       <path d="M4 10v4h3l4 3V7l-4 3z" />
       <path d="m16 9 5 5M21 9l-5 5" />
+    </>
+  ),
+  headphones: (
+    <>
+      <path d="M4 14.5V12a8 8 0 0 1 16 0v2.5" />
+      <rect x="3.2" y="13.2" width="4.2" height="7.2" rx="1.8" />
+      <rect x="16.6" y="13.2" width="4.2" height="7.2" rx="1.8" />
     </>
   ),
   eye: (

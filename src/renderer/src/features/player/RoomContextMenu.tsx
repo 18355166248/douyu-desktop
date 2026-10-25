@@ -23,10 +23,13 @@ export interface RoomContextMenuProps {
   danmakuPaused: boolean;
   isReloading: boolean;
   immersive: boolean;
+  canSolo: boolean;
+  isSolo: boolean;
   audience?: RoomAudienceSnapshot | undefined;
   onClose: () => void;
   onTogglePlayback: () => void;
   onToggleMute: () => void;
+  onToggleSolo: () => void;
   onToggleDanmaku: () => void;
   onToggleDanmakuPaused: () => void;
   onReload: () => void;
@@ -47,10 +50,13 @@ export function RoomContextMenu({
   danmakuPaused,
   isReloading,
   immersive,
+  canSolo,
+  isSolo,
   audience,
   onClose,
   onTogglePlayback,
   onToggleMute,
+  onToggleSolo,
   onToggleDanmaku,
   onToggleDanmakuPaused,
   onReload,
@@ -212,6 +218,20 @@ export function RoomContextMenu({
           <span>{muted ? '取消静音' : '静音'}</span>
           <kbd>M</kbd>
         </button>
+
+        {canSolo ? (
+          <button
+            type="button"
+            className="room-menu-item"
+            role="menuitem"
+            aria-keyshortcuts="S"
+            onClick={() => run(onToggleSolo)}
+          >
+            <Icon name="headphones" size={15} />
+            <span>{isSolo ? '取消独奏' : '静音其他'}</span>
+            <kbd>S</kbd>
+          </button>
+        ) : null}
 
         <button
           type="button"

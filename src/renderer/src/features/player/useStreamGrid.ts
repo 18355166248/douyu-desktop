@@ -28,6 +28,7 @@ export interface UseStreamGridResult {
   reloadingKey: string | null;
   mutedRooms: Record<string, boolean>;
   volumes: Record<string, number>;
+  soloKey: string | null;
   addStream: (
     options: AddStreamOptions,
     onResolved?: (playback: StreamPlayback) => void,
@@ -37,6 +38,7 @@ export interface UseStreamGridResult {
   removeStream: (key: string) => void;
   clearStreams: () => void;
   toggleMute: (key: string) => void;
+  toggleSolo: (key: string) => void;
   setVolume: (key: string, volume: number) => void;
 }
 
@@ -52,9 +54,16 @@ export function useStreamGrid(): UseStreamGridResult {
   const [reloadingKey, setReloadingKey] = useState<string | null>(null);
   const [mutedRooms, setMutedRooms] = useState<Record<string, boolean>>({});
   const [volumes, setVolumes] = useState<Record<string, number>>({});
+  const [soloKey, setSoloKey] = useState<string | null>(null);
   const addingRef = useRef(false);
   const reloadingRef = useRef<{ key: string } | null>(null);
   const nextInstanceId = useRef(0);
+  const mutedBeforeSoloRef = useRef<Record<string, boolean> | null>(null);
+
+  function restoredMutedRooms(keys: readonly string[]): Record<string, boolean> {
+    const snapshot = mutedBeforeSoloRef.current ?? {};
+    return Object.fromEntries(keys.map((key) => [key, snapshot[key] === true]));
+  }
 
   async function addStream(
     options: AddStreamOptions,
@@ -102,7 +111,10 @@ export function useStreamGrid(): UseStreamGridResult {
           options: { quality: actualQuality, preferHls: options.preferHls },
         },
       ]);
-      setMutedRooms((current) => ({ ...current, [key]: false }));
+      setMutedRooms((current) => ({
+        ...current,
+        [key]: mutedBeforeSoloRef.current !== null,
+      }));
       setVolumes((current) =>
         current[key] === undefined ? { ...current, [key]: DEFAULT_VOLUME } : current,
       );
@@ -185,12 +197,25 @@ export function useStreamGrid(): UseStreamGridResult {
   }
 
   function removeStream(key: string): void {
+    const remainingKeys = streams
+      .filter((entry) => streamKey(entry.playback) !== key)
+      .map((entry) => streamKey(entry.playback));
     setStreams((current) => current.filter((entry) => streamKey(entry.playback) !== key));
-    setMutedRooms((current) => {
-      const next = { ...current };
-      delete next[key];
-      return next;
-    });
+    if (soloKey === key) {
+      setMutedRooms(restoredMutedRooms(remainingKeys));
+      setSoloKey(null);
+      mutedBeforeSoloRef.current = null;
+    } else {
+      setMutedRooms((current) => {
+        const next = { ...current };
+        delete next[key];
+        return next;
+      });
+      if (remainingKeys.length < 2 && soloKey !== null) {
+        setSoloKey(null);
+        mutedBeforeSoloRef.current = null;
+      }
+    }
     setVolumes((current) => {
       const next = { ...current };
       delete next[key];
@@ -206,11 +231,17 @@ export function useStreamGrid(): UseStreamGridResult {
     setStreams([]);
     setMutedRooms({});
     setVolumes({});
+    setSoloKey(null);
+    mutedBeforeSoloRef.current = null;
     reloadingRef.current = null;
     setReloadingKey(null);
   }
 
   function toggleMute(key: string): void {
+    if (soloKey !== null) {
+      setSoloKey(null);
+      mutedBeforeSoloRef.current = null;
+    }
     const nextMuted = !(mutedRooms[key] ?? false);
     setMutedRooms((current) => ({ ...current, [key]: nextMuted }));
     if (!nextMuted && (volumes[key] ?? DEFAULT_VOLUME) <= 0) {
@@ -218,8 +249,40 @@ export function useStreamGrid(): UseStreamGridResult {
     }
   }
 
+  function toggleSolo(key: string): void {
+    if (streams.length < 2 || !streams.some((entry) => streamKey(entry.playback) === key)) {
+      return;
+    }
+
+    if (soloKey === key) {
+      const keys = streams.map((entry) => streamKey(entry.playback));
+      setMutedRooms(restoredMutedRooms(keys));
+      setSoloKey(null);
+      mutedBeforeSoloRef.current = null;
+      return;
+    }
+
+    if (soloKey === null) {
+      mutedBeforeSoloRef.current = { ...mutedRooms };
+    }
+    const next: Record<string, boolean> = {};
+    for (const entry of streams) {
+      const entryKey = streamKey(entry.playback);
+      next[entryKey] = entryKey !== key;
+    }
+    setMutedRooms(next);
+    setSoloKey(key);
+  }
+
   function setVolume(key: string, volume: number): void {
     const nextVolume = Math.min(1, Math.max(0, volume));
+    if (
+      soloKey !== null &&
+      ((key !== soloKey && nextVolume > 0) || (key === soloKey && nextVolume <= 0))
+    ) {
+      setSoloKey(null);
+      mutedBeforeSoloRef.current = null;
+    }
     setVolumes((current) => ({ ...current, [key]: nextVolume }));
     setMutedRooms((current) => {
       const nextMuted = nextVolume <= 0;
@@ -234,12 +297,14 @@ export function useStreamGrid(): UseStreamGridResult {
     reloadingKey,
     mutedRooms,
     volumes,
+    soloKey,
     addStream,
     reloadStream,
     setStreamOptions,
     removeStream,
     clearStreams,
     toggleMute,
+    toggleSolo,
     setVolume,
   };
 }

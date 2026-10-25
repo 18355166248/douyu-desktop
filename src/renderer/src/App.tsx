@@ -48,12 +48,14 @@ export function App(): React.JSX.Element {
     reloadingKey,
     mutedRooms,
     volumes,
+    soloKey,
     addStream,
     reloadStream,
     setStreamOptions,
     removeStream,
     clearStreams,
     toggleMute,
+    toggleSolo,
     setVolume,
   } = useStreamGrid();
   const [platform, setPlatform] = useState<StreamPlatform>('douyu');
@@ -534,11 +536,13 @@ export function App(): React.JSX.Element {
                     reloadingKey={reloadingKey}
                     mutedRooms={mutedRooms}
                     volumes={volumes}
+                    soloKey={soloKey}
                     onReload={handleReload}
                     onOptionsChange={handleStreamOptionsChange}
                     onRemove={handleRemoveStream}
                     onSetMain={setMainStreamKey}
                     onToggleMute={toggleMute}
+                    onToggleSolo={toggleSolo}
                     onVolumeChange={setVolume}
                     onOpenDanmakuSettings={() => setDanmakuSettingsOpen(true)}
                     onToggleImmersive={toggleImmersive}

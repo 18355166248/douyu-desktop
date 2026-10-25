@@ -16,11 +16,13 @@ interface StreamGridProps {
   reloadingKey: string | null;
   mutedRooms: Record<string, boolean>;
   volumes: Record<string, number>;
+  soloKey: string | null;
   onReload: (key: string) => void;
   onOptionsChange: (key: string, patch: Partial<StreamResolveOptions>) => void;
   onRemove: (key: string) => void;
   onSetMain: (key: string) => void;
   onToggleMute: (key: string) => void;
+  onToggleSolo: (key: string) => void;
   onVolumeChange: (key: string, volume: number) => void;
   onOpenDanmakuSettings: () => void;
   onToggleImmersive: () => void;
@@ -36,11 +38,13 @@ export function StreamGrid({
   reloadingKey,
   mutedRooms,
   volumes,
+  soloKey,
   onReload,
   onOptionsChange,
   onRemove,
   onSetMain,
   onToggleMute,
+  onToggleSolo,
   onVolumeChange,
   onOpenDanmakuSettings,
   onToggleImmersive,
@@ -69,6 +73,8 @@ export function StreamGrid({
             compact={streams.length > 1}
             immersive={immersive}
             isMain={isMain}
+            canSolo={streams.length > 1}
+            isSolo={soloKey === key}
             shortcutsEnabled={keyboardActive && currentKey === key}
             muted={mutedRooms[key] === true}
             volume={volumes[key] ?? DEFAULT_VOLUME}
@@ -83,6 +89,7 @@ export function StreamGrid({
               ? { onSetMain: () => onSetMain(key) }
               : {})}
             onToggleMute={() => onToggleMute(key)}
+            onToggleSolo={() => onToggleSolo(key)}
             onVolumeChange={(volume) => onVolumeChange(key, volume)}
             onOpenDanmakuSettings={onOpenDanmakuSettings}
             onToggleImmersive={onToggleImmersive}

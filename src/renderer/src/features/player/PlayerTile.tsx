@@ -14,6 +14,8 @@ interface PlayerTileProps {
   error?: string | null;
   immersive?: boolean;
   isMain?: boolean;
+  canSolo?: boolean;
+  isSolo?: boolean;
   shortcutsEnabled?: boolean;
   onActivate?: () => void;
   muted: boolean;
@@ -25,6 +27,7 @@ interface PlayerTileProps {
   onStop: () => void;
   onSetMain?: () => void;
   onToggleMute: () => void;
+  onToggleSolo: () => void;
   onVolumeChange: (volume: number) => void;
   onOpenDanmakuSettings: () => void;
   onToggleImmersive: () => void;
@@ -37,6 +40,8 @@ export function PlayerTile({
   error = null,
   immersive = false,
   isMain = false,
+  canSolo = false,
+  isSolo = false,
   shortcutsEnabled = false,
   onActivate,
   muted,
@@ -48,6 +53,7 @@ export function PlayerTile({
   onStop,
   onSetMain,
   onToggleMute,
+  onToggleSolo,
   onVolumeChange,
   onOpenDanmakuSettings,
   onToggleImmersive,
@@ -149,8 +155,11 @@ export function PlayerTile({
         isReloading={isReloading}
         shortcutsEnabled={shortcutsEnabled}
         immersive={immersive}
+        canSolo={canSolo}
+        isSolo={isSolo}
         onReload={reloadPlaybackAndAudience}
         onToggleMute={onToggleMute}
+        onToggleSolo={onToggleSolo}
         onVolumeChange={onVolumeChange}
         onOptionsChange={onOptionsChange}
         onOpenDanmakuSettings={onOpenDanmakuSettings}

@@ -25,8 +25,11 @@ interface VideoPlayerProps {
   isReloading: boolean;
   shortcutsEnabled: boolean;
   immersive: boolean;
+  canSolo: boolean;
+  isSolo: boolean;
   onReload: () => void;
   onToggleMute: () => void;
+  onToggleSolo: () => void;
   onVolumeChange: (volume: number) => void;
   onOptionsChange: (patch: Partial<StreamResolveOptions>) => void;
   onOpenDanmakuSettings: () => void;
@@ -43,8 +46,11 @@ export function VideoPlayer({
   isReloading,
   shortcutsEnabled,
   immersive,
+  canSolo,
+  isSolo,
   onReload,
   onToggleMute,
+  onToggleSolo,
   onVolumeChange,
   onOptionsChange,
   onOpenDanmakuSettings,
@@ -213,6 +219,12 @@ export function VideoPlayer({
           onToggleMute();
           showControls();
           break;
+        case 's':
+          if (!canSolo) return;
+          event.preventDefault();
+          onToggleSolo();
+          showControls();
+          break;
         case 'r':
           if (isReloading) return;
           event.preventDefault();
@@ -239,11 +251,13 @@ export function VideoPlayer({
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [
+    canSolo,
     isReloading,
     muted,
     onReload,
     onStop,
     onToggleMute,
+    onToggleSolo,
     onVolumeChange,
     settings.paused,
     settings.visible,
@@ -408,6 +422,24 @@ export function VideoPlayer({
             <span className="video-sound">{muted ? '已静音' : `${Math.round(volume * 100)}%`}</span>
           </div>
 
+          {canSolo ? (
+            <button
+              type="button"
+              className={`icon-btn video-solo-button${isSolo ? ' is-active' : ''}`}
+              onClick={onToggleSolo}
+              aria-label={isSolo ? '取消独奏' : '静音其他直播间'}
+              aria-keyshortcuts="S"
+              aria-pressed={isSolo}
+              title={
+                isSolo
+                  ? '取消独奏，恢复其他直播间声音 (S)'
+                  : '静音其他直播间，只保留当前声音 (S)'
+              }
+            >
+              <Icon name="headphones" size={17} />
+            </button>
+          ) : null}
+
           <span className="video-divider" aria-hidden="true" />
 
           <button
@@ -496,10 +528,13 @@ export function VideoPlayer({
         danmakuPaused={settings.paused}
         isReloading={isReloading}
         immersive={immersive}
+        canSolo={canSolo}
+        isSolo={isSolo}
         audience={audience}
         onClose={closeContextMenu}
         onTogglePlayback={togglePlayback}
         onToggleMute={onToggleMute}
+        onToggleSolo={onToggleSolo}
         onToggleDanmaku={() => update({ visible: !settings.visible })}
         onToggleDanmakuPaused={() => update({ paused: !settings.paused })}
         onReload={onReload}

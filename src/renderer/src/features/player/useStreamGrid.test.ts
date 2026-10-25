@@ -28,9 +28,9 @@ vi.mock('react', () => ({
 }));
 
 const resolveStream = vi.fn();
-const playback = (url: string): StreamPlayback => ({
+const playback = (url: string, roomId = '1'): StreamPlayback => ({
   platform: 'douyu',
-  roomId: '1',
+  roomId,
   title: '',
   anchorName: '',
   url,
@@ -51,8 +51,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-describe('stream reload lifetimes', () => {
-  it.each(['success', 'failure'] as const)(
+describe('stream reload lifetimes', () => {  it.each(['success', 'failure'] as const)(
     'ignores an old %s after closing and re-adding a room',
     async (outcome) => {
       resolveStream.mockResolvedValueOnce(ok(playback('initial')));
@@ -108,5 +107,63 @@ describe('stream reload lifetimes', () => {
     await current;
     expect(render().streams[0]?.playback.url).toBe('latest');
     expect(render().reloadingKey).toBeNull();
+  });
+});
+
+describe('audio solo', () => {
+  it('mutes the other rooms and restores their previous state', async () => {
+    resolveStream.mockResolvedValueOnce(ok(playback('one', '1')));
+    await render().addStream({ ...input, roomId: '1' });
+    resolveStream.mockResolvedValueOnce(ok(playback('two', '2')));
+    await render().addStream({ ...input, roomId: '2' });
+
+    render().toggleSolo('douyu:1');
+    let state = render();
+    expect(state.soloKey).toBe('douyu:1');
+    expect(state.mutedRooms).toEqual({ 'douyu:1': false, 'douyu:2': true });
+
+    render().toggleSolo('douyu:1');
+    state = render();
+    expect(state.soloKey).toBeNull();
+    expect(state.mutedRooms).toEqual({ 'douyu:1': false, 'douyu:2': false });
+  });
+
+  it('keeps a room muted when it was muted before soloing', async () => {
+    resolveStream.mockResolvedValueOnce(ok(playback('one', '1')));
+    await render().addStream({ ...input, roomId: '1' });
+    resolveStream.mockResolvedValueOnce(ok(playback('two', '2')));
+    await render().addStream({ ...input, roomId: '2' });
+
+    render().toggleMute('douyu:2');
+    render().toggleSolo('douyu:1');
+    expect(render().mutedRooms).toEqual({ 'douyu:1': false, 'douyu:2': true });
+
+    render().toggleSolo('douyu:1');
+    expect(render().soloKey).toBeNull();
+    expect(render().mutedRooms).toEqual({ 'douyu:1': false, 'douyu:2': true });
+  });
+
+  it('mutes a room added while another room is soloed', async () => {
+    resolveStream.mockResolvedValueOnce(ok(playback('one', '1')));
+    await render().addStream({ ...input, roomId: '1' });
+    resolveStream.mockResolvedValueOnce(ok(playback('two', '2')));
+    await render().addStream({ ...input, roomId: '2' });
+    render().toggleSolo('douyu:1');
+
+    resolveStream.mockResolvedValueOnce(ok(playback('three', '3')));
+    await render().addStream({ ...input, roomId: '3' });
+    expect(render().soloKey).toBe('douyu:1');
+    expect(render().mutedRooms).toEqual({
+      'douyu:1': false,
+      'douyu:2': true,
+      'douyu:3': true,
+    });
+
+    render().toggleSolo('douyu:1');
+    expect(render().mutedRooms).toEqual({
+      'douyu:1': false,
+      'douyu:2': false,
+      'douyu:3': false,
+    });
   });
 });
