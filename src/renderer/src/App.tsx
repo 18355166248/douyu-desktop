@@ -10,6 +10,7 @@ import { RoomHistoryPanel } from './features/history/RoomHistoryPanel';
 import { useRoomHistory } from './features/history/useRoomHistory';
 import type { RoomHistoryEntry } from './features/history/roomHistory';
 import { EmptyStage } from './features/player/EmptyStage';
+import { HuyaStage } from './features/player/HuyaStage';
 import { StreamGrid } from './features/player/StreamGrid';
 import { MAX_STREAMS, canAddStream } from './features/player/streamGridLayout';
 import { defaultStreamOptions, useStreamGrid } from './features/player/useStreamGrid';
@@ -115,7 +116,11 @@ export function App(): React.JSX.Element {
 
   async function handleAdd(targetPlatform: StreamPlatform, targetRoomId: string): Promise<void> {
     if (targetPlatform === 'huya') {
-      setError('虎牙播放仍在适配中，右上角可先登录保存账号状态。');
+      setError(
+        streams.length > 0
+          ? '虎牙播放仍在适配中，可在账号菜单登录虎牙保存状态。'
+          : null,
+      );
       return;
     }
     setError(null);
@@ -243,7 +248,11 @@ export function App(): React.JSX.Element {
             type="submit"
             className="btn primary titlebar-add"
             disabled={isAdding || !canSubmit}
-            title={platform === 'huya' ? '虎牙播放适配中，可先登录保存账号状态' : undefined}
+            title={
+              platform === 'huya'
+                ? '虎牙播放适配中，可在下方先登录保存账号状态'
+                : undefined
+            }
           >
             <Icon name={addButtonIcon()} size={15} />
             {addButtonLabel()}
@@ -264,7 +273,8 @@ export function App(): React.JSX.Element {
         <TaskButton open={isTaskOpen} onToggle={() => setTaskOpen((open) => !open)} />
 
         <AccountBar compact />
-      </TitleBar>      <div className="app-shell">
+      </TitleBar>
+      <div className="app-shell">
         <main className="main">
           {error ? (
             <div className="alert" role="alert">
@@ -279,13 +289,17 @@ export function App(): React.JSX.Element {
           <div className="workspace">
             <div className="stage">
               {streams.length === 0 ? (
-                <EmptyStage
-                  onPickExample={() => {
-                    setPlatform('douyu');
-                    setRoomId('9999');
-                    void handleAdd('douyu', '9999');
-                  }}
-                />
+                platform === 'huya' ? (
+                  <HuyaStage />
+                ) : (
+                  <EmptyStage
+                    onPickExample={() => {
+                      setPlatform('douyu');
+                      setRoomId('9999');
+                      void handleAdd('douyu', '9999');
+                    }}
+                  />
+                )
               ) : (
                 <StreamGrid
                   streams={streams}
