@@ -12,7 +12,11 @@ const logger: Logger = {
   error: () => undefined,
 };
 
-function fakeJson(payload: unknown): { status: number; headers: Headers; text: () => Promise<string> } {
+function fakeJson(payload: unknown): {
+  status: number;
+  headers: Headers;
+  text: () => Promise<string>;
+} {
   return {
     status: 200,
     headers: new Headers({ 'content-type': 'application/json' }),
@@ -20,9 +24,10 @@ function fakeJson(payload: unknown): { status: number; headers: Headers; text: (
   };
 }
 
-function createService(
-  gate?: Promise<void>,
-): { service: TaskService; progress: TaskProgressEvent[] } {
+function createService(gate?: Promise<void>): {
+  service: TaskService;
+  progress: TaskProgressEvent[];
+} {
   const session = {
     fetch: async (url: string) => {
       if (gate) await gate;
@@ -64,12 +69,24 @@ describe('TaskService background run state', () => {
     );
 
     expect(result.status).toBe('success');
+    expect(result.accountId).toBe('account-1');
+    expect(result.dryRun).toBe(false);
     expect(progress).toHaveLength(1);
     expect(service.status()).toMatchObject({
       taskId: 'douyu.room-sign',
       running: false,
       result: { status: 'success' },
     });
+  });
+
+  it('keeps dry runs attributable without treating them as real sign-ins', async () => {
+    const { service, progress } = createService();
+    const result = await service.run({ taskId: 'douyu.room-sign', dryRun: true }, (event) =>
+      progress.push(event),
+    );
+    expect(result).toMatchObject({ accountId: 'account-1', dryRun: true, status: 'success' });
+    expect(progress).toHaveLength(0);
+    expect(service.status()?.result).toEqual(result);
   });
 
   it('rejects a second run while the first is still active', async () => {

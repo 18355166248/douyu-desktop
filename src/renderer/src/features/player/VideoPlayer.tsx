@@ -1,6 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import Hls from 'hls.js';
-import mpegts from 'mpegts.js';
 import type { StreamPlayback, StreamQuality } from '@shared/contracts/stream';
 import { Icon } from '../../components/Icon';
 import { usePlatformLoginStatus } from '../accounts/usePlatformLogin';
@@ -8,6 +6,7 @@ import { DanmakuOverlay } from '../danmaku/DanmakuOverlay';
 import { useDanmakuSettings } from '../danmaku/DanmakuSettingsContext';
 import { qualityOptionsFor } from './streamQuality';
 import { STALL_TIMEOUT_MS } from './streamStall';
+import { attachPlayback } from './playbackSession';
 import { useAutoHideControls } from './useAutoHideControls';
 import { useStreamStall } from './useStreamStall';
 import type { StreamResolveOptions } from './useStreamGrid';
@@ -56,120 +55,14 @@ export function VideoPlayer({
     const video = videoRef.current;
     if (!video) return undefined;
 
-    let disposed = false;
-    let hls: Hls | null = null;
-    let flv: ReturnType<typeof mpegts.createPlayer> | null = null;
-    let networkAttempts = 0;
-    const fail = (message: string): void => {
-      if (!disposed) setError(message);
-    };
-
     setError(null);
     setIsReady(false);
     setIsPlaying(false);
     userPausedRef.current = false;
-
-    const play = (): void => {
-      void Promise.resolve(video.play()).catch(() => {
-        // Autoplay policy can still reject; muted playback usually succeeds.
-      });
-    };
-
-    // mpegts/hls can call play() before the media element is buffered enough.
-    // Retry once the element reports it can play, without overriding a user pause.
-    const resumeWhenReady = (): void => {
-      if (!disposed && !userPausedRef.current && video.paused) play();
-    };
-    video.addEventListener('canplay', resumeWhenReady);
-    video.addEventListener('loadeddata', resumeWhenReady);
-    const retryTimers = [800, 2_000, 4_000].map((delay) =>
-      window.setTimeout(resumeWhenReady, delay),
-    );
-
-    if (playback.format === 'hls' || playback.url.includes('.m3u8')) {
-      if (Hls.isSupported()) {
-        hls = new Hls({
-          enableWorker: true,
-          lowLatencyMode: true,
-          backBufferLength: 30,
-        });
-        hls.loadSource(playback.url);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          networkAttempts = 0;
-          play();
-        });
-        hls.on(Hls.Events.ERROR, (_event, data) => {
-          if (!data.fatal || !hls) return;
-          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            if (networkAttempts >= 3) {
-              fail('HLS 播放失败，请重新解析');
-              hls.destroy();
-              hls = null;
-              return;
-            }
-            networkAttempts += 1;
-            window.setTimeout(() => {
-              if (disposed || !hls) return;
-              hls.loadSource(playback.url);
-              hls.startLoad();
-            }, 400 * networkAttempts);
-          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-            hls.recoverMediaError();
-          } else {
-            fail('HLS 播放失败，请尝试重新解析');
-            hls.destroy();
-            hls = null;
-          }
-        });
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = playback.url;
-        play();
-      } else {
-        fail('当前环境不支持 HLS');
-      }
-    } else if (mpegts.isSupported()) {
-      flv = mpegts.createPlayer(
-        {
-          type: 'flv',
-          isLive: true,
-          url: playback.url,
-        },
-        {
-          enableWorker: true,
-          enableStashBuffer: false,
-          stashInitialSize: 128,
-          lazyLoad: false,
-          autoCleanupSourceBuffer: true,
-        },
-      );
-      flv.attachMediaElement(video);
-      flv.on(mpegts.Events.ERROR, () => {
-        fail('FLV 播放失败，请尝试重新解析');
-      });
-      flv.load();
-      void Promise.resolve(flv.play()).catch(() => {
-        // Keep the error overlay clean; video element will report if it is fatal.
-      });
-    } else {
-      fail('当前环境不支持 FLV');
-    }
-
-    return () => {
-      disposed = true;
-      for (const timer of retryTimers) window.clearTimeout(timer);
-      video.removeEventListener('canplay', resumeWhenReady);
-      video.removeEventListener('loadeddata', resumeWhenReady);
-      if (hls) hls.destroy();
-      if (flv) {
-        flv.pause();
-        flv.unload();
-        flv.detachMediaElement();
-        flv.destroy();
-      }
-      video.removeAttribute('src');
-      video.load();
-    };
+    return attachPlayback(video, playback, {
+      isUserPaused: () => userPausedRef.current,
+      onError: setError,
+    });
   }, [playback]);
 
   useEffect(() => {
@@ -351,13 +244,13 @@ export function VideoPlayer({
             <select
               className="video-select"
               value={quality}
-              onChange={(event) => onOptionsChange({ quality: event.target.value as StreamQuality })}
+              onChange={(event) =>
+                onOptionsChange({ quality: event.target.value as StreamQuality })
+              }
               disabled={isReloading}
               aria-label="画质"
               title={
-                needsBilibiliLogin
-                  ? 'B站高画质需要登录，请点右上角登录'
-                  : '切换画质并重新解析'
+                needsBilibiliLogin ? 'B站高画质需要登录，请点右上角登录' : '切换画质并重新解析'
               }
             >
               {qualityOptions.map((option) => (

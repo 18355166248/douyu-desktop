@@ -1,5 +1,9 @@
 import { session } from 'electron';
+import type { RoomAudienceInput, RoomAudienceSnapshot } from '@shared/contracts/audience';
 import type { DouyuQuality, ResolveStreamInput, StreamPlayback } from '@shared/contracts/stream';
+import { BilibiliAudienceResolver } from '@core/bilibili/audience/BilibiliAudienceResolver';
+import { DouyuAudienceResolver } from '@core/douyu/audience/DouyuAudienceResolver';
+import { HuyaAudienceResolver } from '@core/huya/audience/HuyaAudienceResolver';
 import { BilibiliStreamResolver } from '@core/bilibili/stream/BilibiliStreamResolver';
 import { BilibiliDanmakuConfigResolver } from '@core/bilibili/danmaku/BilibiliDanmakuConfigResolver';
 import { DouyuStreamResolver } from '@core/douyu/stream/DouyuStreamResolver';
@@ -61,6 +65,16 @@ export class StreamService {
 
   async bilibiliDanmakuConfig(roomId: string): Promise<{ host: string; token: string }> {
     return new BilibiliDanmakuConfigResolver(this.http).resolve(roomId);
+  }
+
+  async audience(input: RoomAudienceInput): Promise<RoomAudienceSnapshot> {
+    if (input.platform === 'bilibili') {
+      return new BilibiliAudienceResolver(this.bilibiliHttp()).resolve(input.roomId);
+    }
+    if (input.platform === 'huya') {
+      return new HuyaAudienceResolver(this.huyaHttp()).resolve(input.roomId);
+    }
+    return new DouyuAudienceResolver(this.http).resolve(input.roomId);
   }
 
   async resolve(input: ResolveStreamInput): Promise<StreamPlayback> {

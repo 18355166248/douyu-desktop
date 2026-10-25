@@ -21,7 +21,8 @@ const EMPTY_STATE = (): AccountState => ({ version: 1, activeId: null, accounts:
 
 export class JsonAccountStore {
   private state: AccountState = EMPTY_STATE();
-  private loaded = false;
+  private loading: Promise<void> | null = null;
+  private writeQueue: Promise<void> = Promise.resolve();
 
   constructor(private readonly filePath: string) {}
 
@@ -77,9 +78,12 @@ export class JsonAccountStore {
     await this.persist();
   }
 
-  private async ensureLoaded(): Promise<void> {
-    if (this.loaded) return;
-    this.loaded = true;
+  private ensureLoaded(): Promise<void> {
+    this.loading ??= this.load();
+    return this.loading;
+  }
+
+  private async load(): Promise<void> {
     try {
       const raw = await readFile(this.filePath, 'utf8');
       const parsed = JSON.parse(raw) as Partial<AccountState>;
@@ -95,11 +99,17 @@ export class JsonAccountStore {
     }
   }
 
-  private async persist(): Promise<void> {
-    await mkdir(dirname(this.filePath), { recursive: true });
-    const tempPath = `${this.filePath}.tmp`;
-    await writeFile(tempPath, JSON.stringify(this.state, null, 2), 'utf8');
-    await rename(tempPath, this.filePath);
+  private persist(): Promise<void> {
+    const snapshot = JSON.stringify(this.state, null, 2);
+    const write = this.writeQueue.then(async () => {
+      await mkdir(dirname(this.filePath), { recursive: true });
+      const tempPath = `${this.filePath}.tmp`;
+      await writeFile(tempPath, snapshot, 'utf8');
+      await rename(tempPath, this.filePath);
+    });
+    // Report this write's failure to its caller without blocking later saves.
+    this.writeQueue = write.catch(() => undefined);
+    return write;
   }
 }
 

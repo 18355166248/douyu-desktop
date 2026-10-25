@@ -156,8 +156,9 @@ export class DouyuStreamResolver {
         url: `https://www.douyu.com/betard/${encodeURIComponent(roomId)}`,
         headers: { Referer: `https://www.douyu.com/${roomId}` },
         signal,
-        timeoutMs: 5_000,
-        retry: 'safe',
+        // Optional metadata must not hold a playable stream behind retries.
+        timeoutMs: 1_000,
+        retry: 'none',
       });
       if (response.status !== 200) return undefined;
       const payload = await response.json<RoomInfoResponse>();

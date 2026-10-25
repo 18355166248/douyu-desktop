@@ -6,6 +6,7 @@ import { canAddStream, MAX_STREAMS } from './streamGridLayout';
 import { defaultQuality, qualityFromLabel } from './streamQuality';
 
 export interface StreamGridEntry {
+  instanceId: number;
   playback: StreamPlayback;
   error: string | null;
   options: StreamResolveOptions;
@@ -52,7 +53,8 @@ export function useStreamGrid(): UseStreamGridResult {
   const [mutedRooms, setMutedRooms] = useState<Record<string, boolean>>({});
   const [volumes, setVolumes] = useState<Record<string, number>>({});
   const addingRef = useRef(false);
-  const reloadingRef = useRef<string | null>(null);
+  const reloadingRef = useRef<{ key: string } | null>(null);
+  const nextInstanceId = useRef(0);
 
   async function addStream(
     options: AddStreamOptions,
@@ -90,9 +92,11 @@ export function useStreamGrid(): UseStreamGridResult {
       }
       const actualQuality =
         qualityFromLabel(playback.platform, playback.quality) ?? options.quality;
+      const instanceId = ++nextInstanceId.current;
       setStreams((current) => [
         ...current,
         {
+          instanceId,
           playback,
           error: null,
           options: { quality: actualQuality, preferHls: options.preferHls },
@@ -112,10 +116,7 @@ export function useStreamGrid(): UseStreamGridResult {
     }
   }
 
-  async function reloadStream(
-    key: string,
-    options?: StreamResolveOptions,
-  ): Promise<string | null> {
+  async function reloadStream(key: string, options?: StreamResolveOptions): Promise<string | null> {
     const entry = streams.find((item) => streamKey(item.playback) === key);
     if (!entry) return null;
     if (reloadingRef.current !== null) return '正在重新解析其他房间，请稍候';
@@ -129,7 +130,8 @@ export function useStreamGrid(): UseStreamGridResult {
       ),
     );
 
-    reloadingRef.current = key;
+    const request = { key };
+    reloadingRef.current = request;
     setReloadingKey(key);
     try {
       const playback = unwrap(
@@ -142,9 +144,10 @@ export function useStreamGrid(): UseStreamGridResult {
       );
       const actualQuality =
         qualityFromLabel(playback.platform, playback.quality) ?? effectiveOptions.quality;
+      if (reloadingRef.current !== request) return null;
       setStreams((current) =>
         current.map((item) =>
-          streamKey(item.playback) === key
+          item.instanceId === entry.instanceId
             ? {
                 ...item,
                 playback,
@@ -156,16 +159,19 @@ export function useStreamGrid(): UseStreamGridResult {
       );
       return null;
     } catch (error) {
+      if (reloadingRef.current !== request) return null;
       const message = errorMessage(error);
       setStreams((current) =>
         current.map((item) =>
-          streamKey(item.playback) === key ? { ...item, error: message } : item,
+          item.instanceId === entry.instanceId ? { ...item, error: message } : item,
         ),
       );
       return null;
     } finally {
-      reloadingRef.current = null;
-      setReloadingKey(null);
+      if (reloadingRef.current === request) {
+        reloadingRef.current = null;
+        setReloadingKey(null);
+      }
     }
   }
 
@@ -190,7 +196,7 @@ export function useStreamGrid(): UseStreamGridResult {
       delete next[key];
       return next;
     });
-    if (reloadingRef.current === key) {
+    if (reloadingRef.current?.key === key) {
       reloadingRef.current = null;
       setReloadingKey(null);
     }

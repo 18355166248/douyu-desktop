@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  completedSignAccount,
   hasAutoSignRunToday,
   loadAutoSignEnabled,
   localDayKey,
   markAutoSignRun,
   saveAutoSignEnabled,
 } from './autoSign';
+import type { TaskRunResult } from '@shared/contracts/task';
 
 const values = new Map<string, string>();
 const storage = {
@@ -25,6 +27,29 @@ afterEach(() => {
 });
 
 describe('auto sign settings', () => {
+  it('records the executing account, never the account switched to afterwards', () => {
+    const result: TaskRunResult = {
+      runId: 'run-a',
+      taskId: 'douyu.room-sign',
+      accountId: 'a',
+      dryRun: false,
+      status: 'success',
+      summary: '完成',
+      startedAt: 0,
+      finishedAt: new Date(2026, 9, 25, 12).getTime(),
+    };
+    const owner = completedSignAccount(result, '2026-10-25');
+    expect(owner).toBe('a');
+    if (owner) markAutoSignRun(owner, '2026-10-25');
+    expect(hasAutoSignRunToday('a', '2026-10-25')).toBe(true);
+    expect(hasAutoSignRunToday('b', '2026-10-25')).toBe(false);
+    expect(completedSignAccount({ ...result, dryRun: true }, '2026-10-25')).toBeNull();
+    expect(completedSignAccount({ ...result, status: 'failed' }, '2026-10-25')).toBeNull();
+    expect(completedSignAccount(result, '2026-10-26')).toBeNull();
+    const unattributed = { ...result };
+    delete unattributed.accountId;
+    expect(completedSignAccount(unattributed, '2026-10-25')).toBeNull();
+  });
   it('defaults to enabled and persists a disabled setting', () => {
     expect(loadAutoSignEnabled()).toBe(true);
     saveAutoSignEnabled(false);

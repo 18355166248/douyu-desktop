@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AccountSummary } from '@shared/contracts/account';
 import {
+  completedSignAccount,
   hasAutoSignRunToday,
   localDayKey,
   markAutoSignRun,
@@ -15,10 +16,10 @@ interface AutoSignRunnerProps {
 
 export function AutoSignRunner({ account }: AutoSignRunnerProps): null {
   const { autoSignEnabled, statusReady, running, runTask, tasks, result } = useTasks();
-  const attempted = useRef<string | null>(null);
+  const attempted = useRef(new Set<string>());
   const [, setDayTick] = useState(0);
   const day = localDayKey();
-  const resultDay = result ? localDayKey(new Date(result.finishedAt)) : null;
+  const completedAccountId = completedSignAccount(result, day);
 
   useEffect(() => {
     const now = new Date();
@@ -31,30 +32,26 @@ export function AutoSignRunner({ account }: AutoSignRunnerProps): null {
   }, [day]);
 
   useEffect(() => {
-    if (!account || account.status !== 'active') return;
-    if (!result || result.taskId !== ROOM_SIGN_TASK_ID) return;
-    if (resultDay !== day) return;
-    if (result.status === 'failed') return;
-    markAutoSignRun(account.id, day);
-  }, [account, day, result, resultDay]);
+    if (completedAccountId) markAutoSignRun(completedAccountId, day);
+  }, [completedAccountId, day]);
 
   useEffect(() => {
     if (!autoSignEnabled || !statusReady || !account || account.status !== 'active') return;
-    if (running || runTask.isPending || resultDay === day) return;
+    if (running || runTask.isPending || completedAccountId === account.id) return;
 
     const task = tasks.find((item) => item.id === ROOM_SIGN_TASK_ID);
     if (!task) return;
 
     const key = `${account.id}:${day}`;
-    if (attempted.current === key || hasAutoSignRunToday(account.id, day)) return;
+    if (attempted.current.has(key) || hasAutoSignRunToday(account.id, day)) return;
 
-    attempted.current = key;
+    attempted.current.add(key);
     runTask.mutate({
       taskId: task.id,
       options: { liveOnly: true },
       dryRun: false,
     });
-  }, [account, autoSignEnabled, day, resultDay, runTask, running, statusReady, tasks]);
+  }, [account, autoSignEnabled, day, completedAccountId, runTask, running, statusReady, tasks]);
 
   return null;
 }

@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { DouyuHttpClient } from '../../http/DouyuHttpClient';
 import type { HttpClient, HttpRequest, HttpResponse } from '../../ports/HttpClient';
 import { BilibiliStreamResolver } from './BilibiliStreamResolver';
 
@@ -77,7 +78,38 @@ function fakeHttp(protocol: 'http_stream' | 'http_hls'): HttpClient {
   };
 }
 
+afterEach(() => vi.useRealTimers());
+
 describe('BilibiliStreamResolver', () => {
+  it('bounds optional room and anchor requests without retrying them', async () => {
+    vi.useFakeTimers();
+    const requests: HttpRequest[] = [];
+    const http: HttpClient = {
+      request: async (request) => {
+        if (request.url.includes('get_info') || request.url.includes('get_anchor_in_room')) {
+          requests.push(request);
+          return new Promise((_resolve, reject) => {
+            setTimeout(() => reject(new Error('metadata timeout')), request.timeoutMs);
+          });
+        }
+        return fakeHttp('http_stream').request(request);
+      },
+    };
+    const resolved = vi.fn();
+    const run = new BilibiliStreamResolver(new DouyuHttpClient(http, { minIntervalMs: 0 }))
+      .resolve('6')
+      .then(resolved);
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(resolved).toHaveBeenCalledWith(
+      expect.objectContaining({
+        format: 'flv',
+        title: 'B 站直播',
+        roomId: '7734200',
+      }),
+    );
+    await run;
+    expect(requests).toHaveLength(2);
+  });
   it('returns an FLV url and real room metadata by default', async () => {
     const playback = await new BilibiliStreamResolver(fakeHttp('http_stream')).resolve('6');
 
@@ -94,7 +126,11 @@ describe('BilibiliStreamResolver', () => {
   });
 
   it('uses HLS when requested and available', async () => {
-    const playback = await new BilibiliStreamResolver(fakeHttp('http_hls')).resolve('6', '10000', true);
+    const playback = await new BilibiliStreamResolver(fakeHttp('http_hls')).resolve(
+      '6',
+      '10000',
+      true,
+    );
 
     expect(playback.format).toBe('hls');
     expect(playback.url).toBe('https://hls.example/live.m3u8?expires=1792893744&qn=250');

@@ -24,6 +24,7 @@ export default defineConfig({
     resolve: { alias: sharedAlias },
   },
   renderer: {
+    build: { minify: true },
     resolve: {
       alias: {
         ...sharedAlias,

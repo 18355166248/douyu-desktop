@@ -38,8 +38,7 @@ export function isAllowedHuyaSegmentUrl(value: string): boolean {
   try {
     const url = new URL(value);
     return (
-      (url.protocol === 'https:' || url.protocol === 'http:') &&
-      isAllowedSegmentHost(url.hostname)
+      (url.protocol === 'https:' || url.protocol === 'http:') && isAllowedSegmentHost(url.hostname)
     );
   } catch {
     return false;
@@ -403,13 +402,23 @@ export class HuyaHlsProxy {
     method: string,
     response: ServerResponse,
   ): Promise<void> {
+    const template = this.templates.get(roomId);
+    const cached = this.playlistCache.get(roomId);
     const upstream = await this.fetchSegmentWithRetry(upstreamUrl, roomId);
     if (!upstream.ok) {
-      if (upstream.status === 403) {
+      if (
+        (upstream.status === 403 || upstream.status === 404) &&
+        this.templates.get(roomId) === template &&
+        this.playlistCache.get(roomId) === cached
+      ) {
+        // A 404 here has exhausted the publication grace period. A restarted
+        // stream may have a new segment prefix; do not keep rolling the old one.
+        // Late failures must not evict a template refreshed by another request.
         this.templates.delete(roomId);
         this.playlistCache.delete(roomId);
         this.preferredLines.delete(roomId);
       }
+      await upstream.body?.cancel();
       this.fail(response, 502, `虎牙切片返回 ${upstream.status}`);
       return;
     }

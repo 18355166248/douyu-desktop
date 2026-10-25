@@ -19,6 +19,11 @@ const resolveStreamSchema = z.object({
   preferHls: z.boolean().optional(),
 });
 
+const roomAudienceSchema = z.object({
+  roomId: z.string().trim().min(1).max(32),
+  platform: z.enum(['douyu', 'bilibili', 'huya']),
+});
+
 const runTaskSchema = z.object({
   taskId: z.string().min(1),
   options: z.record(z.string(), z.unknown()).optional(),
@@ -150,6 +155,10 @@ export function registerIpcHandlers(services: IpcServices): void {
       const input = resolveStreamSchema.parse(rawInput);
       return streams.resolve(input);
     }),
+  );
+
+  ipcMain.handle(IPC.streamsAudience, (_event, rawInput: unknown) =>
+    respond(() => streams.audience(roomAudienceSchema.parse(rawInput))),
   );
 
   ipcMain.handle(IPC.danmakuBilibiliConfig, (_event, rawRoomId: unknown) =>

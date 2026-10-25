@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { DouyuHttpClient } from '../../http/DouyuHttpClient';
 import type { HttpClient, HttpRequest, HttpResponse } from '../../ports/HttpClient';
 import { DouyuStreamResolver } from './DouyuStreamResolver';
 
@@ -19,7 +20,44 @@ const encryption = {
   },
 };
 
+afterEach(() => vi.useRealTimers());
+
 describe('DouyuStreamResolver', () => {
+  it('does not hold playback behind slow metadata retries', async () => {
+    vi.useFakeTimers();
+    let metadataCalls = 0;
+    const http: HttpClient = {
+      request: async (request) => {
+        if (request.url.includes('getEncryption')) return jsonResponse(encryption);
+        if (request.url.includes('/betard/')) {
+          metadataCalls += 1;
+          return new Promise((_resolve, reject) => {
+            setTimeout(() => reject(new Error('metadata timeout')), request.timeoutMs);
+          });
+        }
+        return jsonResponse({
+          error: 0,
+          data: {
+            rtmp_url: 'https://cdn.example/live',
+            rtmp_live: 'room.flv',
+          },
+        });
+      },
+    };
+    const resolved = vi.fn();
+    const run = new DouyuStreamResolver(new DouyuHttpClient(http, { minIntervalMs: 0 }))
+      .resolve('123')
+      .then(resolved);
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(resolved).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: 'https://cdn.example/live/room.flv',
+        title: '斗鱼直播',
+      }),
+    );
+    await run;
+    expect(metadataCalls).toBe(1);
+  });
   it('posts signed play parameters and returns an FLV url', async () => {
     const requests: HttpRequest[] = [];
     const http: HttpClient = {

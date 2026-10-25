@@ -65,11 +65,12 @@ export class TaskService {
       ]);
       const runner = new TaskRunner(registry, this.logger);
 
-      const result = await runner.run(input, (event) => {
+      const outcome = await runner.run(input, (event) => {
         const current = this.snapshot;
         if (current) this.snapshot = { ...current, progress: event };
         onProgress?.(event);
       });
+      const result: TaskRunResult = { ...outcome, accountId };
       this.snapshot = {
         taskId: input.taskId,
         startedAt,

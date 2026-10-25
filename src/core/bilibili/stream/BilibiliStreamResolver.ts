@@ -194,8 +194,8 @@ export class BilibiliStreamResolver {
         url: `https://api.live.bilibili.com/room/v1/Room/get_info?room_id=${encodeURIComponent(roomId)}`,
         headers: { Referer: BILIBILI_REFERER },
         signal,
-        timeoutMs: 5_000,
-        retry: 'safe',
+        timeoutMs: 1_000,
+        retry: 'none',
       });
       const payload = await response.json<BilibiliResponse<RoomInfoData>>();
       return Number(payload.code) === 0 ? payload.data : undefined;
@@ -210,8 +210,8 @@ export class BilibiliStreamResolver {
         url: `https://api.live.bilibili.com/live_user/v1/UserInfo/get_anchor_in_room?roomid=${encodeURIComponent(roomId)}`,
         headers: { Referer: BILIBILI_REFERER },
         signal,
-        timeoutMs: 5_000,
-        retry: 'safe',
+        timeoutMs: 1_000,
+        retry: 'none',
       });
       const payload = await response.json<BilibiliResponse<AnchorData>>();
       return Number(payload.code) === 0 ? payload.data : undefined;

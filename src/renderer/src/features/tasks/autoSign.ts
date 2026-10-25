@@ -1,4 +1,18 @@
+import type { TaskRunResult } from '@shared/contracts/task';
+
 const STORAGE_KEY = 'douyu-desktop.auto-sign.v1';
+
+export function completedSignAccount(result: TaskRunResult | null, day: string): string | null {
+  if (
+    !result ||
+    result.taskId !== 'douyu.room-sign' ||
+    result.dryRun !== false ||
+    result.status === 'failed' ||
+    localDayKey(new Date(result.finishedAt)) !== day
+  )
+    return null;
+  return result.accountId ?? null;
+}
 
 interface AutoSignStore {
   enabled: boolean;

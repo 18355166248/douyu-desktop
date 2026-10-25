@@ -29,6 +29,8 @@ export interface TaskOutcome {
 export interface TaskRunResult extends TaskOutcome {
   runId: string;
   taskId: string;
+  accountId?: string;
+  dryRun: boolean;
   startedAt: number;
   finishedAt: number;
 }

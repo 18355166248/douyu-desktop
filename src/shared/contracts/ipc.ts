@@ -1,9 +1,16 @@
 import type { AccountHealth, AccountSummary } from './account';
+import type { RoomAudienceInput, RoomAudienceSnapshot } from './audience';
 import type { BilibiliDanmakuConfig, DouyuDanmakuConfig, HuyaDanmakuUpdate } from './danmaku';
 import type { GuidedPlatform, PlatformLoginStatus } from './platformLogin';
 import type { ResolveStreamInput, StreamPlayback } from './stream';
 import type { Result } from './result';
-import type { RunTaskInput, TaskDescriptor, TaskProgressEvent, TaskRunResult, TaskRunSnapshot } from './task';
+import type {
+  RunTaskInput,
+  TaskDescriptor,
+  TaskProgressEvent,
+  TaskRunResult,
+  TaskRunSnapshot,
+} from './task';
 
 export interface DesktopApi {
   accounts: {
@@ -20,6 +27,7 @@ export interface DesktopApi {
   };
   streams: {
     resolve(input: ResolveStreamInput): Promise<Result<StreamPlayback>>;
+    audience(input: RoomAudienceInput): Promise<Result<RoomAudienceSnapshot>>;
   };
   danmaku: {
     bilibiliConfig(roomId: string): Promise<Result<BilibiliDanmakuConfig>>;
@@ -57,6 +65,7 @@ export const IPC = {
   platformsLogin: 'platforms:login',
   platformsLogout: 'platforms:logout',
   streamsResolve: 'streams:resolve',
+  streamsAudience: 'streams:audience',
   danmakuBilibiliConfig: 'danmaku:bilibili-config',
   danmakuDouyuConfig: 'danmaku:douyu-config',
   danmakuHuyaStart: 'danmaku:huya-start',

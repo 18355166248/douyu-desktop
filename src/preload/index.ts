@@ -19,6 +19,7 @@ const api: DesktopApi = {
   },
   streams: {
     resolve: (input) => ipcRenderer.invoke(IPC.streamsResolve, input),
+    audience: (input) => ipcRenderer.invoke(IPC.streamsAudience, input),
   },
   danmaku: {
     bilibiliConfig: (roomId) => ipcRenderer.invoke(IPC.danmakuBilibiliConfig, roomId),

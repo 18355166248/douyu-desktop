@@ -1,6 +1,7 @@
 import type { StreamPlayback, StreamQuality } from '@shared/contracts/stream';
 import { Icon } from '../../components/Icon';
 import { platformLabel } from '../../lib/streamIdentity';
+import { RoomAudience } from './RoomAudience';
 import type { StreamResolveOptions } from './useStreamGrid';
 import { VideoPlayer } from './VideoPlayer';
 
@@ -78,6 +79,8 @@ export function PlayerTile({
           </button>
         </div>
       </header>
+
+      <RoomAudience platform={playback.platform} roomId={playback.roomId} />
 
       {error ? (
         <div className="player-alert" role="alert">

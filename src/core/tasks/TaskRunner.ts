@@ -85,6 +85,13 @@ export class TaskRunner {
       durationMs: finishedAt - startedAt,
     });
 
-    return { ...outcome, runId, taskId: task.id, startedAt, finishedAt };
+    return {
+      ...outcome,
+      runId,
+      taskId: task.id,
+      dryRun: input.dryRun ?? false,
+      startedAt,
+      finishedAt,
+    };
   }
 }
