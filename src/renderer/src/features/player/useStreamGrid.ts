@@ -61,6 +61,7 @@ export function useStreamGrid(): UseStreamGridResult {
     const roomId = options.roomId.trim();
     if (!roomId) {
       if (options.platform === 'bilibili') return '请输入 B 站房间号';
+      if (options.platform === 'huya') return '请输入虎牙房间号';
       return '请输入斗鱼房间号';
     }
     if (addingRef.current) return '正在解析其他房间，请稍候';

@@ -1,6 +1,7 @@
 export type DouyuQuality = '0' | '3' | '4' | '8';
 export type BilibiliQuality = '80' | '150' | '250' | '400' | '10000';
-export type StreamQuality = DouyuQuality | BilibiliQuality;
+export type HuyaQuality = '2000';
+export type StreamQuality = DouyuQuality | BilibiliQuality | HuyaQuality;
 export type StreamPlatform = 'douyu' | 'bilibili' | 'huya';
 
 export interface ResolveStreamInput {

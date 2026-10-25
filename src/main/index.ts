@@ -28,7 +28,7 @@ if (!hasLock) {
 
   app
     .whenReady()
-    .then(() => {
+    .then(async () => {
       app.setAppUserModelId('com.douyu.desktop');
       configureMediaCors();
 
@@ -40,6 +40,9 @@ if (!hasLock) {
       const streams = new StreamService(platforms);
       const tasks = new TaskService(accounts, logger);
       const douyuDanmaku = new DouyuDanmakuSession();
+
+      app.on('before-quit', () => streams.stop());
+      await streams.start();
 
       registerIpcHandlers({ accounts, platforms, streams, tasks, douyuDanmaku });
 

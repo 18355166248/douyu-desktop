@@ -105,7 +105,7 @@ function PlatformChooser({
         ? `${huya?.nickname ?? '虎牙用户'} · 已登录`
         : huyaPending
           ? '检查登录状态…'
-          : '扫码登录；播放仍适配中',
+          : '扫码登录；播放可用',
       loggedIn: huyaLoggedIn,
       disabled: busy || huyaPending || huyaLoggedIn,
     },
@@ -159,7 +159,7 @@ function PlatformAccountRow({
   const nickname = status?.nickname || label;
   const loggedInDetail =
     status?.message?.trim() ||
-    (platform === 'bilibili' ? '已登录 · 高画质可用' : '已登录 · 播放适配中');
+    (platform === 'bilibili' ? '已登录 · 高画质可用' : '已登录 · 播放可用');
   const detail = pending
     ? '检查登录状态…'
     : loggedIn

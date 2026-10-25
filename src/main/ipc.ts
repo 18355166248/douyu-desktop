@@ -14,7 +14,7 @@ import type { TaskService } from './services/TaskService';
 const resolveStreamSchema = z.object({
   roomId: z.string().trim().min(1).max(32),
   platform: z.enum(['douyu', 'bilibili', 'huya']).optional(),
-  quality: z.enum(['0', '3', '4', '8', '80', '150', '250', '400', '10000']).optional(),
+  quality: z.enum(['0', '3', '4', '8', '80', '150', '250', '400', '10000', '2000']).optional(),
   preferHls: z.boolean().optional(),
 });
 

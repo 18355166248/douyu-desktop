@@ -1,6 +1,7 @@
 import type {
   BilibiliQuality,
   DouyuQuality,
+  HuyaQuality,
   StreamPlatform,
   StreamQuality,
 } from '@shared/contracts/stream';
@@ -20,15 +21,22 @@ export const BILIBILI_QUALITY_OPTIONS: ReadonlyArray<{ value: BilibiliQuality; l
   { value: '80', label: '流畅' },
 ];
 
+export const HUYA_QUALITY_OPTIONS: ReadonlyArray<{ value: HuyaQuality; label: string }> = [
+  { value: '2000', label: '自动' },
+];
+
 export function qualityOptionsFor(
   platform: StreamPlatform,
 ): ReadonlyArray<{ value: StreamQuality; label: string }> {
   if (platform === 'bilibili') return BILIBILI_QUALITY_OPTIONS;
+  if (platform === 'huya') return HUYA_QUALITY_OPTIONS;
   return DOUYU_QUALITY_OPTIONS;
 }
 
 export function defaultQuality(platform: StreamPlatform): StreamQuality {
-  return platform === 'bilibili' ? '10000' : '0';
+  if (platform === 'bilibili') return '10000';
+  if (platform === 'huya') return '2000';
+  return '0';
 }
 
 const QUALITY_BY_LABEL: Readonly<Record<string, StreamQuality>> = {
@@ -52,7 +60,7 @@ export function qualityFromLabel(
   platform: StreamPlatform,
   label: string,
 ): StreamQuality | undefined {
-  return platform === 'bilibili'
-    ? BILIBILI_QUALITY_BY_LABEL[label]
-    : QUALITY_BY_LABEL[label];
+  if (platform === 'bilibili') return BILIBILI_QUALITY_BY_LABEL[label];
+  if (platform === 'huya') return '2000';
+  return QUALITY_BY_LABEL[label];
 }

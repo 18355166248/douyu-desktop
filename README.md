@@ -1,8 +1,8 @@
 # 斗鱼多屏（douyu-desktop）
 
-Windows 桌面端多直播间客户端。当前是 **P2 多路播放 + P3 B 站接入 + 平台登录引导**：斗鱼/B 站最多 4 路同屏、每路实时弹幕、单路重载/关闭、画质切换、房间签到。
+Windows 桌面端多直播间客户端。当前是 **P2 多路播放 + P3 B 站接入 + P4 虎牙 HLS 播放**：斗鱼/B 站/虎牙最多 4 路同屏；斗鱼/B 站每路实时弹幕；单路重载/关闭、画质切换、房间签到。
 
-多平台评估见 [docs/platform-support.md](docs/platform-support.md)：B 站已落地；虎牙已接入独立扫码登录，但 FLV 只返回短块、HLS 403，P4 播放仍未暴露入口。
+多平台评估见 [docs/platform-support.md](docs/platform-support.md)：B 站已落地；虎牙已接入登录与 HLS 播放（本地滚动列表代理续播一次性签名），弹幕待后续。
 
 ## 技术栈
 
@@ -64,7 +64,9 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - [x] 斗鱼登录窗（独立 `persist:` 分区），直接打开 `https://www.douyu.com/member/login` 扫码页，不再先落首页
 - [x] B 站/虎牙登录引导：独立持久分区；B 站保存 `SESSDATA`；虎牙打开官方首页并自动点“登录”，使用首页内嵌的 UDB 登录 iframe，读取 `udb_uid`（直接打开 `aq` 内页会因缺父级初始化而白屏）
 - [x] 账号入口与左侧平台选择解耦：顶栏始终是统一账号/登录入口；点“登录”或“登录 / 添加账号”先选择斗鱼/B 站/虎牙，再进入对应登录页或登录弹层；B 站/虎牙状态放在账号菜单的“平台账号”区
-- [x] 虎牙空舞台可直接登录：选中虎牙且没有播放卡片时，舞台直接显示“适配中 + 登录虎牙”；已登录时显示昵称/头像和退出，状态与顶栏账号同步，不再只提示“右上角登录”
+- [x] 虎牙空舞台可直接登录：选中虎牙且没有播放卡片时，登录按钮可直接打开官方 UDB 登录；已登录时显示昵称/头像和退出，状态与顶栏账号同步
+- [x] 虎牙 HLS 播放：`mp.huya.com` 从 `baseSteamInfoList` 取 `sHlsUrl/sStreamName/sHlsAntiCode`，main 内 `HuyaHlsProxy` 首次只解析一次 master，按首段序号/时间戳在本地滚动生成后续列表（4 秒步进），切片走本地代理；首次探测并记住可用 CDN 线路，404 自动等待重试，token 过期/403 再重新解析
+- [x] 虎牙画质：默认 `ratio=2000`（超清，实测 1280×720）；当前只暴露“自动”一个选项，登录高画质未接入
 - [x] 登录后尽力读取斗鱼昵称和头像：优先 `acf_nickname` Cookie 与 `/lapi/member/api/getInfo`，头像统一升级为 HTTPS；读取失败保留“斗鱼用户 UID”兜底
 - [x] 顶栏和账号菜单显示真实头像；远程头像加载失败时自动回退为首字头像，不出现破图
 - [x] 账号操作错误（含取消登录的“登录已取消”）在顶栏提示 4 秒后自动消失，不再常驻
@@ -72,7 +74,7 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - [x] 斗鱼 `getEncryption` + `getH5PlayV1` 流解析
 - [x] FLV/HLS 播放（HLS 不可用时自动回退 FLV）
 - [x] 房间标题/主播名补全（`betard`，失败不影响播放）
-- [x] 顶栏平台选择器：斗鱼 / B 站 / 虎牙（虎牙当前仅开放登录，播放待 P4）；房间按 `${platform}:${roomId}` 隔离；平台选择只影响房间解析，不改变账号/登录入口；自绘深色下拉，12px 高对比文字，支持方向键、Esc、外部点击和 Tab 离开
+- [x] 顶栏平台选择器：斗鱼 / B 站 / 虎牙（三平台均可播放）；房间按 `${platform}:${roomId}` 隔离；平台选择只影响房间解析，不改变账号/登录入口；自绘深色下拉，12px 高对比文字，支持方向键、Esc、外部点击和 Tab 离开
 - [x] B 站短号/真实房间号解析、开播状态、标题和主播名
 - [x] B 站 FLV/HLS 播放：main 补 Referer，HLS 优先选 ts/fmp4，FLV 优先 avc
 - [x] B 站画质 `80/150/250/400/10000`；匿名实际最高 250，UI 自动回写到实际画质
@@ -93,7 +95,7 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - [x] 房间签到任务：后台单飞、每天自动一次（可关闭）、手动触发、dry-run、限速、逐房间结果
 - [x] typed preload + IPC `Result` 封装
 - [x] 房间访问历史：成功解析过的房间按最近访问时间倒序记录，可点击重新打开，localStorage 最多保留 30 条
-- [x] 边界检查脚本 + 80 个单测
+- [x] 边界检查脚本 + 89 个单测
 - [x] electron-builder Windows 打包配置
 
 ## 多路操作
@@ -152,7 +154,7 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 
 ## 已验证
 
-- `npm run check`：类型、ESLint、架构边界、80 个单测全部通过
+- `npm run check`：类型、ESLint、架构边界、89 个单测全部通过
 - `npm run build`：main / preload / renderer 生产构建通过
 - 斗鱼实时弹幕联调：`24422` 房间 20 秒收到 3 条 `chatmsg`，`subres` 正常，界面渲染 2 条；`wsproxy` 仅历史消息
 - B 站流解析联调：短号 `6` → 真实房间 `7734200`，FLV/HLS 均可取流，匿名画质回写为 `250`
@@ -160,7 +162,8 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - B 站登录状态接口联调：未登录请求 `/x/web-interface/nav` 返回 `code=-101 / isLogin=false`；登录窗口只有在同时看到 `SESSDATA` 且 `nav.isLogin=true` 时才把状态置为已登录
 - 平台登录隔离：B 站 `persist:bilibili-login`、虎牙 `persist:huya-login` 与斗鱼 `persist:douyu-account-*` 分开；B 站流解析读取 B 站分区，弹幕 token 保持匿名
 - B 站弹幕联调：legacy `getConf` 成功取到 token/host，WS 认证后解析 `DANMU_MSG`/`SEND_GIFT`/`INTERACT_WORD`
-- 虎牙验证：`mp.huya.com` 返回 FLV/HLS，但 FLV 每次只下发 0.2–0.5 秒短块，HLS 403；登录入口已接入（首页自动点登录，显示官方 UDB 弹层），播放按钮继续禁用
+- 虎牙验证：`mp.huya.com` 返回 FLV/HLS；FLV 每次只下发 0.2–0.5 秒短块；HLS master 一次性签名；`HuyaHlsProxy` 只解析一次 master，按首段序号/4 秒时间戳滚动生成列表；房间 `660000` 连续 60 秒播放 1280×720，`currentTime` 18.2s→59.1s（duration 72.1s），后续列表/切片全部 200，无错误条
+- 虎牙代理边界：仅监听 `127.0.0.1`；切片只允许 `*.huya.com` / `*.huyacdn.com` / `*.bytefcdnrd.com`；首次探测并记住可用线路，线路失效/403 时重新探测；滚动模板 30 分钟有效；切片 404 最多等 4 秒重试；CSP 放行 `http://127.0.0.1:*`
 - `node scripts/probe-douyu.mjs 9999`：真实斗鱼签名接口返回 FLV 地址；CDN 返回 `Access-Control-Allow-Origin: *`
 - `node scripts/probe-danmaku.mjs 9999`：真实斗鱼弹幕连接；12 秒收到 90 个包，含 `chatmsg`/`uenter`/`dgb`
 - `node --experimental-strip-types scripts/verify-danmaku.mjs 9999`：用应用自身的编解码器解析真实帧；10 秒解码出 22 条聊天、60 条进场、2 条礼物，真实消息带 `dms`
@@ -191,7 +194,8 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 
 ## 暂未做
 
-- 虎牙直播/弹幕（P4；登录入口已接入，FLV 短块 + HLS 403，待专用分块代理或 P2P 适配器）
+- 虎牙弹幕（播放已接入；弹幕 P4 后续，需 JCE/Taf 适配器）
+- 虎牙登录画质/高码率切换（当前固定 `ratio=2000`）
 - 9 宫格、拖拽排序、画中画
 - 弹幕屏蔽词/用户屏蔽/重复弹幕合并/发送弹幕
 - 弹幕 Net/Render Worker（当前 4 路用独立 RAF 轨道引擎；9 路或高流量再拆）

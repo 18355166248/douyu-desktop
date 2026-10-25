@@ -10,7 +10,6 @@ import { RoomHistoryPanel } from './features/history/RoomHistoryPanel';
 import { useRoomHistory } from './features/history/useRoomHistory';
 import type { RoomHistoryEntry } from './features/history/roomHistory';
 import { EmptyStage } from './features/player/EmptyStage';
-import { HuyaStage } from './features/player/HuyaStage';
 import { StreamGrid } from './features/player/StreamGrid';
 import { MAX_STREAMS, canAddStream } from './features/player/streamGridLayout';
 import { defaultStreamOptions, useStreamGrid } from './features/player/useStreamGrid';
@@ -22,7 +21,7 @@ import { TaskPanel } from './features/tasks/TaskPanel';
 
 function roomPlaceholder(platform: StreamPlatform): string {
   if (platform === 'bilibili') return 'B站房间号，如 6';
-  if (platform === 'huya') return '虎牙房间号（播放适配中）';
+  if (platform === 'huya') return '虎牙房间号，如 11342412';
   return '房间号，如 9999';
 }
 
@@ -112,17 +111,9 @@ export function App(): React.JSX.Element {
   }, [isTaskOpen]);
 
   const canAdd = canAddStream(streams.length);
-  const canSubmit = canAdd && roomId.trim().length > 0 && platform !== 'huya';
+  const canSubmit = canAdd && roomId.trim().length > 0;
 
   async function handleAdd(targetPlatform: StreamPlatform, targetRoomId: string): Promise<void> {
-    if (targetPlatform === 'huya') {
-      setError(
-        streams.length > 0
-          ? '虎牙播放仍在适配中，可在账号菜单登录虎牙保存状态。'
-          : null,
-      );
-      return;
-    }
     setError(null);
     const message = await addStream(
       {
@@ -175,14 +166,12 @@ export function App(): React.JSX.Element {
   }
 
   function addButtonLabel(): string {
-    if (platform === 'huya') return '适配中';
     if (isAdding) return '解析中…';
     if (!canAdd) return `已满 ${MAX_STREAMS} 路`;
     return streams.length > 0 ? '添加' : '播放';
   }
 
-  function addButtonIcon(): 'refresh' | 'plus' | 'play' | 'alert' {
-    if (platform === 'huya') return 'alert';
+  function addButtonIcon(): 'refresh' | 'plus' | 'play' {
     if (isAdding) return 'refresh';
     return streams.length > 0 ? 'plus' : 'play';
   }
@@ -248,11 +237,6 @@ export function App(): React.JSX.Element {
             type="submit"
             className="btn primary titlebar-add"
             disabled={isAdding || !canSubmit}
-            title={
-              platform === 'huya'
-                ? '虎牙播放适配中，可在下方先登录保存账号状态'
-                : undefined
-            }
           >
             <Icon name={addButtonIcon()} size={15} />
             {addButtonLabel()}
@@ -289,17 +273,13 @@ export function App(): React.JSX.Element {
           <div className="workspace">
             <div className="stage">
               {streams.length === 0 ? (
-                platform === 'huya' ? (
-                  <HuyaStage />
-                ) : (
-                  <EmptyStage
-                    onPickExample={() => {
-                      setPlatform('douyu');
-                      setRoomId('9999');
-                      void handleAdd('douyu', '9999');
-                    }}
-                  />
-                )
+                <EmptyStage
+                  onPickExample={() => {
+                    setPlatform('douyu');
+                    setRoomId('9999');
+                    void handleAdd('douyu', '9999');
+                  }}
+                />
               ) : (
                 <StreamGrid
                   streams={streams}

@@ -8,7 +8,7 @@
 | ---- | ------ | ---- | ---- |
 | 斗鱼 | 已接入 | 已接入 | P2 可用，已修复实时弹幕回归 |
 | B 站 | 已接入 | 已接入 | P3 已落地，支持登录态高画质请求 |
-| 虎牙 | 接口可解析，CDN 分块不可直接播 | 未接入 | 登录入口已接入；P4 播放仍待专用代理/适配器 |
+| 虎牙 | 已接入（HLS 本地滚动列表代理） | 未接入 | P4 播放已接入；登录可选，弹幕待后续 |
 
 ## 已落地：平台登录引导
 
@@ -21,8 +21,7 @@
   - 不能直接把 `https://aq.huya.com/p/udb_login.html` 当顶层页面打开：它是 UDB SDK 的 iframe 内页，加载后向父窗口发送 `_loginPageOnload` 等初始化消息；没有父页面时 SDK 返回 `190152 内部格式错误`，二维码区域保持空白。
   - 自动点“登录”后等待 iframe 实际可见再显示登录窗；用户看到的是官方首页上的登录弹层，二维码正常渲染。
   - 登录态以 `udb_uid` Cookie 为准，昵称优先读取 `udb_nickname` / `username`，头像读取 `udb_avatar` / `avatar`。
-  - 当前只保存登录态；虎牙播放和弹幕仍是 P4，UI 的播放按钮显示“适配中”并禁用，避免“播几秒就停”。
-  - 虎牙平台被选中且没有播放卡片时，舞台直接显示“适配中”和“登录虎牙”；登录成功后原地显示昵称/头像和退出按钮，并同步顶栏账号入口。
+  - 登录与播放解耦：匿名也能播放 HLS；登录只保存账号状态，当前不改变画质。
 - 登录窗口只把 `PlatformLoginStatus`（平台、是否登录、昵称、头像、提示）返回 renderer；Cookie 不进入渲染层，也不能被 `window.api` 直接读取。
 
 ## 已落地：统一账号入口
@@ -73,23 +72,34 @@
 - 已解析：`DANMU_MSG`、`SEND_GIFT`、`INTERACT_WORD`、`SUPER_CHAT_MESSAGE`
 - 高频房间沿用斗鱼的批处理、轨道上限和 120ms 刷新
 
-## 虎牙（P4，播放未接入；登录已接入）
+## 虎牙（P4，播放已接入；弹幕待后续）
 
 ### 登录
 
 - 官方 UDB SDK 的登录 iframe 地址为 `https://aq.huya.com/p/udb_login.html`（SDK 内部再加 `?v=<整点时间戳>` 缓存参数）；它是内页，不能顶层直接打开。
 - 应用加载 `https://www.huya.com/` 后自动点“登录”，由首页创建并初始化该 iframe；成功后才显示登录窗，避免白屏和首页裸奔。
 - 昵称/头像优先读 `udb_nickname` / `username`、`udb_avatar` / `avatar`；读取不到时显示“虎牙用户”。
-- 登录与播放解耦：登录按钮可用，播放按钮在虎牙平台下禁用并提示“适配中”。
+- 登录不是播放前置条件；账号入口仍独立于左侧平台选择。
 
 ### 直播流
 
 - 接口：`https://mp.huya.com/cache.php?m=Live&do=profileRoom&roomid=<rid>`
-- 实测 `roomid=660000/13579` 返回 `liveStatus=ON`、主播/标题、6 条 FLV + HLS 线路
-- FLV 直连返回 302 到 `*.bytefcdnrd.com`，`200` + `Connection: close`，但**每次只返回约 0.2–0.5 秒 / 0.4–1.4MB 的短块**就结束
-- mpegts.js 把这当成有限流，播 2–7 秒即 `ended`；`curl` 直接请求也同样快速结束
-- HLS 线路（`*.hls.huya.com`）无论带不带 Referer/Origin 都返回 403
-- 需要专用分块代理、P2P SDK 或官方播放器内核才能连续播放；当前不把虎牙流暴露到 UI，避免“播几秒就停”
+- 返回 `liveStatus=ON`、主播/标题、FLV + HLS 多线路；`baseSteamInfoList` 里每个 CDN 给出 `sStreamName` / `sHlsUrl` / `sHlsAntiCode`，`hls.multiLine` 作为兜底。
+- HLS URL 按网页播放器的方式构造：`sHlsUrl + '/' + sStreamName + '.m3u8?ratio=2000&' + sHlsAntiCode`；实测 `HS`/`HS24` 可用，`TX`/`AL` 视房间而定。
+- FLV 直连每次只返回约 0.2–0.5 秒短块，mpegts.js 会当成有限流播几秒结束；不使用 FLV。
+- HLS master URL 是**一次性签名**：同一 URL 第二次请求返回 403；API 每次会给新的 antiCode，但 CDN 对高频 master 解析有明显限流（连续请求约 4 次后 403）。
+- `HuyaHlsProxy`（仅 main，绑定 `127.0.0.1` 随机端口）：
+  - renderer 拿到稳定本地地址 `http://127.0.0.1:<port>/huya/<roomId>/playlist.m3u8`；
+  - 首次只拉一次 master，从第一段 URL 解析 CDN 前缀、序号、`YYYYMMDDTHHMMSS` 时间戳和 antiCode；
+  - 后续本地列表按 4 秒步进滚动生成 4 段，序号/时间戳与虎牙切片命名一致；不再每次刷新 master；
+  - 首次请求依次试候选线路，成功后记住该线路（比较 host+path），后续只刷新同一条，避免不同 CDN 的 media sequence 跳变；该线路失效/403 时清空偏好，下次重新探测；
+  - 切片 404（刚生成）最多等 4 秒重试；403 清空模板，下一次列表请求重新解析 antiCode；
+  - 模板 30 分钟有效；切片仍只允许 `*.huya.com` / `*.huyacdn.com` / `*.bytefcdnrd.com`，避免成为任意 URL 代理；
+  - 预热的首次列表与 hls.js 首屏请求合并，避免重复解析。
+- 画质默认 `ratio=2000`（超清，实测 1280×720）；当前只有一个“自动”选项，高画质/登录画质未接入。
+- HLS 和切片带 `Access-Control-Allow-Origin: *`；代理自身也返回 CORS 头，CSP 的 `connect-src` 放行 `http://127.0.0.1:*`。
+- hls.js 遇到致命网络错误会重新 `loadSource`（最多 3 次），避免首屏 502 后永久停在“正在连接”。
+- 实测房间 `660000`：连续 60 秒、1280×720，`currentTime` 18.2s→59.1s（duration 72.1s），滚动列表 4 段、序号连续推进，列表/切片全部 200，无错误条。
 
 ### 弹幕
 
@@ -101,13 +111,14 @@
 ## 接入顺序
 
 1. **P3 B 站**：已完成直播流、弹幕、平台选择、画质映射、历史隔离、登录态高画质请求
-2. **P4 虎牙**：接口和字段已验证；登录入口已接入（首页自动点登录）；播放仍阻塞在 FLV 短块/HLS 403，播放按钮暂不开放
-3. **P5 统一体验**：平台标识、`${platform}:${roomId}` key、画质映射、登录态隔离已落地；虎牙/更多平台统一降级待 P4
+2. **P4 虎牙**：登录与 HLS 播放已接入；FLV 短块不使用，HLS 由本地滚动列表代理续播；弹幕仍待独立适配器
+3. **P5 统一体验**：平台标识、`${platform}:${roomId}` key、画质映射、登录态隔离已落地；虎牙弹幕/更多平台统一降级待后续
 
 ## 架构注意
 
 - `StreamPlayback.platform` 支持 `douyu | bilibili | huya`
 - 直播流解析放 main，避免 B 站/虎牙 API CORS
+- 虎牙 HLS 一次性签名由 main 的 `127.0.0.1` 代理滚动生成后续列表；renderer 只接触本地稳定 URL，代理只允许虎牙 CDN host，不能成为任意 URL 代理
 - B 站媒体请求需要 session 级 Referer；不要用渲染进程伪造 Referer
 - B 站/虎牙登录 Cookie 只存在各自 `persist:` 分区；renderer 只拿 `PlatformLoginStatus`
 - 主进程 HTTP 统一 `credentials: 'include'`，B 站登录后 API 才会携带 `SESSDATA`

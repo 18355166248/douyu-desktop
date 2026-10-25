@@ -1,12 +1,13 @@
 import { session } from 'electron';
 import type { DouyuQuality, ResolveStreamInput, StreamPlayback } from '@shared/contracts/stream';
-import { AppError } from '@core/errors';
 import { BilibiliStreamResolver } from '@core/bilibili/stream/BilibiliStreamResolver';
 import { BilibiliDanmakuConfigResolver } from '@core/bilibili/danmaku/BilibiliDanmakuConfigResolver';
 import { DouyuStreamResolver } from '@core/douyu/stream/DouyuStreamResolver';
+import { HuyaStreamResolver } from '@core/huya/stream/HuyaStreamResolver';
 import { DouyuHttpClient } from '@core/http/DouyuHttpClient';
 import { CHROME_UA } from '../constants';
 import { SessionHttpClient } from '../adapters/electron/SessionHttpClient';
+import { HuyaHlsProxy } from './HuyaHlsProxy';
 import type { PlatformLoginManager } from './PlatformLoginManager';
 
 function isDouyuQuality(value: string | undefined): value is DouyuQuality {
@@ -16,6 +17,7 @@ function isDouyuQuality(value: string | undefined): value is DouyuQuality {
 export class StreamService {
   private readonly http: DouyuHttpClient;
   private readonly douyu: DouyuStreamResolver;
+  private readonly huyaProxy: HuyaHlsProxy;
 
   constructor(private readonly platforms: PlatformLoginManager) {
     this.http = new DouyuHttpClient(new SessionHttpClient(session.defaultSession, CHROME_UA), {
@@ -23,11 +25,33 @@ export class StreamService {
       maxAttempts: 2,
     });
     this.douyu = new DouyuStreamResolver(this.http);
+    this.huyaProxy = new HuyaHlsProxy(async (roomId) => {
+      const { urls } = await new HuyaStreamResolver(this.huyaHttp()).resolveCandidates(roomId);
+      return urls;
+    });
+  }
+
+  async start(): Promise<void> {
+    await this.huyaProxy.start();
+  }
+
+  stop(): void {
+    this.huyaProxy.stop();
   }
 
   private bilibiliHttp(): DouyuHttpClient {
     return new DouyuHttpClient(
       new SessionHttpClient(this.platforms.getSession('bilibili'), CHROME_UA),
+      {
+        minIntervalMs: 0,
+        maxAttempts: 2,
+      },
+    );
+  }
+
+  private huyaHttp(): DouyuHttpClient {
+    return new DouyuHttpClient(
+      new SessionHttpClient(this.platforms.getSession('huya'), CHROME_UA),
       {
         minIntervalMs: 0,
         maxAttempts: 2,
@@ -49,7 +73,15 @@ export class StreamService {
       );
     }
     if (platform === 'huya') {
-      throw new AppError('INVALID_INPUT', '虎牙播放适配中，登录状态已保存');
+      const { playback } = await new HuyaStreamResolver(this.huyaHttp()).resolveCandidates(
+        input.roomId,
+      );
+      try {
+        await this.huyaProxy.prepare(playback.roomId);
+      } catch {
+        // Let hls.js retry through the stable local URL.
+      }
+      return { ...playback, url: this.huyaProxy.playlistUrl(playback.roomId) };
     }
     return this.douyu.resolve(
       input.roomId,

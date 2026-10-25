@@ -59,6 +59,7 @@ export function VideoPlayer({
     let disposed = false;
     let hls: Hls | null = null;
     let flv: ReturnType<typeof mpegts.createPlayer> | null = null;
+    let networkAttempts = 0;
     const fail = (message: string): void => {
       if (!disposed) setError(message);
     };
@@ -94,11 +95,25 @@ export function VideoPlayer({
         });
         hls.loadSource(playback.url);
         hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, play);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          networkAttempts = 0;
+          play();
+        });
         hls.on(Hls.Events.ERROR, (_event, data) => {
           if (!data.fatal || !hls) return;
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            hls.startLoad();
+            if (networkAttempts >= 3) {
+              fail('HLS 播放失败，请重新解析');
+              hls.destroy();
+              hls = null;
+              return;
+            }
+            networkAttempts += 1;
+            window.setTimeout(() => {
+              if (disposed || !hls) return;
+              hls.loadSource(playback.url);
+              hls.startLoad();
+            }, 400 * networkAttempts);
           } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
             hls.recoverMediaError();
           } else {
