@@ -8,7 +8,7 @@
 | ---- | ------ | ---- | ---- |
 | 斗鱼 | 已接入 | 已接入 | P2 可用，已修复实时弹幕回归 |
 | B 站 | 已接入 | 已接入 | P3 已落地，支持登录态高画质请求 |
-| 虎牙 | 接口可解析，CDN 分块不可直接播 | 未接入 | 登录扫码页已接入；P4 播放仍待专用代理/适配器 |
+| 虎牙 | 接口可解析，CDN 分块不可直接播 | 未接入 | 登录入口已接入；P4 播放仍待专用代理/适配器 |
 
 ## 已落地：平台登录引导
 
@@ -17,8 +17,9 @@
   - 登录完成以 `SESSDATA` Cookie 存在，且 `https://api.bilibili.com/x/web-interface/nav` 返回 `data.isLogin=true` 为准。
   - 昵称/头像取自 `nav` 的 `uname` / `face`；`nav` 失败时登录轮询不会误判为成功。
   - B 站流解析复用该分区；主进程 HTTP 请求带 `credentials: 'include'`，因此登录后 API 才能收到 `SESSDATA`。弹幕 token 仍走匿名 `getConf`，不跟随登录态，避免 `uid: 0` 认证包与登录 token 不匹配。
-- 虎牙：登录窗直接加载 `https://aq.huya.com/p/udb_login.html`，独立分区 `persist:huya-login`。
-  - 这是虎牙 UDB SDK 实际加载的扫码页（标题“虎牙登录”），不是 `www.huya.com` 首页。
+- 虎牙：登录窗加载 `https://www.huya.com/`，页面加载后自动点击顶部“登录”，使用首页内嵌的 UDB 登录 iframe（`aq.huya.com/p/udb_login.html?v=...`）；独立分区 `persist:huya-login`。
+  - 不能直接把 `https://aq.huya.com/p/udb_login.html` 当顶层页面打开：它是 UDB SDK 的 iframe 内页，加载后向父窗口发送 `_loginPageOnload` 等初始化消息；没有父页面时 SDK 返回 `190152 内部格式错误`，二维码区域保持空白。
+  - 自动点“登录”后等待 iframe 实际可见再显示登录窗；用户看到的是官方首页上的登录弹层，二维码正常渲染。
   - 登录态以 `udb_uid` Cookie 为准，昵称优先读取 `udb_nickname` / `username`，头像读取 `udb_avatar` / `avatar`。
   - 当前只保存登录态；虎牙播放和弹幕仍是 P4，UI 的播放按钮显示“适配中”并禁用，避免“播几秒就停”。
 - 登录窗口只把 `PlatformLoginStatus`（平台、是否登录、昵称、头像、提示）返回 renderer；Cookie 不进入渲染层，也不能被 `window.api` 直接读取。
@@ -75,8 +76,8 @@
 
 ### 登录
 
-- 官方 UDB SDK 的登录 iframe 地址为 `https://aq.huya.com/p/udb_login.html`（SDK 内部再加 `?v=<整点时间戳>` 缓存参数）。
-- 应用直接打开该页面，用户扫码；成功后分区 `persist:huya-login` 中会出现 `udb_uid`。
+- 官方 UDB SDK 的登录 iframe 地址为 `https://aq.huya.com/p/udb_login.html`（SDK 内部再加 `?v=<整点时间戳>` 缓存参数）；它是内页，不能顶层直接打开。
+- 应用加载 `https://www.huya.com/` 后自动点“登录”，由首页创建并初始化该 iframe；成功后才显示登录窗，避免白屏和首页裸奔。
 - 昵称/头像优先读 `udb_nickname` / `username`、`udb_avatar` / `avatar`；读取不到时显示“虎牙用户”。
 - 登录与播放解耦：登录按钮可用，播放按钮在虎牙平台下禁用并提示“适配中”。
 
@@ -99,7 +100,7 @@
 ## 接入顺序
 
 1. **P3 B 站**：已完成直播流、弹幕、平台选择、画质映射、历史隔离、登录态高画质请求
-2. **P4 虎牙**：接口和字段已验证；登录扫码页已接入；播放仍阻塞在 FLV 短块/HLS 403，播放按钮暂不开放
+2. **P4 虎牙**：接口和字段已验证；登录入口已接入（首页自动点登录）；播放仍阻塞在 FLV 短块/HLS 403，播放按钮暂不开放
 3. **P5 统一体验**：平台标识、`${platform}:${roomId}` key、画质映射、登录态隔离已落地；虎牙/更多平台统一降级待 P4
 
 ## 架构注意

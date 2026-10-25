@@ -16,7 +16,7 @@ const PARTITIONS: Readonly<Record<GuidedPlatform, string>> = {
 
 const LOGIN_URLS: Readonly<Record<GuidedPlatform, string>> = {
   bilibili: 'https://passport.bilibili.com/login',
-  huya: 'https://aq.huya.com/p/udb_login.html',
+  huya: 'https://www.huya.com/',
 };
 
 const PLATFORM_LABELS: Readonly<Record<GuidedPlatform, string>> = {
@@ -28,6 +28,29 @@ const BILIBILI_NAV_URL = 'https://api.bilibili.com/x/web-interface/nav';
 const BILIBILI_REFERER = 'https://live.bilibili.com/';
 const LOGIN_TIMEOUT_MS = 5 * 60 * 1000;
 const STATUS_TIMEOUT_MS = 4_000;
+
+interface HuyaLoginProbe {
+  opened: boolean;
+}
+
+const HUYA_LOGIN_PROBE_SCRIPT = `(() => {
+  const frame = [...document.querySelectorAll('iframe')].find(
+    (element) => element.src.includes('aq.huya.com/p/udb_login.html') && element.clientWidth > 0
+  );
+  if (frame) return { opened: true };
+
+  const candidates = [
+    ...document.querySelectorAll('#J_duyaHeaderRight a, #J_duyaHeaderRight div, #J_duyaHeaderRight span')
+  ];
+  const target =
+    candidates.find(
+      (element) => element.tagName === 'A' && element.textContent?.trim() === '登录'
+    ) ?? candidates.find((element) => element.textContent?.trim() === '登录');
+  if (!target) return { opened: false };
+
+  target.click();
+  return { opened: false };
+})()`;
 
 function isBilibiliUrl(value: string): boolean {
   try {
@@ -139,6 +162,22 @@ export class PlatformLoginManager {
     }
   }
 
+  private async openHuyaLoginModal(loginWindow: BrowserWindow): Promise<void> {
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      if (loginWindow.isDestroyed()) return;
+      try {
+        const probe = (await loginWindow.webContents.executeJavaScript(
+          HUYA_LOGIN_PROBE_SCRIPT,
+          true,
+        )) as HuyaLoginProbe;
+        if (probe.opened) return;
+      } catch {
+        // Page context can be replaced while the homepage hydrates; retry.
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+  }
+
   private openLoginWindow(platform: GuidedPlatform): Promise<PlatformLoginStatus> {
     const loginSession = this.getSession(platform);
     const parent = this.getParentWindow();
@@ -167,7 +206,10 @@ export class PlatformLoginManager {
       });
 
       loginWindow.on('page-title-updated', (event) => event.preventDefault());
-      loginWindow.once('ready-to-show', () => loginWindow.show());
+      if (platform === 'huya') loginWindow.webContents.setAudioMuted(true);
+      loginWindow.once('ready-to-show', () => {
+        if (platform !== 'huya') loginWindow.show();
+      });
 
       loginWindow.webContents.setWindowOpenHandler(({ url }) => {
         if (isLoginUrl(platform, url)) return { action: 'allow' };
@@ -240,14 +282,21 @@ export class PlatformLoginManager {
           });
       });
 
-      void loginWindow.loadURL(LOGIN_URLS[platform]).catch((error: unknown) => {
-        fail(
-          new AppError(
-            'NETWORK',
-            error instanceof Error ? `登录页加载失败：${error.message}` : '登录页加载失败',
-          ),
-        );
-      });
+      void loginWindow
+        .loadURL(LOGIN_URLS[platform])
+        .then(async () => {
+          if (platform !== 'huya') return;
+          await this.openHuyaLoginModal(loginWindow);
+          if (!loginWindow.isDestroyed()) loginWindow.show();
+        })
+        .catch((error: unknown) => {
+          fail(
+            new AppError(
+              'NETWORK',
+              error instanceof Error ? `登录页加载失败：${error.message}` : '登录页加载失败',
+            ),
+          );
+        });
     });
   }
 }

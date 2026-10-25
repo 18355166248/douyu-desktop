@@ -62,8 +62,8 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - [x] 不再在每张卡片底部显示“已获取播放地址 / HTTP-FLV / 单路”状态行；画质和格式保留在卡片右上角标签，错误仍由卡片错误条提示
 - [x] 解析中/路数上限/重复房间/空输入的状态保护
 - [x] 斗鱼登录窗（独立 `persist:` 分区），直接打开 `https://www.douyu.com/member/login` 扫码页，不再先落首页
-- [x] B 站/虎牙登录引导：独立持久分区；B 站保存 `SESSDATA`，虎牙直接打开 `https://aq.huya.com/p/udb_login.html` 扫码页并读取 `udb_uid`
-- [x] 账号入口与左侧平台选择解耦：顶栏始终是统一账号/登录入口；点“登录”或“登录 / 添加账号”先选择斗鱼/B 站/虎牙，再进入对应扫码页；B 站/虎牙状态放在账号菜单的“平台账号”区
+- [x] B 站/虎牙登录引导：独立持久分区；B 站保存 `SESSDATA`；虎牙打开官方首页并自动点“登录”，使用首页内嵌的 UDB 登录 iframe，读取 `udb_uid`（直接打开 `aq` 内页会因缺父级初始化而白屏）
+- [x] 账号入口与左侧平台选择解耦：顶栏始终是统一账号/登录入口；点“登录”或“登录 / 添加账号”先选择斗鱼/B 站/虎牙，再进入对应登录页或登录弹层；B 站/虎牙状态放在账号菜单的“平台账号”区
 - [x] 登录后尽力读取斗鱼昵称和头像：优先 `acf_nickname` Cookie 与 `/lapi/member/api/getInfo`，头像统一升级为 HTTPS；读取失败保留“斗鱼用户 UID”兜底
 - [x] 顶栏和账号菜单显示真实头像；远程头像加载失败时自动回退为首字头像，不出现破图
 - [x] 账号操作错误（含取消登录的“登录已取消”）在顶栏提示 4 秒后自动消失，不再常驻
@@ -155,11 +155,11 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - `npm run build`：main / preload / renderer 生产构建通过
 - 斗鱼实时弹幕联调：`24422` 房间 20 秒收到 3 条 `chatmsg`，`subres` 正常，界面渲染 2 条；`wsproxy` 仅历史消息
 - B 站流解析联调：短号 `6` → 真实房间 `7734200`，FLV/HLS 均可取流，匿名画质回写为 `250`
-- 登录页联调：斗鱼 `member/login`、B 站 `passport.bilibili.com/login`、虎牙 `aq.huya.com/p/udb_login.html` 均直接返回登录/扫码页；虎牙不再落到 `www.huya.com` 首页
+- 登录页联调：斗鱼 `member/login`、B 站 `passport.bilibili.com/login` 直接返回登录/扫码页；虎牙不再直接打开 `aq` 内页，改为首页自动点“登录”后显示官方 UDB 登录弹层
 - B 站登录状态接口联调：未登录请求 `/x/web-interface/nav` 返回 `code=-101 / isLogin=false`；登录窗口只有在同时看到 `SESSDATA` 且 `nav.isLogin=true` 时才把状态置为已登录
 - 平台登录隔离：B 站 `persist:bilibili-login`、虎牙 `persist:huya-login` 与斗鱼 `persist:douyu-account-*` 分开；B 站流解析读取 B 站分区，弹幕 token 保持匿名
 - B 站弹幕联调：legacy `getConf` 成功取到 token/host，WS 认证后解析 `DANMU_MSG`/`SEND_GIFT`/`INTERACT_WORD`
-- 虎牙验证：`mp.huya.com` 返回 FLV/HLS，但 FLV 每次只下发 0.2–0.5 秒短块，HLS 403；登录扫码页 `aq.huya.com/p/udb_login.html` 已接入，播放按钮继续禁用
+- 虎牙验证：`mp.huya.com` 返回 FLV/HLS，但 FLV 每次只下发 0.2–0.5 秒短块，HLS 403；登录入口已接入（首页自动点登录，显示官方 UDB 弹层），播放按钮继续禁用
 - `node scripts/probe-douyu.mjs 9999`：真实斗鱼签名接口返回 FLV 地址；CDN 返回 `Access-Control-Allow-Origin: *`
 - `node scripts/probe-danmaku.mjs 9999`：真实斗鱼弹幕连接；12 秒收到 90 个包，含 `chatmsg`/`uenter`/`dgb`
 - `node --experimental-strip-types scripts/verify-danmaku.mjs 9999`：用应用自身的编解码器解析真实帧；10 秒解码出 22 条聊天、60 条进场、2 条礼物，真实消息带 `dms`
@@ -190,7 +190,7 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 
 ## 暂未做
 
-- 虎牙直播/弹幕（P4；登录扫码页已接入，FLV 短块 + HLS 403，待专用分块代理或 P2P 适配器）
+- 虎牙直播/弹幕（P4；登录入口已接入，FLV 短块 + HLS 403，待专用分块代理或 P2P 适配器）
 - 9 宫格、拖拽排序、画中画
 - 弹幕屏蔽词/用户屏蔽/重复弹幕合并/发送弹幕
 - 弹幕 Net/Render Worker（当前 4 路用独立 RAF 轨道引擎；9 路或高流量再拆）
