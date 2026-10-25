@@ -4,7 +4,6 @@ import { Icon } from './components/Icon';
 import { PlatformPicker } from './components/PlatformPicker';
 import { TitleBar } from './components/TitleBar';
 import { AccountBar } from './features/accounts/AccountBar';
-import { PlatformLoginBar } from './features/accounts/PlatformLoginBar';
 import { useAccounts } from './features/accounts/useAccounts';
 import { DanmakuSettingsPanel } from './features/danmaku/DanmakuSettingsPanel';
 import { RoomHistoryPanel } from './features/history/RoomHistoryPanel';
@@ -264,11 +263,7 @@ export function App(): React.JSX.Element {
 
         <TaskButton open={isTaskOpen} onToggle={() => setTaskOpen((open) => !open)} />
 
-        {platform === 'douyu' ? (
-          <AccountBar compact />
-        ) : (
-          <PlatformLoginBar compact platform={platform} />
-        )}
+        <AccountBar compact />
       </TitleBar>      <div className="app-shell">
         <main className="main">
           {error ? (

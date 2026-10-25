@@ -63,7 +63,7 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - [x] 解析中/路数上限/重复房间/空输入的状态保护
 - [x] 斗鱼登录窗（独立 `persist:` 分区），直接打开 `https://www.douyu.com/member/login` 扫码页，不再先落首页
 - [x] B 站/虎牙登录引导：独立持久分区；B 站保存 `SESSDATA`，虎牙直接打开 `https://aq.huya.com/p/udb_login.html` 扫码页并读取 `udb_uid`
-- [x] 平台账号区随顶部平台切换：斗鱼显示多账号管理，B 站/虎牙显示对应平台的登录/已登录状态；不会把 B 站登录态混进斗鱼账号列表
+- [x] 账号入口与左侧平台选择解耦：顶栏始终是统一账号/登录入口；点“登录”或“登录 / 添加账号”先选择斗鱼/B 站/虎牙，再进入对应扫码页；B 站/虎牙状态放在账号菜单的“平台账号”区
 - [x] 登录后尽力读取斗鱼昵称和头像：优先 `acf_nickname` Cookie 与 `/lapi/member/api/getInfo`，头像统一升级为 HTTPS；读取失败保留“斗鱼用户 UID”兜底
 - [x] 顶栏和账号菜单显示真实头像；远程头像加载失败时自动回退为首字头像，不出现破图
 - [x] 账号操作错误（含取消登录的“登录已取消”）在顶栏提示 4 秒后自动消失，不再常驻
@@ -71,7 +71,7 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - [x] 斗鱼 `getEncryption` + `getH5PlayV1` 流解析
 - [x] FLV/HLS 播放（HLS 不可用时自动回退 FLV）
 - [x] 房间标题/主播名补全（`betard`，失败不影响播放）
-- [x] 顶栏平台选择器：斗鱼 / B 站 / 虎牙（虎牙当前仅开放登录，播放待 P4）；房间按 `${platform}:${roomId}` 隔离；自绘深色下拉，12px 高对比文字，支持方向键、Esc、外部点击和 Tab 离开
+- [x] 顶栏平台选择器：斗鱼 / B 站 / 虎牙（虎牙当前仅开放登录，播放待 P4）；房间按 `${platform}:${roomId}` 隔离；平台选择只影响房间解析，不改变账号/登录入口；自绘深色下拉，12px 高对比文字，支持方向键、Esc、外部点击和 Tab 离开
 - [x] B 站短号/真实房间号解析、开播状态、标题和主播名
 - [x] B 站 FLV/HLS 播放：main 补 Referer，HLS 优先选 ts/fmp4，FLV 优先 avc
 - [x] B 站画质 `80/150/250/400/10000`；匿名实际最高 250，UI 自动回写到实际画质

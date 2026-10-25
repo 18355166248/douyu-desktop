@@ -659,6 +659,13 @@
   color: var(--dim);
 }
 
+.account-notice {
+  max-width: 280px;
+  color: var(--green);
+  font-size: 10px;
+  text-align: right;
+}
+
 .account-error {
   max-width: 280px;
   color: #ff9c9c;
@@ -697,16 +704,11 @@
   text-transform: uppercase;
 }
 
-.platform-login-note {
+.platform-empty {
   margin: 0;
-  padding: 0 8px 8px;
-  color: var(--muted);
+  padding: 6px 8px 8px;
+  color: var(--dim);
   font-size: 11px;
-  line-height: 1.55;
-}
-
-.platform-login-note.is-warning {
-  color: #ffbd8a;
 }
 
 .account-row {
@@ -733,6 +735,54 @@
 
 .account-row > svg {
   color: var(--green);
+}
+
+.platform-choice:disabled {
+  opacity: 0.66;
+  cursor: default;
+}
+
+.platform-choice > svg {
+  color: var(--dim);
+}
+
+.platform-choice.is-logged-in > svg {
+  color: var(--green);
+}
+
+.platform-account-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 8px;
+  border-radius: 9px;
+}
+
+.platform-account-row:hover {
+  background: var(--panel-3);
+}
+
+.platform-account-action {
+  flex: none;
+  margin-left: auto;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.platform-account-action:hover:not(:disabled) {
+  border-color: #44515e;
+  background: var(--panel);
+  color: var(--text);
+}
+
+.platform-account-action:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .account-row-text {
