@@ -119,6 +119,14 @@
   white-space: nowrap;
 }
 
+.main-room-button {
+  color: #ffad85;
+}
+
+.main-room-button:hover:not(:disabled) {
+  color: #ffd0b8;
+}
+
 .player-head {
   position: relative;
   display: flex;

@@ -104,7 +104,7 @@ export function PlayerTile({
           {onSetMain ? (
             <button
               type="button"
-              className="icon-btn"
+              className="icon-btn main-room-button"
               onClick={onSetMain}
               aria-label={`将${anchorName}设为主画面`}
               title="设为主画面"
