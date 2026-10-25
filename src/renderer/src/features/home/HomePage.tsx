@@ -90,6 +90,11 @@ function HomeRoomRow({
               onError={() => setCoverFailed(true)}
             />
           ) : null}
+          {showStatus && !isLive ? (
+            <span className="home-thumb-offline" aria-hidden="true">
+              <strong>未开播</strong>
+            </span>
+          ) : null}
           {isLive ? (
             <span className="home-thumb-live">
               <i />
@@ -165,7 +170,7 @@ export function HomePage({
     (room) => !officialKeys.has(specialFollowKey(room)),
   );
   const specialCards = [
-    ...officialSpecials.map((room) => ({ ...room, official: true })),
+    ...officialSpecials.map((room) => ({ ...room, official: true, statusKnown: true })),
     ...manualSpecialRooms.map((room) => ({ ...room, official: false })),
   ].sort((left, right) => {
     if (right.heat !== left.heat) return right.heat - left.heat;
@@ -179,6 +184,9 @@ export function HomePage({
   const specialCount = specialCards.length;
   const visibleFollowed = sortedFollowed.filter(
     (room) => !specialKeys.has(specialFollowKey(room)),
+  );
+  const followedByKey = new Map(
+    followed.map((room) => [specialFollowKey(room), room]),
   );
   const coverByKey = new Map<string, string>();
   for (const room of followed) {
@@ -242,7 +250,7 @@ export function HomePage({
                 title={room.title}
                 cover={room.cover}
                 isLive={room.isLive}
-                showStatus
+                showStatus={room.statusKnown}
                 official={room.official}
                 pinned
                 onOpen={() => onOpen(room.platform, room.roomId)}
@@ -361,6 +369,7 @@ export function HomePage({
               const name = entry.anchorName || `房间 ${entry.roomId}`;
               const title = entry.title || `房间 ${entry.roomId}`;
               const historyCover = coverByKey.get(key);
+              const historyRoom = followedByKey.get(key);
               return (
                 <div role="listitem" key={key}>
                   <HomeRoomRow
@@ -370,6 +379,8 @@ export function HomePage({
                     title={title}
                     meta={formatHistoryTime(entry.visitedAt)}
                     cover={historyCover}
+                    isLive={historyRoom?.isLive ?? false}
+                    showStatus={Boolean(historyRoom)}
                     official={officialKeys.has(key)}
                     pinned={specialKeys.has(key)}
                     onOpen={() => onOpen(entry.platform, entry.roomId)}

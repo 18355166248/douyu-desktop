@@ -61,6 +61,7 @@ describe('homeModel', () => {
         addedAt: 10,
         isLive: true,
         heat: 88,
+        statusKnown: true,
       },
     ]);
   });
