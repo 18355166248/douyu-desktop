@@ -6,9 +6,9 @@ import type {
   TaskRunSnapshot,
 } from '@shared/contracts/task';
 import { AppError } from '@core/errors';
-import { DouyuRoomApi } from '@core/douyu/api/DouyuRoomApi';
-import { FollowedRoomsQuery } from '@core/douyu/queries/FollowedRoomsQuery';
-import { createRoomSignTask, roomSignTaskDescriptor } from '@core/douyu/tasks/roomSignTask';
+import { DouyuFansApi } from '@core/douyu/api/DouyuFansApi';
+import { FansBadgeQuery } from '@core/douyu/queries/FansBadgeQuery';
+import { createFansSignTask, fansSignTaskDescriptor } from '@core/douyu/tasks/fansSignTask';
 import { DouyuHttpClient } from '@core/http/DouyuHttpClient';
 import { TaskRegistry } from '@core/tasks/TaskRegistry';
 import { TaskRunner } from '@core/tasks/TaskRunner';
@@ -26,7 +26,7 @@ export class TaskService {
   ) {}
 
   list(): TaskDescriptor[] {
-    return [roomSignTaskDescriptor];
+    return [fansSignTaskDescriptor];
   }
 
   status(): TaskRunSnapshot | null {
@@ -53,14 +53,18 @@ export class TaskService {
     try {
       const accountId = await this.accounts.getActiveId();
       if (!accountId) throw new AppError('AUTH_REQUIRED', '请先登录斗鱼');
+      const health = await this.accounts.health(accountId);
+      if (health.status !== 'active') {
+        throw new AppError('AUTH_EXPIRED', health.message ?? '登录已过期，请重新登录斗鱼');
+      }
 
       const accountSession = await this.accounts.getSession(accountId);
       const auth = await this.accounts.createAuthContext(accountId);
       const http = new DouyuHttpClient(new SessionHttpClient(accountSession, CHROME_UA));
       const registry = new TaskRegistry([
-        createRoomSignTask({
-          rooms: new FollowedRoomsQuery(http),
-          roomApi: new DouyuRoomApi(http, auth),
+        createFansSignTask({
+          rooms: new FansBadgeQuery(http),
+          fans: new DouyuFansApi(http, auth),
         }),
       ]);
       const runner = new TaskRunner(registry, this.logger);

@@ -8,7 +8,7 @@ import {
 } from './autoSign';
 import { useTasks } from './useTasks';
 
-const ROOM_SIGN_TASK_ID = 'douyu.room-sign';
+const FANS_SIGN_TASK_ID = 'douyu.fans-sign';
 
 interface AutoSignRunnerProps {
   account: AccountSummary | undefined;
@@ -39,7 +39,7 @@ export function AutoSignRunner({ account }: AutoSignRunnerProps): null {
     if (!autoSignEnabled || !statusReady || !account || account.status !== 'active') return;
     if (running || runTask.isPending || completedAccountId === account.id) return;
 
-    const task = tasks.find((item) => item.id === ROOM_SIGN_TASK_ID);
+    const task = tasks.find((item) => item.id === FANS_SIGN_TASK_ID);
     if (!task) return;
 
     const key = `${account.id}:${day}`;
@@ -48,7 +48,6 @@ export function AutoSignRunner({ account }: AutoSignRunnerProps): null {
     attempted.current.add(key);
     runTask.mutate({
       taskId: task.id,
-      options: { liveOnly: true },
       dryRun: false,
     });
   }, [account, autoSignEnabled, day, completedAccountId, runTask, running, statusReady, tasks]);

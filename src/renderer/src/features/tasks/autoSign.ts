@@ -5,7 +5,7 @@ const STORAGE_KEY = 'douyu-desktop.auto-sign.v1';
 export function completedSignAccount(result: TaskRunResult | null, day: string): string | null {
   if (
     !result ||
-    result.taskId !== 'douyu.room-sign' ||
+    result.taskId !== 'douyu.fans-sign' ||
     result.dryRun !== false ||
     result.status === 'failed' ||
     localDayKey(new Date(result.finishedAt)) !== day

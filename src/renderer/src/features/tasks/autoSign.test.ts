@@ -30,7 +30,7 @@ describe('auto sign settings', () => {
   it('records the executing account, never the account switched to afterwards', () => {
     const result: TaskRunResult = {
       runId: 'run-a',
-      taskId: 'douyu.room-sign',
+      taskId: 'douyu.fans-sign',
       accountId: 'a',
       dryRun: false,
       status: 'success',

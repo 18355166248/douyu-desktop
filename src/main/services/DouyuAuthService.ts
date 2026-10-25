@@ -4,15 +4,12 @@ import { AppError } from '@core/errors';
 import type { DouyuAuthContext, DouyuAuthKind } from '@core/douyu/auth/DouyuAuthContext';
 import { CHROME_UA, DOUYU_ORIGIN } from '../constants';
 import type { DouyuCredentials } from './DouyuCredentials';
-import {
-  parseProfilePayload,
-  readProfileFromCookies,
-  type DouyuProfile,
-} from './DouyuProfile';
+import { parseProfilePayload, readProfileFromCookies, type DouyuProfile } from './DouyuProfile';
 
 const DEFAULT_DID = '10000000000000000000000000001501';
 const CACHE_MS = 30_000;
 const PROFILE_TIMEOUT_MS = 3_500;
+const CSRF_URL = `${DOUYU_ORIGIN}/japi/carnival/nc/common/generateCsrf`;
 
 interface CacheEntry {
   at: number;
@@ -118,18 +115,16 @@ export class DouyuAuthService {
       csrfToken: async () => {
         const existing = await this.readCookie(session, 'cvl_csrf_token');
         if (existing) return existing;
-        try {
-          await session.fetch(`${DOUYU_ORIGIN}/japi/carnival/nc/common/generateCsrf`, {
-            method: 'POST',
-            headers: {
-              'User-Agent': CHROME_UA,
-              'Content-Type': 'application/json',
-            },
-          });
-        } catch {
-          return '';
-        }
+        await this.generateCsrf(session);
         return (await this.readCookie(session, 'cvl_csrf_token')) ?? '';
+      },
+      fansCtn: async (forceRefresh = false) => {
+        if (!forceRefresh) {
+          const existing = await this.readCookie(session, 'acf_ccn');
+          if (existing) return existing;
+        }
+        await this.generateCsrf(session);
+        return (await this.readCookie(session, 'acf_ccn')) ?? '';
       },
     };
   }
@@ -154,6 +149,22 @@ export class DouyuAuthService {
       return { status: 'expired', checkedAt, ...(payload.msg ? { message: payload.msg } : {}) };
     } catch {
       return { status: 'expired', checkedAt, message: '登录状态检查失败' };
+    }
+  }
+
+  private async generateCsrf(session: Session): Promise<void> {
+    try {
+      await session.fetch(CSRF_URL, {
+        method: 'POST',
+        headers: {
+          'User-Agent': CHROME_UA,
+          'Content-Type': 'application/json',
+          Referer: `${DOUYU_ORIGIN}/`,
+        },
+        body: '{}',
+      });
+    } catch {
+      // The caller falls back to an empty token and reports an upstream error.
     }
   }
 

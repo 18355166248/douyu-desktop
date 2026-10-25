@@ -19,7 +19,6 @@ interface TaskPanelProps {
 export function TaskPanel({ hasAccount, onClose }: TaskPanelProps): React.JSX.Element {
   const { query, tasks, runTask, progress, result, running, autoSignEnabled, setAutoSignEnabled } =
     useTasks();
-  const [liveOnly, setLiveOnly] = useState(true);
   const [dryRun, setDryRun] = useState(false);
   const task = tasks[0];
 
@@ -88,18 +87,6 @@ export function TaskPanel({ hasAccount, onClose }: TaskPanelProps): React.JSX.El
                 <label className="task-option">
                   <input
                     type="checkbox"
-                    checked={liveOnly}
-                    disabled={running}
-                    onChange={(event) => setLiveOnly(event.target.checked)}
-                  />
-                  <span>
-                    <strong>仅开播房间</strong>
-                    <small>减少无效请求</small>
-                  </span>
-                </label>
-                <label className="task-option">
-                  <input
-                    type="checkbox"
                     checked={dryRun}
                     disabled={running}
                     onChange={(event) => setDryRun(event.target.checked)}
@@ -127,7 +114,7 @@ export function TaskPanel({ hasAccount, onClose }: TaskPanelProps): React.JSX.El
                 className="btn primary task-run"
                 disabled={running}
                 onClick={() => {
-                  runTask.mutate({ taskId: task.id, options: { liveOnly }, dryRun });
+                  runTask.mutate({ taskId: task.id, dryRun });
                 }}
               >
                 <Icon name="play" size={16} />
@@ -187,7 +174,9 @@ export function TaskPanel({ hasAccount, onClose }: TaskPanelProps): React.JSX.El
 
       <div className="task-note">
         <Icon name="spark" size={16} />
-        <p>任务在后台继续，关闭面板或最小化应用不会中断；直播和弹幕不受影响。请求已限速，失败按房间记录。</p>
+        <p>
+          任务在后台继续，关闭面板或最小化应用不会中断；直播和弹幕不受影响。请求已限速，失败按房间记录。
+        </p>
       </div>
     </aside>
   );
