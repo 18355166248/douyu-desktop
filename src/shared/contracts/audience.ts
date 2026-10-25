@@ -20,5 +20,26 @@ export interface RoomAudienceSnapshot {
   platform: StreamPlatform;
   roomId: string;
   metrics: RoomAudienceMetric[];
+  rankings?: RoomAudienceRanking[];
   fetchedAt: number;
+}
+
+export interface RoomAudienceRankEntry {
+  rank: number;
+  userId: string;
+  nickname: string;
+  contribution: number | null;
+}
+
+export interface RoomAudienceRanking {
+  key: 'day' | 'week' | 'total';
+  label: string;
+  entries: RoomAudienceRankEntry[];
+  updatedAt: number;
+}
+
+export interface DouyuAudienceUpdate {
+  roomId: string;
+  metrics?: RoomAudienceMetric[];
+  ranking?: RoomAudienceRanking;
 }

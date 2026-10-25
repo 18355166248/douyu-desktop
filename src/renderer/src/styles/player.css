@@ -258,6 +258,148 @@
   animation: spin 900ms linear infinite;
 }
 
+.douyu-audience {
+  flex: none;
+  min-width: 0;
+}
+
+.room-ranking-toggle {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid var(--line-soft);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.room-ranking-toggle:hover,
+.room-ranking-toggle.is-expanded {
+  border-color: rgb(255 107 53 / 30%);
+  background: rgb(255 107 53 / 8%);
+  color: var(--accent-strong);
+}
+
+.room-ranking-toggle.is-expanded svg {
+  transform: rotate(180deg);
+}
+
+.room-rankings {
+  padding: 0 14px 6px;
+  border-bottom: 1px solid var(--line-soft);
+  background: rgb(12 17 23 / 75%);
+}
+
+.room-ranking-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 33px;
+}
+
+.room-ranking-tabs button {
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.room-ranking-tabs button[aria-selected='true'] {
+  background: rgb(255 107 53 / 12%);
+  color: var(--accent-strong);
+}
+
+.room-ranking-tabs button:hover {
+  color: var(--text);
+}
+
+.room-ranking-toggle:focus-visible,
+.room-ranking-tabs button:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.room-ranking-note {
+  margin-left: auto;
+  color: var(--dim);
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.room-ranking-panel {
+  max-height: 176px;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.room-ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  color: var(--muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.room-ranking-table th,
+.room-ranking-table td {
+  height: 24px;
+  overflow: hidden;
+  padding: 2px 6px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.room-ranking-table th {
+  position: sticky;
+  top: 0;
+  background: #121920;
+  color: var(--dim);
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.room-ranking-table th:first-child,
+.room-ranking-table td:first-child {
+  width: 40px;
+  padding-left: 3px;
+}
+
+.room-ranking-table th:last-child,
+.room-ranking-table td:last-child {
+  width: 90px;
+  text-align: right;
+}
+
+.room-ranking-table td:last-child {
+  color: var(--text);
+}
+
+.room-ranking-table tbody tr:nth-child(-n + 3) td:first-child {
+  color: var(--accent-strong);
+}
+
+.room-ranking-table tbody tr:hover {
+  background: rgb(255 255 255 / 3%);
+}
+
+.room-ranking-empty {
+  margin: 0;
+  padding: 14px 4px 18px;
+  color: var(--muted);
+  font-size: 10px;
+  text-align: center;
+}
+
 .video-shell {
   position: relative;
   display: flex;
@@ -869,6 +1011,20 @@
 
 .player-card.is-compact .room-audience-metric strong {
   font-size: 10px;
+}
+
+.player-card.is-compact .room-rankings {
+  padding-right: 10px;
+  padding-left: 10px;
+}
+
+.player-card.is-compact .room-ranking-panel {
+  max-height: 128px;
+}
+
+.player-card.is-compact .room-ranking-table td,
+.player-card.is-compact .room-ranking-table th {
+  height: 22px;
 }
 
 .player-card.is-compact .player-title {

@@ -3,6 +3,7 @@ import { Icon } from '../../components/Icon';
 import { errorMessage } from '../../lib/api';
 import { audienceMetricTooltip, formatAudienceValue } from './audienceDisplay';
 import { useRoomAudience } from './useRoomAudience';
+import { DouyuRoomAudience } from './DouyuRoomAudience';
 
 interface RoomAudienceProps {
   platform: StreamPlatform;
@@ -10,6 +11,11 @@ interface RoomAudienceProps {
 }
 
 export function RoomAudience({ platform, roomId }: RoomAudienceProps): React.JSX.Element {
+  if (platform === 'douyu') return <DouyuRoomAudience key={roomId} roomId={roomId} />;
+  return <PolledRoomAudience platform={platform} roomId={roomId} />;
+}
+
+function PolledRoomAudience({ platform, roomId }: RoomAudienceProps): React.JSX.Element {
   const query = useRoomAudience(platform, roomId);
   const metrics = query.data?.metrics ?? [];
   const hasMetrics = metrics.length > 0;
