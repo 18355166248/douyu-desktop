@@ -16,6 +16,7 @@ interface PlayerTileProps {
   isMain?: boolean;
   canSolo?: boolean;
   isSolo?: boolean;
+  gridSlot?: string;
   shortcutsEnabled?: boolean;
   onActivate?: () => void;
   muted: boolean;
@@ -42,6 +43,7 @@ export function PlayerTile({
   isMain = false,
   canSolo = false,
   isSolo = false,
+  gridSlot,
   shortcutsEnabled = false,
   onActivate,
   muted,
@@ -70,7 +72,9 @@ export function PlayerTile({
 
   return (
     <section
-      className={`player-card${compact ? ' is-compact' : ''}${isMain ? ' is-main' : ''}`}
+      className={`player-card${compact ? ' is-compact' : ''}${isMain ? ' is-main' : ''}${
+        gridSlot ? ` focus-slot-${gridSlot}` : ''
+      }`}
       onPointerEnter={onActivate}
       onFocusCapture={onActivate}
     >

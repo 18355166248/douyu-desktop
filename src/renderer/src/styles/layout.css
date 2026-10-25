@@ -1062,6 +1062,11 @@
   grid-template-rows: repeat(2, minmax(0, 1fr));
 }
 
+.stream-grid.is-six {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
 .stream-grid.is-focus-2 {
   grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
@@ -1077,11 +1082,58 @@
   grid-template-rows: repeat(3, minmax(0, 1fr));
 }
 
+.stream-grid.is-focus-5,
+.stream-grid.is-focus-6 {
+  grid-template-columns: minmax(0, 7fr) minmax(0, 7fr) minmax(0, 8fr);
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+}
+
 .stream-grid.is-focus-2 > .player-card.is-main,
 .stream-grid.is-focus-3 > .player-card.is-main,
 .stream-grid.is-focus-4 > .player-card.is-main {
   grid-column: 1;
   grid-row: 1 / -1;
+}
+
+.stream-grid.is-focus-5 > .player-card.is-main,
+.stream-grid.is-focus-6 > .player-card.is-main {
+  grid-column: 1 / span 2;
+  grid-row: 1 / span 2;
+}
+
+.stream-grid.is-focus-5 > .player-card.focus-slot-side-1,
+.stream-grid.is-focus-6 > .player-card.focus-slot-side-1 {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.stream-grid.is-focus-5 > .player-card.focus-slot-side-2,
+.stream-grid.is-focus-6 > .player-card.focus-slot-side-2 {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.stream-grid.is-focus-5 > .player-card.focus-slot-side-3,
+.stream-grid.is-focus-6 > .player-card.focus-slot-side-3 {
+  grid-column: 3;
+  grid-row: 3;
+}
+
+.stream-grid.is-focus-5 > .player-card.focus-slot-under-1,
+.stream-grid.is-focus-6 > .player-card.focus-slot-under-1 {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+.stream-grid.is-focus-5 > .player-card.focus-slot-under-2,
+.stream-grid.is-focus-6 > .player-card.focus-slot-under-2 {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+.stream-grid.is-focus-5 > .grid-slot.focus-under-slot {
+  grid-column: 2;
+  grid-row: 3;
 }
 
 .stream-grid > * {
@@ -2397,16 +2449,29 @@
 @media (max-width: 720px) {
   .stream-grid.is-duo,
   .stream-grid.is-quad,
+  .stream-grid.is-six,
   .stream-grid.is-focus-2,
   .stream-grid.is-focus-3,
-  .stream-grid.is-focus-4 {
+  .stream-grid.is-focus-4,
+  .stream-grid.is-focus-5,
+  .stream-grid.is-focus-6 {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: none;
+    grid-auto-flow: row;
   }
 
   .stream-grid.is-focus-2 > .player-card.is-main,
   .stream-grid.is-focus-3 > .player-card.is-main,
-  .stream-grid.is-focus-4 > .player-card.is-main {
+  .stream-grid.is-focus-4 > .player-card.is-main,
+  .stream-grid.is-focus-5 > .player-card.is-main,
+  .stream-grid.is-focus-6 > .player-card.is-main {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .stream-grid.is-focus-5 > .player-card[class*='focus-slot-'],
+  .stream-grid.is-focus-6 > .player-card[class*='focus-slot-'],
+  .stream-grid.is-focus-5 > .grid-slot.focus-under-slot {
     grid-column: auto;
     grid-row: auto;
   }

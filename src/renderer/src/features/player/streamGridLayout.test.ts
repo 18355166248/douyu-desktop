@@ -8,6 +8,8 @@ describe('streamGridLayout', () => {
     expect(getStreamLayout(2)).toBe('duo');
     expect(getStreamLayout(3)).toBe('quad');
     expect(getStreamLayout(4)).toBe('quad');
+    expect(getStreamLayout(5)).toBe('six');
+    expect(getStreamLayout(6)).toBe('six');
   });
 
   it('maps multi-stream counts to main-plus-others layouts', () => {
@@ -16,6 +18,8 @@ describe('streamGridLayout', () => {
     expect(getStreamLayout(2, 'focus')).toBe('focus-2');
     expect(getStreamLayout(3, 'focus')).toBe('focus-3');
     expect(getStreamLayout(4, 'focus')).toBe('focus-4');
+    expect(getStreamLayout(5, 'focus')).toBe('focus-5');
+    expect(getStreamLayout(6, 'focus')).toBe('focus-6');
   });
 
   it('stops accepting streams at the configured limit', () => {

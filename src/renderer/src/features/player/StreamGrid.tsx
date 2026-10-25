@@ -52,7 +52,15 @@ export function StreamGrid({
 }: StreamGridProps): React.JSX.Element {
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const layout = getStreamLayout(streams.length, layoutMode);
-  const showEmptySlot = layoutMode === 'even' && streams.length === MAX_STREAMS - 1;
+  const showEmptySlot =
+    streams.length === MAX_STREAMS - 1 && (layoutMode === 'even' || layout === 'focus-5');
+  const focusSlotLayout = layout === 'focus-5' || layout === 'focus-6';
+  const focusKeys = streams.map((entry) => streamKey(entry.playback));
+  const nonMainKeys = focusSlotLayout
+    ? focusKeys.filter((entryKey) => entryKey !== mainKey)
+    : [];
+  const sideKeys = nonMainKeys.slice(0, 3);
+  const underKeys = nonMainKeys.slice(3, 5);
   const firstEntry = streams[0];
   const firstKey = firstEntry ? streamKey(firstEntry.playback) : null;
   const currentKey =
@@ -65,6 +73,13 @@ export function StreamGrid({
       {streams.map((entry) => {
         const key = streamKey(entry.playback);
         const isMain = layoutMode === 'focus' && streams.length > 1 && key === mainKey;
+        const sideIndex = sideKeys.indexOf(key);
+        const underIndex = underKeys.indexOf(key);
+        let focusSlot: string | null = null;
+        if (focusSlotLayout && !isMain) {
+          if (sideIndex >= 0) focusSlot = `side-${sideIndex + 1}`;
+          else if (underIndex >= 0) focusSlot = `under-${underIndex + 1}`;
+        }
         return (
           <PlayerTile
             key={key}
@@ -73,6 +88,7 @@ export function StreamGrid({
             compact={streams.length > 1}
             immersive={immersive}
             isMain={isMain}
+            {...(focusSlot ? { gridSlot: focusSlot } : {})}
             canSolo={streams.length > 1}
             isSolo={soloKey === key}
             shortcutsEnabled={keyboardActive && currentKey === key}
@@ -98,7 +114,11 @@ export function StreamGrid({
       })}
 
       {showEmptySlot ? (
-        <button type="button" className="grid-slot" onClick={onRequestAdd}>
+        <button
+          type="button"
+          className={`grid-slot${layout === 'focus-5' ? ' focus-under-slot' : ''}`}
+          onClick={onRequestAdd}
+        >
           <span className="grid-slot-icon">
             <Icon name="plus" size={20} />
           </span>
