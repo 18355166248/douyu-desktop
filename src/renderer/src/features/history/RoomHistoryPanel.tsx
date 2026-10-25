@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { StreamPlatform } from '@shared/contracts/stream';
-import bilibiliIcon from '../../assets/platforms/bilibili.png';
-import douyuIcon from '../../assets/platforms/douyu.png';
-import huyaIcon from '../../assets/platforms/huya.png';
 import { Icon } from '../../components/Icon';
+import { PLATFORM_ICON_URLS } from '../../lib/platformAssets';
 import { platformLabel, roomKey } from '../../lib/streamIdentity';
 import { formatHistoryTime, historyLabel } from './roomHistory';
 import type { RoomHistoryEntry } from './roomHistory';
@@ -15,12 +12,6 @@ interface RoomHistoryPanelProps {
   onClear: () => void;
   onClose: () => void;
 }
-
-const PLATFORM_ICON_URLS: Record<StreamPlatform, string> = {
-  douyu: douyuIcon,
-  bilibili: bilibiliIcon,
-  huya: huyaIcon,
-};
 
 export function RoomHistoryPanel({
   entries,

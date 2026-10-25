@@ -2,12 +2,14 @@ import { join } from 'node:path';
 import { app, BrowserWindow, screen } from 'electron';
 import { JsonAccountStore } from './adapters/storage/JsonAccountStore';
 import { JsonRoomHistoryStore } from './adapters/storage/JsonRoomHistoryStore';
+import { JsonSpecialFollowStore } from './adapters/storage/JsonSpecialFollowStore';
 import { JsonLogger } from './adapters/electron/JsonLogger';
 import { configureMediaCors } from './mediaCors';
 import { AccountSessionManager } from './services/AccountSessionManager';
 import { DouyuAuthService } from './services/DouyuAuthService';
 import { DouyuDanmakuSession } from './services/DouyuDanmakuSession';
 import { HuyaDanmakuSession } from './services/HuyaDanmakuSession';
+import { HomeService } from './services/HomeService';
 import { PlatformLoginManager } from './services/PlatformLoginManager';
 import { StreamService } from './services/StreamService';
 import { TaskService } from './services/TaskService';
@@ -82,6 +84,9 @@ if (!hasLock) {
       const history = new JsonRoomHistoryStore(
         join(app.getPath('home'), '.douyu-desktop', 'room-history.json'),
       );
+      const special = new JsonSpecialFollowStore(
+        join(app.getPath('home'), '.douyu-desktop', 'special-follows.json'),
+      );
       await new LegacyDevHistoryMigration(
         history,
         join(app.getPath('userData'), 'legacy-dev-history-migrated.v1.json'),
@@ -92,6 +97,7 @@ if (!hasLock) {
       const platforms = new PlatformLoginManager(() => mainWindow);
       const streams = new StreamService(platforms);
       const tasks = new TaskService(accounts, logger);
+      const home = new HomeService(accounts);
       const douyuDanmaku = new DouyuDanmakuSession();
       const huyaDanmaku = new HuyaDanmakuSession();
 
@@ -107,6 +113,8 @@ if (!hasLock) {
         streams,
         tasks,
         history,
+        special,
+        home,
         douyuDanmaku,
         huyaDanmaku,
         createWindow: (source) => openSecondaryWindow(source),

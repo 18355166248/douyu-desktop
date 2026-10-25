@@ -25,6 +25,8 @@ export type IconName =
   | 'maximize'
   | 'restore'
   | 'history'
+  | 'home'
+  | 'star'
   | 'trash'
   | 'expand';
 
@@ -143,6 +145,16 @@ const paths: Record<IconName, ReactNode> = {
       <path d="M3.5 4.5v5h5" />
       <path d="M12 7.5V12l3 1.8" />
     </>
+  ),
+  home: (
+    <>
+      <path d="m3.5 10.2 8.5-6.7 8.5 6.7" />
+      <path d="M6.2 9.2V20h11.6V9.2" />
+      <path d="M9.7 20v-5.2h4.6V20" />
+    </>
+  ),
+  star: (
+    <path d="m12 3.6 2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z" />
   ),
   trash: (
     <>

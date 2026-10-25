@@ -2,6 +2,8 @@ import type { AccountHealth, AccountSummary } from './account';
 import type { RoomAudienceInput, RoomAudienceSnapshot } from './audience';
 import type { BilibiliDanmakuConfig, DouyuDanmakuConfig, HuyaDanmakuUpdate } from './danmaku';
 import type { RoomHistoryEntry } from './history';
+import type { FollowedRoom } from './follow';
+import type { SpecialFollowEntry, SpecialFollowTarget } from './specialFollow';
 import type { GuidedPlatform, PlatformLoginStatus } from './platformLogin';
 import type { ResolveStreamInput, StreamPlayback } from './stream';
 import type { Result } from './result';
@@ -32,6 +34,14 @@ export interface DesktopApi {
     remove(keys: string[]): Promise<Result<RoomHistoryEntry[]>>;
     clear(): Promise<Result<RoomHistoryEntry[]>>;
     onChange(listener: (entries: RoomHistoryEntry[]) => void): () => void;
+  };
+  home: {
+    followed(): Promise<Result<FollowedRoom[]>>;
+  };
+  special: {
+    load(): Promise<Result<SpecialFollowEntry[]>>;
+    toggle(target: SpecialFollowTarget): Promise<Result<SpecialFollowEntry[]>>;
+    onChange(listener: (entries: SpecialFollowEntry[]) => void): () => void;
   };
   streams: {
     resolve(input: ResolveStreamInput): Promise<Result<StreamPlayback>>;
@@ -78,6 +88,10 @@ export const IPC = {
   historyRemove: 'history:remove',
   historyClear: 'history:clear',
   historyChanged: 'history:changed',
+  homeFollowed: 'home:followed',
+  specialLoad: 'special:load',
+  specialToggle: 'special:toggle',
+  specialChanged: 'special:changed',
   streamsResolve: 'streams:resolve',
   streamsAudience: 'streams:audience',
   danmakuBilibiliConfig: 'danmaku:bilibili-config',

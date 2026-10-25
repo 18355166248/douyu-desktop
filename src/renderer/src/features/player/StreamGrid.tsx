@@ -9,6 +9,7 @@ import type { StreamGridEntry, StreamResolveOptions } from './useStreamGrid';
 interface StreamGridProps {
   streams: StreamGridEntry[];
   immersive: boolean;
+  suspended?: boolean;
   reloadingKey: string | null;
   mutedRooms: Record<string, boolean>;
   volumes: Record<string, number>;
@@ -25,6 +26,7 @@ interface StreamGridProps {
 export function StreamGrid({
   streams,
   immersive,
+  suspended = false,
   reloadingKey,
   mutedRooms,
   volumes,
@@ -58,7 +60,8 @@ export function StreamGrid({
             error={entry.error}
             compact={streams.length > 1}
             immersive={immersive}
-            shortcutsEnabled={currentKey === key}
+            suspended={suspended}
+            shortcutsEnabled={!suspended && currentKey === key}
             muted={mutedRooms[key] === true}
             volume={volumes[key] ?? DEFAULT_VOLUME}
             quality={entry.options.quality}

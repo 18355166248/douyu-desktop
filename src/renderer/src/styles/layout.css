@@ -103,12 +103,42 @@
   gap: 5px;
   height: 32px;
   padding: 0 8px;
-  border: 1px solid rgb(255 107 53 / 24%);
+  border: 1px solid var(--line);
   border-radius: 8px;
+  background: rgb(255 255 255 / 3%);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    color 140ms ease;
+}
+
+.titlebar-tab:hover {
+  border-color: #35414d;
+  background: rgb(255 255 255 / 6%);
+  color: var(--text);
+}
+
+.titlebar-tab.is-active {
+  border-color: rgb(255 107 53 / 24%);
   background: linear-gradient(90deg, rgb(255 107 53 / 12%), rgb(255 107 53 / 3%));
+  color: var(--text);
+}
+
+.titlebar-tabs {
+  display: flex;
+  flex: none;
+  gap: 4px;
 }
 
 .titlebar-tab svg {
+  color: var(--dim);
+}
+
+.titlebar-tab.is-active svg {
   color: var(--accent-strong);
 }
 
@@ -944,6 +974,17 @@
   flex: 1;
   min-height: 0;
   margin-top: 0;
+}
+
+.workspace-view {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.workspace-view[hidden] {
+  display: none;
 }
 
 .stage {

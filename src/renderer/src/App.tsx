@@ -9,13 +9,16 @@ import { DanmakuSettingsPanel } from './features/danmaku/DanmakuSettingsPanel';
 import { RoomHistoryPanel } from './features/history/RoomHistoryPanel';
 import { useRoomHistory } from './features/history/useRoomHistory';
 import type { RoomHistoryEntry } from './features/history/roomHistory';
+import { HomePage } from './features/home/HomePage';
+import { useFollowedRooms } from './features/home/useFollowedRooms';
+import { useSpecialFollows } from './features/home/useSpecialFollows';
 import { EmptyStage } from './features/player/EmptyStage';
 import { StreamGrid } from './features/player/StreamGrid';
 import { MAX_STREAMS, canAddStream } from './features/player/streamGridLayout';
 import { defaultStreamOptions, useStreamGrid } from './features/player/useStreamGrid';
 import type { StreamResolveOptions } from './features/player/useStreamGrid';
 import { isEditableTarget } from './lib/keyboard';
-import { platformLabel } from './lib/streamIdentity';
+import { platformLabel, roomKey, streamKey } from './lib/streamIdentity';
 import { useDismissableLayer } from './lib/useDismissableLayer';
 import { AutoSignRunner } from './features/tasks/AutoSignRunner';
 import { TaskButton } from './features/tasks/TaskButton';
@@ -29,9 +32,10 @@ function roomPlaceholder(platform: StreamPlatform): string {
 
 const IMMERSIVE_EXIT_HIDE_MS = 4000;
 const isSecondaryWindow = new URLSearchParams(window.location.search).get('role') === 'secondary';
+type WorkspaceView = 'home' | 'live';
 
 export function App(): React.JSX.Element {
-  const { activeAccount } = useAccounts();
+  const { activeAccount, query: accountsQuery } = useAccounts();
   const {
     streams,
     isAdding,
@@ -48,6 +52,7 @@ export function App(): React.JSX.Element {
   } = useStreamGrid();
   const [platform, setPlatform] = useState<StreamPlatform>('douyu');
   const [roomId, setRoomId] = useState('9999');
+  const [activeView, setActiveView] = useState<WorkspaceView>('home');
   const [error, setError] = useState<string | null>(null);
   const [isDanmakuSettingsOpen, setDanmakuSettingsOpen] = useState(false);
   const [isHistoryOpen, setHistoryOpen] = useState(false);
@@ -59,6 +64,11 @@ export function App(): React.JSX.Element {
   const historyRef = useRef<HTMLDivElement>(null);
   const immersiveExitTimerRef = useRef<number | null>(null);
   const { entries: roomHistory, recordVisit, removeHistory, clearHistory } = useRoomHistory();
+  const followed = useFollowedRooms(
+    activeAccount?.id ?? null,
+    activeAccount?.status === 'active',
+  );
+  const special = useSpecialFollows();
 
   useDismissableLayer({
     open: isDanmakuSettingsOpen,
@@ -132,6 +142,7 @@ export function App(): React.JSX.Element {
       setHistoryOpen(false);
       setTaskOpen(false);
       setDanmakuSettingsOpen(false);
+      setActiveView('live');
       setImmersive((value) => !value);
     }
 
@@ -177,8 +188,29 @@ export function App(): React.JSX.Element {
       setError(message);
       return;
     }
+    setActiveView('live');
     setRoomId('');
     focusRoomInput();
+  }
+
+  function handleRoomQuickOpen(targetPlatform: StreamPlatform, targetRoomId: string): void {
+    setError(null);
+    if (streams.some((entry) => streamKey(entry.playback) === roomKey(targetPlatform, targetRoomId))) {
+      setActiveView('live');
+      return;
+    }
+    void handleAdd(targetPlatform, targetRoomId);
+  }
+
+  function handleClearStreams(): void {
+    clearStreams();
+    setActiveView('home');
+  }
+
+  function handleRemoveStream(key: string): void {
+    const isLast = streams.length === 1;
+    removeStream(key);
+    if (isLast) setActiveView('home');
   }
 
   function handleHistorySelect(entry: RoomHistoryEntry): void {
@@ -199,6 +231,7 @@ export function App(): React.JSX.Element {
     setHistoryOpen(false);
     setTaskOpen(false);
     setDanmakuSettingsOpen(false);
+    setActiveView('live');
     setImmersive(true);
   }
 
@@ -241,15 +274,35 @@ export function App(): React.JSX.Element {
     >
       {isSecondaryWindow ? null : <AutoSignRunner account={activeAccount} />}
       <TitleBar>
-        <div
-          className="titlebar-tab"
-          aria-label={`${isSecondaryWindow ? '副屏' : '直播'}工作台，当前 ${streams.length} 路`}
-        >
-          <Icon name="live" size={14} />
-          <strong>{isSecondaryWindow ? '副屏' : '直播'}</strong>
-          <span className="titlebar-count">
-            {streams.length}/{MAX_STREAMS}
-          </span>
+        <div className="titlebar-tabs" role="tablist" aria-label="工作区视图">
+          <button
+            type="button"
+            role="tab"
+            id="home-tab"
+            aria-selected={activeView === 'home'}
+            aria-controls="home-view"
+            className={`titlebar-tab${activeView === 'home' ? ' is-active' : ''}`}
+            onClick={() => setActiveView('home')}
+          >
+            <Icon name="home" size={14} />
+            <strong>首页</strong>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="live-tab"
+            aria-selected={activeView === 'live'}
+            aria-controls="live-view"
+            className={`titlebar-tab${activeView === 'live' ? ' is-active' : ''}`}
+            onClick={() => setActiveView('live')}
+            aria-label={`${isSecondaryWindow ? '副屏' : '直播'}工作台，当前 ${streams.length} 路`}
+          >
+            <Icon name="live" size={14} />
+            <strong>{isSecondaryWindow ? '副屏' : '直播'}</strong>
+            <span className="titlebar-count">
+              {streams.length}/{MAX_STREAMS}
+            </span>
+          </button>
         </div>
 
         <form
@@ -310,7 +363,7 @@ export function App(): React.JSX.Element {
             <button
               type="button"
               className="btn ghost titlebar-clear"
-              onClick={clearStreams}
+              onClick={handleClearStreams}
               disabled={isAdding}
             >
               清空
@@ -360,33 +413,64 @@ export function App(): React.JSX.Element {
           ) : null}
 
           <div className="workspace">
-            <div className="stage">
-              {streams.length === 0 ? (
-                <EmptyStage
-                  onPickExample={() => {
-                    setPlatform('douyu');
-                    setRoomId('9999');
-                    void handleAdd('douyu', '9999');
-                  }}
-                />
-              ) : (
-                <StreamGrid
-                  streams={streams}
-                  immersive={isImmersive}
-                  reloadingKey={reloadingKey}
-                  mutedRooms={mutedRooms}
-                  volumes={volumes}
-                  onReload={handleReload}
-                  onOptionsChange={handleStreamOptionsChange}
-                  onRemove={removeStream}
-                  onToggleMute={toggleMute}
-                  onVolumeChange={setVolume}
-                  onOpenDanmakuSettings={() => setDanmakuSettingsOpen(true)}
-                  onToggleImmersive={toggleImmersive}
-                  onRequestAdd={focusRoomInput}
-                />
-              )}
-            </div>
+            <section
+              id="home-view"
+              role="tabpanel"
+              aria-labelledby="home-tab"
+              className="workspace-view"
+              hidden={activeView !== 'home'}
+            >
+              <HomePage
+                accountsLoading={accountsQuery.isLoading}
+                activeAccount={activeAccount}
+                followed={followed.rooms}
+                followedLoading={followed.loading}
+                followedError={followed.error}
+                history={roomHistory}
+                specials={special.entries}
+                specialError={special.error}
+                onRefreshFollowed={followed.reload}
+                onOpen={handleRoomQuickOpen}
+                onToggleSpecial={special.toggle}
+              />
+            </section>
+
+            <section
+              id="live-view"
+              role="tabpanel"
+              aria-labelledby="live-tab"
+              className="workspace-view"
+              hidden={activeView !== 'live'}
+            >
+              <div className="stage">
+                {streams.length === 0 ? (
+                  <EmptyStage
+                    onPickExample={() => {
+                      setPlatform('douyu');
+                      setRoomId('9999');
+                      void handleAdd('douyu', '9999');
+                    }}
+                  />
+                ) : (
+                  <StreamGrid
+                    streams={streams}
+                    immersive={isImmersive}
+                    suspended={activeView === 'home'}
+                    reloadingKey={reloadingKey}
+                    mutedRooms={mutedRooms}
+                    volumes={volumes}
+                    onReload={handleReload}
+                    onOptionsChange={handleStreamOptionsChange}
+                    onRemove={handleRemoveStream}
+                    onToggleMute={toggleMute}
+                    onVolumeChange={setVolume}
+                    onOpenDanmakuSettings={() => setDanmakuSettingsOpen(true)}
+                    onToggleImmersive={toggleImmersive}
+                    onRequestAdd={focusRoomInput}
+                  />
+                )}
+              </div>
+            </section>
           </div>
         </main>
       </div>

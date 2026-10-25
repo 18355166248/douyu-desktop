@@ -3,6 +3,7 @@ import { IPC } from '@shared/contracts/ipc';
 import type { DesktopApi } from '@shared/contracts/ipc';
 import type { HuyaDanmakuUpdate } from '@shared/contracts/danmaku';
 import type { RoomHistoryEntry } from '@shared/contracts/history';
+import type { SpecialFollowEntry } from '@shared/contracts/specialFollow';
 import type { TaskProgressEvent, TaskRunSnapshot } from '@shared/contracts/task';
 
 const api: DesktopApi = {
@@ -30,6 +31,25 @@ const api: DesktopApi = {
       ipcRenderer.on(IPC.historyChanged, handler);
       return () => {
         ipcRenderer.removeListener(IPC.historyChanged, handler);
+      };
+    },
+  },
+  home: {
+    followed: () => ipcRenderer.invoke(IPC.homeFollowed),
+  },
+  special: {
+    load: () => ipcRenderer.invoke(IPC.specialLoad),
+    toggle: (target) => ipcRenderer.invoke(IPC.specialToggle, target),
+    onChange: (listener) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        entries: SpecialFollowEntry[],
+      ): void => {
+        listener(entries);
+      };
+      ipcRenderer.on(IPC.specialChanged, handler);
+      return () => {
+        ipcRenderer.removeListener(IPC.specialChanged, handler);
       };
     },
   },

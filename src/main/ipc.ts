@@ -2,13 +2,16 @@ import { BrowserWindow, ipcMain, shell } from 'electron';
 import { z } from 'zod';
 import { IPC } from '@shared/contracts/ipc';
 import { MAX_ROOM_HISTORY } from '@shared/contracts/history';
+import type { SpecialFollowTarget } from '@shared/contracts/specialFollow';
 import type { AppErrorPayload, Result } from '@shared/contracts/result';
 import { fail, ok } from '@shared/contracts/result';
 import { AppError, toAppError } from '@core/errors';
 import type { JsonRoomHistoryStore } from './adapters/storage/JsonRoomHistoryStore';
+import type { JsonSpecialFollowStore } from './adapters/storage/JsonSpecialFollowStore';
 import { isAllowedExternalUrl } from './constants';
 import type { AccountSessionManager } from './services/AccountSessionManager';
 import type { DouyuDanmakuSession } from './services/DouyuDanmakuSession';
+import type { HomeService } from './services/HomeService';
 import type { HuyaDanmakuSession } from './services/HuyaDanmakuSession';
 import type { PlatformLoginManager } from './services/PlatformLoginManager';
 import type { StreamService } from './services/StreamService';
@@ -47,6 +50,13 @@ const historyKeysSchema = z
       .regex(/^(douyu|bilibili|huya):.+$/),
   )
   .max(MAX_ROOM_HISTORY);
+
+const specialTargetSchema: z.ZodType<SpecialFollowTarget> = z.object({
+  platform: z.enum(['douyu', 'bilibili', 'huya']),
+  roomId: z.string().trim().min(1).max(32),
+  name: z.string().trim().max(80).optional(),
+  title: z.string().trim().max(200).optional(),
+});
 
 function toPayload(error: unknown): AppErrorPayload {
   if (error instanceof z.ZodError) {
@@ -90,13 +100,16 @@ export interface IpcServices {
   streams: StreamService;
   tasks: TaskService;
   history: JsonRoomHistoryStore;
+  special: JsonSpecialFollowStore;
+  home: HomeService;
   douyuDanmaku: DouyuDanmakuSession;
   huyaDanmaku: HuyaDanmakuSession;
   createWindow?: (source: BrowserWindow | null) => void;
 }
 
 export function registerIpcHandlers(services: IpcServices): void {
-  const { accounts, platforms, streams, tasks, history, douyuDanmaku, huyaDanmaku } = services;
+  const { accounts, platforms, streams, tasks, history, special, home, douyuDanmaku, huyaDanmaku } =
+    services;
 
   ipcMain.on(IPC.windowMinimize, (event) => {
     BrowserWindow.fromWebContents(event.sender)?.minimize();
@@ -172,6 +185,19 @@ export function registerIpcHandlers(services: IpcServices): void {
     respond(async () => {
       const input = resolveStreamSchema.parse(rawInput);
       return streams.resolve(input);
+    }),
+  );
+
+  ipcMain.handle(IPC.homeFollowed, () => respond(() => home.followed()));
+
+  ipcMain.handle(IPC.specialLoad, () => respond(() => special.load()));
+
+  ipcMain.handle(IPC.specialToggle, (_event, rawTarget: unknown) =>
+    respond(async () => {
+      const target = specialTargetSchema.parse(rawTarget);
+      const entries = await special.toggle(target);
+      broadcast(IPC.specialChanged, entries);
+      return entries;
     }),
   );
 
