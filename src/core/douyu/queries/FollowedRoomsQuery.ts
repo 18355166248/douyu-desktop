@@ -10,6 +10,8 @@ interface FollowListItem {
   show_status?: string | number;
   is_special?: string | number;
   online?: string | number;
+  hasvid?: string | number;
+  vurl?: string;
   room_src?: string;
   avatar_small?: string;
   rs16_avif?: string;
@@ -123,6 +125,11 @@ export class FollowedRoomsQuery {
         title: roomTitle || anchorName || `房间 ${roomId}`,
         isLive: String(item.show_status ?? '0') === '1',
         isSpecial: String(item.is_special ?? '0') === '1',
+        hasVideo:
+          String(item.show_status ?? '0') !== '1' &&
+          Number(item.hasvid) === 1 &&
+          typeof item.vurl === 'string' &&
+          item.vurl.trim().length > 0,
         heat: parseHeat(item.online),
         ...(cover ? { cover } : {}),
       });

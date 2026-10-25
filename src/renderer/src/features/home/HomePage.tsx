@@ -38,6 +38,7 @@ interface HomeRoomRowProps {
   meta?: string | undefined;
   cover?: string | undefined;
   isLive?: boolean | undefined;
+  hasVideo?: boolean | undefined;
   showStatus?: boolean;
   official?: boolean;
   pinned: boolean;
@@ -53,6 +54,7 @@ function HomeRoomRow({
   meta,
   cover,
   isLive = false,
+  hasVideo = false,
   showStatus = false,
   official = false,
   pinned,
@@ -94,6 +96,9 @@ function HomeRoomRow({
             <span className="home-thumb-offline" aria-hidden="true">
               <strong>未开播</strong>
             </span>
+          ) : null}
+          {showStatus && !isLive && hasVideo ? (
+            <span className="home-thumb-loop">视频轮播</span>
           ) : null}
           {isLive ? (
             <span className="home-thumb-live">
@@ -250,6 +255,7 @@ export function HomePage({
                 title={room.title}
                 cover={room.cover}
                 isLive={room.isLive}
+                hasVideo={room.hasVideo}
                 showStatus={room.statusKnown}
                 official={room.official}
                 pinned
@@ -335,6 +341,7 @@ export function HomePage({
                   title={room.title}
                   cover={room.cover}
                   isLive={room.isLive}
+                  hasVideo={room.hasVideo}
                   showStatus
                   official={officialKeys.has(specialFollowKey(room))}
                   pinned={specialKeys.has(specialFollowKey(room))}
@@ -380,6 +387,7 @@ export function HomePage({
                     meta={formatHistoryTime(entry.visitedAt)}
                     cover={historyCover}
                     isLive={historyRoom?.isLive ?? false}
+                    hasVideo={historyRoom?.hasVideo ?? false}
                     showStatus={Boolean(historyRoom)}
                     official={officialKeys.has(key)}
                     pinned={specialKeys.has(key)}

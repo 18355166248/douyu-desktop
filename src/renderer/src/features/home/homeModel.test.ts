@@ -23,6 +23,7 @@ const room = (
   title: `${name}的直播间`,
   isLive,
   isSpecial: false,
+  hasVideo: false,
   heat,
   ...(cover ? { cover } : {}),
 });
@@ -61,6 +62,7 @@ describe('homeModel', () => {
         addedAt: 10,
         isLive: true,
         heat: 88,
+        hasVideo: false,
         statusKnown: true,
       },
     ]);

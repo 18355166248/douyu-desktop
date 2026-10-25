@@ -8,6 +8,7 @@ import type {
 export interface SpecialRoom extends SpecialFollowEntry {
   isLive: boolean;
   heat: number;
+  hasVideo: boolean;
   /** Whether the current follow list can confirm the room's live state. */
   statusKnown: boolean;
 }
@@ -42,6 +43,7 @@ export function resolveSpecialRooms(
       ...(fresh?.cover ? { cover: fresh.cover } : {}),
       isLive: fresh?.isLive ?? false,
       heat: fresh?.heat ?? 0,
+      hasVideo: fresh?.hasVideo ?? false,
       statusKnown: Boolean(fresh),
     };
   });
