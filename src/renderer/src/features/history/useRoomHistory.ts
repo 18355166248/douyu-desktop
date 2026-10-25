@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { unwrap } from '../../lib/api';
+import { roomKey } from '../../lib/streamIdentity';
 import {
   clearLegacyRoomHistory,
   loadLegacyRoomHistory,
@@ -19,6 +20,15 @@ export interface UseRoomHistoryResult {
 export function useRoomHistory(): UseRoomHistoryResult {
   // Show the legacy localStorage copy immediately, then merge it into the global file.
   const [entries, setEntries] = useState<RoomHistoryEntry[]>(() => loadLegacyRoomHistory());
+  const attemptedCoverKeys = useRef<Set<string>>(new Set());
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const reloadFromGlobal = useCallback((): void => {
     void window.api.history.load().then((result) => {
@@ -56,6 +66,51 @@ export function useRoomHistory(): UseRoomHistoryResult {
     return window.api.history.onChange((next) => setEntries(next));
   }, []);
 
+  // Older history entries only stored text. Resolve their covers once in the
+  // background, then persist them so later launches render thumbnails instantly.
+  useEffect(() => {
+    const missing = entries
+      .filter((entry) => {
+        const key = roomKey(entry.platform, entry.roomId);
+        return !entry.cover && !attemptedCoverKeys.current.has(key);
+      })
+      .slice(0, 12);
+
+    if (missing.length === 0) return undefined;
+
+    for (const entry of missing) {
+      attemptedCoverKeys.current.add(roomKey(entry.platform, entry.roomId));
+    }
+
+    void Promise.all(
+      missing.map(async (entry): Promise<RoomHistoryEntry | null> => {
+        try {
+          const result = await window.api.streams.resolve({
+            platform: entry.platform,
+            roomId: entry.roomId,
+          });
+          if (!result.ok || !result.data.cover) return null;
+          return { ...entry, cover: result.data.cover };
+        } catch {
+          return null;
+        }
+      }),
+    ).then((resolved) => {
+      if (!isMounted.current) return;
+      const withCovers = resolved.filter(
+        (entry): entry is RoomHistoryEntry => entry !== null,
+      );
+      if (withCovers.length === 0) return;
+      setEntries((current) => mergeRoomHistory(withCovers, current));
+      void window.api.history.merge(withCovers).then((result) => {
+        if (result.ok) return;
+        console.warn('[history] 历史封面保存失败', result.error.message);
+      });
+    });
+
+    return undefined;
+  }, [entries]);
+
   const recordVisit = useCallback(
     (visit: RoomVisit): void => {
       const roomId = visit.roomId.trim();
@@ -72,6 +127,7 @@ export function useRoomHistory(): UseRoomHistoryResult {
             title: visit.title,
             anchorName: visit.anchorName,
             visitedAt,
+            ...(visit.cover ? { cover: visit.cover } : {}),
           },
         ])
         .then((result) => {

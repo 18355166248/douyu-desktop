@@ -198,6 +198,10 @@ export function HomePage({
   );
   const liveCount = followed.filter((room) => room.isLive).length;
   const accountIsActive = activeAccount?.status === 'active';
+  const historyCovers = new Map<string, string>();
+  for (const room of [...followed, ...specialCards]) {
+    if (room.cover) historyCovers.set(roomKey(room.platform, room.roomId), room.cover);
+  }
 
   return (
     <div className="home-page">
@@ -371,6 +375,7 @@ export function HomePage({
           <aside className="home-history-drawer" aria-label="最近观看">
             <RoomHistoryPanel
               entries={history}
+              coverByKey={historyCovers}
               onSelect={(entry) => {
                 setHistoryOpen(false);
                 onOpen(entry.platform, entry.roomId);

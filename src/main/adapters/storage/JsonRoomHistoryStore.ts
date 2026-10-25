@@ -10,6 +10,7 @@ const roomHistoryEntrySchema = z.object({
   title: z.string().trim().max(200),
   anchorName: z.string().trim().max(80),
   visitedAt: z.number().finite().positive().max(8_640_000_000_000_000),
+  cover: z.string().trim().max(500).optional(),
 });
 
 const roomHistoryEntriesSchema = z.array(roomHistoryEntrySchema).max(MAX_ROOM_HISTORY);
@@ -93,7 +94,16 @@ export class JsonRoomHistoryStore {
     return this.enqueueMutation(async () => {
       const existing = await this.load();
       const incoming = normalize(roomHistoryEntriesSchema.parse(rawEntries));
-      return this.save(normalize([...existing, ...incoming]));
+      const covers = new Map(
+        existing
+          .filter((entry): entry is RoomHistoryEntry & { cover: string } => Boolean(entry.cover))
+          .map((entry) => [`${entry.platform}:${entry.roomId}`, entry.cover] as const),
+      );
+      const withCovers = incoming.map((entry) => {
+        const cover = entry.cover ?? covers.get(`${entry.platform}:${entry.roomId}`);
+        return cover ? { ...entry, cover } : entry;
+      });
+      return this.save(normalize([...withCovers, ...existing]));
     });
   }
 

@@ -14,11 +14,19 @@ export interface RoomVisit {
   roomId: string;
   title: string;
   anchorName: string;
+  cover?: string | undefined;
 }
 
 function cleanText(value: unknown, maxLength: number): string {
   if (typeof value !== 'string') return '';
   return value.trim().slice(0, maxLength);
+}
+
+function cleanCover(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const cover = value.trim();
+  if (!cover || cover.length > 500) return undefined;
+  return /^https?:\/\//i.test(cover) ? cover : undefined;
 }
 
 function parsePlatform(value: unknown): StreamPlatform {
@@ -39,12 +47,14 @@ function parseEntry(raw: unknown): RoomHistoryEntry | null {
     return null;
   }
 
+  const cover = cleanCover(value.cover);
   return {
     platform: parsePlatform(value.platform),
     roomId,
     title: cleanText(value.title, 200),
     anchorName: cleanText(value.anchorName, 80),
     visitedAt,
+    ...(cover ? { cover } : {}),
   };
 }
 
@@ -75,13 +85,21 @@ export function upsertRoomHistory(
   const roomId = visit.roomId.trim();
   if (!roomId) return parseRoomHistory(entries);
 
+  const platform = visit.platform ?? 'douyu';
+  const key = roomKey(platform, roomId);
+  const previousCover = entries.find(
+    (entry) => roomKey(entry.platform, entry.roomId) === key,
+  )?.cover;
+  const cover = visit.cover ?? previousCover;
+
   return parseRoomHistory([
     {
-      platform: visit.platform ?? 'douyu',
+      platform,
       roomId,
       title: visit.title,
       anchorName: visit.anchorName,
       visitedAt,
+      ...(cover ? { cover } : {}),
     },
     ...entries,
   ]);

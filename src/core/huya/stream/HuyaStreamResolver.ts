@@ -24,6 +24,8 @@ interface HuyaRoomData {
     nick?: string;
     roomName?: string;
     profileRoom?: number | string;
+    screenshot?: string;
+    avatar180?: string;
   };
   profileInfo?: {
     nick?: string;
@@ -147,6 +149,7 @@ export class HuyaStreamResolver {
     }
 
     const expiresAt = expiresAtFor(selected);
+    const cover = (data.liveData?.screenshot ?? data.liveData?.avatar180)?.trim();
     return {
       playback: {
         platform: 'huya',
@@ -156,6 +159,7 @@ export class HuyaStreamResolver {
         url: selected,
         format: 'hls',
         quality: qualityLabel(data, selected),
+        ...(cover ? { cover } : {}),
         ...(expiresAt ? { expiresAt } : {}),
       },
       urls,

@@ -7,14 +7,68 @@ import type { RoomHistoryEntry } from './roomHistory';
 
 interface RoomHistoryPanelProps {
   entries: RoomHistoryEntry[];
+  coverByKey?: ReadonlyMap<string, string> | undefined;
   onSelect: (entry: RoomHistoryEntry) => void;
   onRemove: (keys: readonly string[]) => void;
   onClear: () => void;
   onClose: () => void;
 }
 
+interface HistoryThumbnailProps {
+  entry: RoomHistoryEntry;
+  cover: string | undefined;
+}
+
+function HistoryThumbnail({ entry, cover }: HistoryThumbnailProps): React.JSX.Element {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [cover]);
+
+  const showCover = Boolean(cover) && !failed;
+  return (
+    <span
+      className={`history-thumb is-${entry.platform}${showCover ? '' : ' is-fallback'}`}
+      aria-hidden="true"
+    >
+      {showCover ? (
+        <img
+          className="history-thumb-image"
+          src={cover}
+          alt=""
+          draggable={false}
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <>
+          <img
+            className="history-thumb-fallback-icon"
+            src={PLATFORM_ICON_URLS[entry.platform]}
+            alt=""
+            draggable={false}
+          />
+          <span className="history-thumb-fallback-text">暂无封面</span>
+        </>
+      )}
+      <span className={`history-platform is-${entry.platform}`}>
+        <img
+          className="history-platform-icon"
+          src={PLATFORM_ICON_URLS[entry.platform]}
+          width={16}
+          height={16}
+          alt=""
+          draggable={false}
+        />
+        <span>{platformLabel(entry.platform)}</span>
+      </span>
+    </span>
+  );
+}
+
 export function RoomHistoryPanel({
   entries,
+  coverByKey,
   onSelect,
   onRemove,
   onClear,
@@ -188,17 +242,7 @@ export function RoomHistoryPanel({
                       aria-hidden="true"
                     />
                   ) : null}
-                  <span className={`history-platform is-${entry.platform}`}>
-                    <img
-                      className="history-platform-icon"
-                      src={PLATFORM_ICON_URLS[entry.platform]}
-                      width={16}
-                      height={16}
-                      alt=""
-                      draggable={false}
-                    />
-                    <span>{platformLabel(entry.platform)}</span>
-                  </span>
+                  <HistoryThumbnail entry={entry} cover={entry.cover ?? coverByKey?.get(key)} />
                   <span className="history-item-main">
                     <span className="history-anchor-name">
                       {entry.anchorName || `${platformLabel(entry.platform)}主播`}

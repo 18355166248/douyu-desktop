@@ -9,4 +9,6 @@ export interface RoomHistoryEntry {
   anchorName: string;
   /** Epoch milliseconds of the most recent visit. */
   visitedAt: number;
+  /** Room cover captured when the room was opened. */
+  cover?: string | undefined;
 }

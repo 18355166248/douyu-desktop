@@ -21,5 +21,7 @@ export interface StreamPlayback {
   url: string;
   format: StreamFormat;
   quality: string;
+  /** HTTPS room cover, when the platform metadata provides one. */
+  cover?: string | undefined;
   expiresAt?: number;
 }

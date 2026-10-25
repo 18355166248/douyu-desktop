@@ -69,6 +69,31 @@ describe('JsonRoomHistoryStore', () => {
     await expect(new JsonRoomHistoryStore(historyPath).load()).resolves.toEqual(merged);
   });
 
+  it('keeps a stored cover when an incoming visit has none', async () => {
+    const store = new JsonRoomHistoryStore(historyPath);
+    await store.save([
+      { ...entry('111', 10), cover: 'https://rpic.douyucdn.cn/cover/111.avif' },
+    ]);
+
+    const merged = await store.merge([entry('111', 20, '新标题')]);
+
+    expect(merged[0]).toMatchObject({
+      title: '新标题',
+      cover: 'https://rpic.douyucdn.cn/cover/111.avif',
+    });
+  });
+
+  it('prefers an incoming cover when a backfill keeps the same visit time', async () => {
+    const store = new JsonRoomHistoryStore(historyPath);
+    await store.save([entry('111', 10)]);
+
+    const merged = await store.merge([
+      { ...entry('111', 10), cover: 'https://rpic.douyucdn.cn/cover/111.avif' },
+    ]);
+
+    expect(merged[0]?.cover).toBe('https://rpic.douyucdn.cn/cover/111.avif');
+  });
+
   it('keeps at most the shared maximum when merging two full lists', async () => {
     const store = new JsonRoomHistoryStore(historyPath);
     await store.save(Array.from({ length: 30 }, (_, index) => entry(String(index + 1), index + 1)));

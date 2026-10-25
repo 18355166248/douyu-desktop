@@ -29,6 +29,8 @@ interface RoomInfoData {
   title?: string;
   uid?: number | string;
   live_status?: number | string;
+  user_cover?: string;
+  keyframe?: string;
 }
 
 interface AnchorData {
@@ -173,6 +175,7 @@ export class BilibiliStreamResolver {
       throw new AppError('UPSTREAM', 'B 站没有返回可用的播放地址');
     }
 
+    const cover = (info?.user_cover ?? info?.keyframe)?.trim();
     return {
       platform: 'bilibili',
       roomId: realRoomId,
@@ -181,6 +184,7 @@ export class BilibiliStreamResolver {
       url: selected.url,
       format: selected.format,
       quality: selected.quality,
+      ...(cover ? { cover } : {}),
       ...(selected.expiresAt ? { expiresAt: selected.expiresAt } : {}),
     };
   }

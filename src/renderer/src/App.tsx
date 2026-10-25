@@ -69,6 +69,10 @@ export function App(): React.JSX.Element {
     activeAccount?.status === 'active',
   );
   const special = useSpecialFollows();
+  const historyCovers = new Map<string, string>();
+  for (const room of [...followed.rooms, ...special.entries]) {
+    if (room.cover) historyCovers.set(roomKey(room.platform, room.roomId), room.cover);
+  }
 
   useDismissableLayer({
     open: isDanmakuSettingsOpen,
@@ -181,6 +185,7 @@ export function App(): React.JSX.Element {
           roomId: playback.roomId,
           title: playback.title,
           anchorName: playback.anchorName,
+          ...(playback.cover ? { cover: playback.cover } : {}),
         });
       },
     );
@@ -342,6 +347,7 @@ export function App(): React.JSX.Element {
             {isHistoryOpen ? (
               <RoomHistoryPanel
                 entries={roomHistory}
+                coverByKey={historyCovers}
                 onSelect={handleHistorySelect}
                 onRemove={removeHistory}
                 onClear={clearHistory}

@@ -42,6 +42,41 @@ describe('room history', () => {
     expect(next[0]).toMatchObject({ title: '新标题', visitedAt: t(23) });
   });
 
+  it('keeps valid covers and falls back to the previous cover when a visit has none', () => {
+    const entries = parseRoomHistory([
+      {
+        roomId: '111',
+        title: '带封面',
+        anchorName: 'A',
+        visitedAt: t(20),
+        cover: 'https://rpic.douyucdn.cn/cover/111.avif',
+      },
+      {
+        roomId: '222',
+        title: '不安全的封面',
+        anchorName: 'B',
+        visitedAt: t(21),
+        cover: 'javascript:alert(1)',
+      },
+    ]);
+
+    expect(entries.find((entry) => entry.roomId === '222')).not.toHaveProperty('cover');
+    expect(entries.find((entry) => entry.roomId === '111')?.cover).toBe(
+      'https://rpic.douyucdn.cn/cover/111.avif',
+    );
+
+    const next = upsertRoomHistory(
+      entries,
+      { roomId: '111', title: '新标题', anchorName: 'A' },
+      t(23),
+    );
+
+    expect(next[0]).toMatchObject({
+      title: '新标题',
+      cover: 'https://rpic.douyucdn.cn/cover/111.avif',
+    });
+  });
+
   it('caps the list at the configured maximum', () => {
     const raw = Array.from({ length: MAX_ROOM_HISTORY + 5 }, (_, index) => ({
       roomId: String(index + 1),

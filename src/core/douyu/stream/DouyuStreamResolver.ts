@@ -42,6 +42,7 @@ interface RoomInfoResponse {
     room_name?: string;
     nickname?: string;
     owner_name?: string;
+    room_pic?: string;
   };
 }
 
@@ -135,6 +136,7 @@ export class DouyuStreamResolver {
     }
 
     const room = await roomPromise;
+    const cover = room?.room_pic?.trim();
 
     return {
       platform: 'douyu',
@@ -144,6 +146,7 @@ export class DouyuStreamResolver {
       url,
       format: useHls ? 'hls' : 'flv',
       quality: QUALITY_LABEL[quality],
+      ...(cover ? { cover } : {}),
     };
   }
 
