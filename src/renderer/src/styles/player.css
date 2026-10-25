@@ -102,10 +102,11 @@
 }
 
 .player-head {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: 12px;
   padding: 11px 14px;
   border-bottom: 1px solid var(--line-soft);
   background: rgb(16 21 27 / 85%);
@@ -113,6 +114,7 @@
 
 .player-title {
   display: flex;
+  flex: 1;
   align-items: center;
   gap: 11px;
   min-width: 0;
@@ -264,18 +266,79 @@
   min-width: 0;
 }
 
+.player-head .douyu-audience {
+  position: static;
+}
+
+.player-head .room-audience {
+  min-height: 0;
+  gap: 8px;
+  padding: 0;
+  border-bottom: 0;
+  background: transparent;
+}
+
+.player-head .room-audience-content {
+  flex: none;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.player-head .room-audience-metrics {
+  flex-wrap: nowrap;
+  gap: 4px 12px;
+}
+
+.player-head .room-audience-metric {
+  line-height: 1.1;
+  gap: 4px;
+}
+
+.player-head .room-audience-metric dt {
+  font-size: 10px;
+}
+
+.player-head .room-audience-metric strong {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.player-head .room-audience-metric dd span {
+  font-size: 9px;
+}
+
+.player-head .room-audience-status {
+  max-width: 128px;
+  overflow: hidden;
+  font-size: 9px;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-head .room-audience-status:not(.is-error) {
+  display: none;
+}
+
+.player-head .room-audience-refresh {
+  min-width: 22px;
+  height: 22px;
+  margin-left: 0;
+  padding: 0 3px;
+}
+
 .room-ranking-toggle {
   display: inline-flex;
   flex: none;
   align-items: center;
   gap: 4px;
-  height: 26px;
+  height: 28px;
   padding: 0 7px;
   border: 1px solid var(--line-soft);
   border-radius: 5px;
   background: transparent;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -306,26 +369,26 @@
   right: 10px;
   display: flex;
   flex-direction: column;
-  width: min(560px, calc(100% - 24px));
-  max-height: 360px;
-  padding: 9px 14px 9px;
+  width: min(600px, calc(100% - 24px));
+  max-height: 380px;
+  padding: 10px 16px;
 }
 
 .room-ranking-tabs {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 7px;
-  min-height: 42px;
+  gap: 8px;
+  min-height: 44px;
 }
 
 .room-ranking-tabs button {
-  padding: 7px 12px;
+  padding: 8px 12px;
   border: 0;
   border-radius: 6px;
   background: transparent;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -348,13 +411,13 @@
 .room-ranking-note {
   margin-left: auto;
   color: var(--dim);
-  font-size: 11px;
+  font-size: 12px;
   white-space: nowrap;
 }
 
 .room-ranking-panel {
   min-height: 0;
-  max-height: 300px;
+  max-height: 320px;
   overflow: auto;
   scrollbar-width: thin;
 }
@@ -364,15 +427,15 @@
   border-collapse: collapse;
   table-layout: fixed;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 15px;
   font-variant-numeric: tabular-nums;
 }
 
 .room-ranking-table th,
 .room-ranking-table td {
-  height: 32px;
+  height: 34px;
   overflow: hidden;
-  padding: 3px 9px;
+  padding: 4px 10px;
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -383,7 +446,7 @@
   top: 0;
   background: #121920;
   color: var(--dim);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
 }
 
@@ -395,7 +458,7 @@
 
 .room-ranking-table th:last-child,
 .room-ranking-table td:last-child {
-  width: 120px;
+  width: 130px;
   text-align: right;
 }
 
@@ -415,7 +478,7 @@
   margin: 0;
   padding: 14px 4px 18px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   text-align: center;
 }
 
@@ -1010,6 +1073,32 @@
   padding: 7px 10px;
 }
 
+.player-card.is-compact .player-head .room-audience {
+  min-height: 0;
+  gap: 6px;
+  padding: 0;
+}
+
+.player-card.is-compact .player-head .room-audience-content {
+  gap: 6px;
+}
+
+.player-card.is-compact .player-head .room-audience-metrics {
+  gap: 2px 10px;
+}
+
+.player-card.is-compact .player-head .room-audience-metric strong {
+  font-size: 18px;
+}
+
+.player-card.is-compact .player-head .room-audience-metric dt {
+  font-size: 9px;
+}
+
+.player-card.is-compact .player-head .room-audience-metric dd span {
+  font-size: 8px;
+}
+
 .player-card.is-compact .room-audience {
   gap: 6px;
   min-height: 29px;
@@ -1034,19 +1123,19 @@
 
 .player-card.is-compact .room-rankings {
   right: 8px;
-  width: min(500px, calc(100% - 16px));
-  max-height: 330px;
-  padding: 9px 12px;
+  width: min(540px, calc(100% - 16px));
+  max-height: 350px;
+  padding: 9px 14px;
 }
 
 .player-card.is-compact .room-ranking-tabs {
-  gap: 5px;
-  min-height: 36px;
+  gap: 6px;
+  min-height: 38px;
 }
 
 .player-card.is-compact .room-ranking-tabs button {
-  padding: 6px 9px;
-  font-size: 13px;
+  padding: 7px 10px;
+  font-size: 14px;
 }
 
 .player-card.is-compact .room-ranking-note {
@@ -1054,16 +1143,22 @@
 }
 
 .player-card.is-compact .room-ranking-panel {
-  max-height: 250px;
+  max-height: 270px;
 }
 
 .player-card.is-compact .room-ranking-table {
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .player-card.is-compact .room-ranking-table td,
 .player-card.is-compact .room-ranking-table th {
-  height: 30px;
+  height: 32px;
+}
+
+.player-card.is-compact .room-ranking-toggle {
+  height: 26px;
+  padding: 0 6px;
+  font-size: 13px;
 }
 
 .player-card.is-compact .player-title {

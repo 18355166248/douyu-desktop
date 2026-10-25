@@ -54,6 +54,11 @@ export function PlayerTile({
             </p>
           </div>
         </div>
+
+        {playback.platform === 'douyu' ? (
+          <RoomAudience platform={playback.platform} roomId={playback.roomId} />
+        ) : null}
+
         <div className="player-actions">
           <span className="tag">{platformLabel(playback.platform)}</span>
           <span className="tag">{playback.quality}</span>
@@ -80,7 +85,9 @@ export function PlayerTile({
         </div>
       </header>
 
-      <RoomAudience platform={playback.platform} roomId={playback.roomId} />
+      {playback.platform === 'douyu' ? null : (
+        <RoomAudience platform={playback.platform} roomId={playback.roomId} />
+      )}
 
       {error ? (
         <div className="player-alert" role="alert">
