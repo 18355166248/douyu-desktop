@@ -26,9 +26,25 @@ describe('Douyu audience protocol', () => {
     expect(parseDouyuAudience('type@=oni/vn@=888/sum@=900/', '9999')).toBeNull();
   });
 
+  it.each([
+    ['1万', 10_000, false],
+    ['1.2万', 12_000, false],
+    ['123万', 1_230_000, false],
+    ['1亿', 100_000_000, false],
+    ['1万+', 10_000, true],
+    ['9999+', 9_999, true],
+  ])('parses the platform count abbreviation %s', (raw, value, isLowerBound) => {
+    const metric = parseDouyuAudience(record({ type: 'oni', un: raw }), '9999')?.metrics?.[0];
+    expect(metric).toMatchObject({ key: 'vip', value, unit: '人' });
+    expect(metric?.isLowerBound).toBe(isLowerBound || undefined);
+  });
+
   it.each(['dfnum', 'dfansrk'])('reads diamond-fan counts from %s.dfc', (type) => {
     expect(parseDouyuAudience(`type@=${type}/dfc@=105/`, '9999')).toMatchObject({
       metrics: [{ key: 'diamond-fans', value: 105, unit: '人' }],
+    });
+    expect(parseDouyuAudience(`type@=${type}/dfc@=1.5万/`, '9999')).toMatchObject({
+      metrics: [{ key: 'diamond-fans', value: 15_000, unit: '人' }],
     });
   });
 
@@ -88,7 +104,7 @@ describe('Douyu audience protocol', () => {
     expect(parseDouyuAudience('type@=dayrk/list@=broken/', '9999')).toBeNull();
   });
 
-  it.each(['', '-1', '12.5', 'NaN', 'Infinity', '9007199254740992', '123万'])(
+  it.each(['', '-1', '12.5', 'NaN', 'Infinity', '9007199254740992', '1.2.3万', '万', '1万++'])(
     'rejects malformed counters and leaves invalid contribution %s unknown',
     (value) => {
       expect(parseDouyuAudience(record({ type: 'oni', un: value }), '9999')).toBeNull();

@@ -104,6 +104,7 @@ npm run package
 - [x] B 站实时弹幕：legacy `getConf` 取 token/host，op 7 认证、op 2 心跳、op 5 消息、zlib 解压
 - [x] B 站已解析 `DANMU_MSG`、`SEND_GIFT`、`INTERACT_WORD`、`SUPER_CHAT_MESSAGE`
 - [x] 每路斗鱼实时弹幕：聊天/进场弹幕、左下角透明礼物动态、斗鱼颜色索引、粉丝牌、贵族/房管标识
+- [x] 斗鱼直播间统计：贵宾、钻石粉丝和日/周/总活跃榜；贵宾 `oni.un` 支持 `1万`/`1.2万`/`1亿` 平台缩写，显示为 `1万`，显式 `+` 仍按下限处理
 - [x] 斗鱼弹幕改走 `danmuproxy` visitor + `joingroup` + `sub/mt@=o`；修复“只能看历史、没有实时 `chatmsg`”
 - [x] 斗鱼心跳对齐官方 `type@=mr`（20 秒），设备 Cookie 由 main 注入，渲染层不接触账号 Cookie
 - [x] 开发入口移除 React StrictMode，避免播放器/弹幕 WebSocket 双挂载导致重复消息和误暂停
@@ -117,7 +118,7 @@ npm run package
 - [x] 粉丝团签到任务：签到已加入粉丝团的直播间（斗鱼房间签到已下线后的替代入口）；后台单飞、每天自动一次（可关闭）、手动触发、dry-run、限速、逐房间结果
 - [x] typed preload + IPC `Result` 封装
 - [x] 房间访问历史：成功解析过的房间按最近访问时间倒序记录，可点击重新打开，全局 JSON 最多保留 30 条，并保存 16:9 封面用于历史缩略图
-- [x] 边界检查脚本 + 256 个单测
+- [x] 边界检查脚本 + 264 个单测
 - [x] electron-builder Windows 打包配置
 
 ## 多路操作
@@ -188,7 +189,7 @@ npm run package
 
 ## 已验证
 
-- `npm run check`：类型、ESLint、架构边界、256 个单测全部通过
+- `npm run check`：类型、ESLint、架构边界、264 个单测全部通过
 - `npm run build`：main / preload / renderer 生产构建通过
 - 斗鱼实时弹幕联调：`24422` 房间 20 秒收到 3 条 `chatmsg`，`subres` 正常，界面渲染 2 条；`wsproxy` 仅历史消息
 - B 站流解析联调：短号 `6` → 真实房间 `7734200`，FLV/HLS 均可取流，匿名画质回写为 `250`

@@ -47,6 +47,63 @@ function unsignedInteger(value: string | undefined): number | null {
   return Number.isSafeInteger(number) ? number : null;
 }
 
+interface ParsedCount {
+  value: number;
+  isLowerBound: boolean;
+  scaled: boolean;
+}
+
+const COUNT_UNITS: Readonly<Record<string, number>> = {
+  万: 10_000,
+  亿: 100_000_000,
+};
+
+/**
+ * Douyu abbreviates large counters on the wire, for example `un@=1万` or
+ * `un@=1.2万`. Only an explicit trailing "+" makes the value a lower bound;
+ * a unit alone is the platform's display scale.
+ */
+function parseCount(value: string | undefined): ParsedCount | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+
+  let count = trimmed;
+  let isLowerBound = false;
+  if (count.endsWith('+')) {
+    isLowerBound = true;
+    count = count.slice(0, -1);
+  }
+
+  const match = /^(\d+)(?:\.(\d+))?(万|亿)?$/.exec(count);
+  if (!match) return null;
+  const whole = match[1];
+  const fraction = match[2] ?? '';
+  const unit = match[3];
+  if (whole === undefined) return null;
+
+  const denominator = 10 ** fraction.length;
+  const numerator = Number(whole) * denominator + Number(fraction || 0);
+  const scale = unit ? (COUNT_UNITS[unit] ?? 1) : 1;
+  const scaled = numerator * scale;
+  if (!Number.isSafeInteger(scaled)) return null;
+  const parsed = scaled / denominator;
+  if (!Number.isSafeInteger(parsed)) return null;
+
+  return { value: parsed, isLowerBound, scaled: Boolean(unit) };
+}
+
+function vipDescription(scaled: boolean): string {
+  return scaled
+    ? '斗鱼直播间贵宾人数，不代表全部在线观众；平台以“万/亿”为单位取整显示。'
+    : '斗鱼直播间贵宾人数，不代表全部在线观众。';
+}
+
+function diamondFansDescription(scaled: boolean): string {
+  return scaled
+    ? '斗鱼直播间钻石粉丝人数，不代表当前在线人数；平台以“万/亿”为单位取整显示。'
+    : '斗鱼直播间钻石粉丝人数，不代表当前在线人数。';
+}
+
 function rankingEntries(list: string): RoomAudienceRankEntry[] | null {
   if (!list) return [];
   const entries: RoomAudienceRankEntry[] = [];
@@ -86,34 +143,36 @@ export function parseDouyuAudience(
   if (type === 'oni') {
     // "un" is the value used by the official 贵宾 tab. "vn" and "sum"
     // describe other counters and must not silently replace it.
-    const value = unsignedInteger(data.un);
-    if (value === null) return null;
+    const parsed = parseCount(data.un);
+    if (!parsed) return null;
     return {
       roomId,
       metrics: [
         {
           key: 'vip',
           label: '贵宾',
-          value,
+          value: parsed.value,
+          ...(parsed.isLowerBound ? { isLowerBound: true } : {}),
           unit: '人',
-          description: '斗鱼直播间贵宾人数，不代表全部在线观众。',
+          description: vipDescription(parsed.scaled),
         },
       ],
     };
   }
 
   if (type === 'dfnum' || type === 'dfansrk') {
-    const value = unsignedInteger(data.dfc);
-    if (value === null) return null;
+    const parsed = parseCount(data.dfc);
+    if (!parsed) return null;
     return {
       roomId,
       metrics: [
         {
           key: 'diamond-fans',
           label: '钻石粉丝',
-          value,
+          value: parsed.value,
+          ...(parsed.isLowerBound ? { isLowerBound: true } : {}),
           unit: '人',
-          description: '斗鱼直播间钻石粉丝人数，不代表当前在线人数。',
+          description: diamondFansDescription(parsed.scaled),
         },
       ],
     };
