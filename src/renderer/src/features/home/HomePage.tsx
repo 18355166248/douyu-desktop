@@ -96,7 +96,7 @@ function HomeRoomRow({
               <strong>未开播</strong>
             </span>
           ) : null}
-          {showStatus && !isLive && hasVideo ? (
+          {showStatus && hasVideo ? (
             <span className="home-thumb-loop">视频轮播</span>
           ) : null}
           {isLive ? (

@@ -11,6 +11,7 @@ interface FollowListItem {
   is_special?: string | number;
   online?: string | number;
   hasvid?: string | number;
+  videoLoop?: string | number;
   vurl?: string;
   room_src?: string;
   avatar_small?: string;
@@ -118,18 +119,20 @@ export class FollowedRoomsQuery {
       const roomTitle = clean(item.room_name, 200);
       const anchorName = clean(item.nickname, 80);
       const cover = coverFor(item);
+      const isLive = String(item.show_status ?? '0') === '1';
       result.set(roomId, {
         platform: 'douyu',
         roomId,
         name: anchorName || roomTitle || `房间 ${roomId}`,
         title: roomTitle || anchorName || `房间 ${roomId}`,
-        isLive: String(item.show_status ?? '0') === '1',
+        isLive,
         isSpecial: String(item.is_special ?? '0') === '1',
         hasVideo:
-          String(item.show_status ?? '0') !== '1' &&
-          Number(item.hasvid) === 1 &&
-          typeof item.vurl === 'string' &&
-          item.vurl.trim().length > 0,
+          Number(item.videoLoop) === 1 ||
+          (!isLive &&
+            Number(item.hasvid) === 1 &&
+            typeof item.vurl === 'string' &&
+            item.vurl.trim().length > 0),
         heat: parseHeat(item.online),
         ...(cover ? { cover } : {}),
       });

@@ -40,6 +40,7 @@ const PAGE = {
         show_status: '1',
         is_special: 1,
         online: '269.5万',
+        videoLoop: 1,
         rs16_avif: 'https://rpic.douyucdn.cn/cover/138243.avif',
       },
       {
@@ -70,7 +71,7 @@ describe('FollowedRoomsQuery', () => {
         title: '洞主的直播间',
         isLive: true,
         isSpecial: true,
-        hasVideo: false,
+        hasVideo: true,
         heat: 2_695_000,
         cover: 'https://rpic.douyucdn.cn/cover/138243.avif',
       },
