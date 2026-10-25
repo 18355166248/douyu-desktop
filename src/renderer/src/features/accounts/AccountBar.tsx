@@ -83,7 +83,7 @@ function PlatformChooser({
       label: '斗鱼',
       detail: activeAccount
         ? `${activeAccount.nickname} · 添加 / 切换账号`
-        : '扫码登录，支持多账号',
+        : '斗鱼账号 · 扫码登录，支持多账号',
       loggedIn: Boolean(activeAccount),
       disabled: busy,
     },
@@ -94,7 +94,7 @@ function PlatformChooser({
         ? `${bilibili?.nickname ?? 'B站用户'} · 已登录`
         : bilibiliPending
           ? '检查登录状态…'
-          : '扫码登录，解锁更高画质',
+          : 'B站登录 · 扫码解锁高画质',
       loggedIn: bilibiliLoggedIn,
       disabled: busy || bilibiliPending || bilibiliLoggedIn,
     },
@@ -105,7 +105,7 @@ function PlatformChooser({
         ? `${huya?.nickname ?? '虎牙用户'} · 已登录`
         : huyaPending
           ? '检查登录状态…'
-          : '扫码登录；播放可用',
+          : '虎牙登录 · 扫码后播放',
       loggedIn: huyaLoggedIn,
       disabled: busy || huyaPending || huyaLoggedIn,
     },
@@ -113,7 +113,7 @@ function PlatformChooser({
 
   return (
     <>
-      <div className="popover-label">选择登录平台</div>
+      <div className="popover-label">登录 / 添加账号</div>
       {choices.map((choice) => (
         <button
           key={choice.platform}
@@ -315,7 +315,7 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
             disabled={loginPending}
             aria-haspopup="menu"
             aria-expanded={chooserOpen}
-            title="选择平台登录"
+            title="登录 / 添加账号"
           >
             <Icon name="user" />
             {loginPending ? '等待…' : compact ? '登录' : '登录 / 添加账号'}
@@ -393,120 +393,117 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
               }}
             />
             <div className="account-popover" role="menu">
-              {chooserOpen ? (
-                <PlatformChooser
-                  activeAccount={activeAccount}
-                  bilibili={bilibiliStatus}
-                  huya={huyaStatus}
-                  bilibiliPending={bilibili.query.isPending}
-                  huyaPending={huya.query.isPending}
-                  busy={busy}
-                  onChoose={choosePlatform}
-                />
-              ) : (
+              <div className="popover-label">
+                <span>斗鱼账号</span>
+                <span className="popover-hint">签到 / 多开</span>
+              </div>
+              {accounts.length === 0 ? (
+                <p className="platform-empty">还没有斗鱼账号</p>
+              ) : null}
+              {accounts.map((account) => (
+                <button
+                  key={account.id}
+                  type="button"
+                  role="menuitem"
+                  className={`account-row ${account.isActive ? 'is-active' : ''}`}
+                  onClick={() => {
+                    if (!account.isActive) switchAccount.mutate(account.id);
+                    setOpen(false);
+                  }}
+                  disabled={account.isActive || busy}
+                >
+                  <AccountAvatar
+                    nickname={account.nickname}
+                    avatarUrl={account.avatarUrl}
+                    small
+                  />
+                  <span className="account-row-text">
+                    <strong>{account.nickname}</strong>
+                    <small>{account.status === 'active' ? '在线' : '登录过期'}</small>
+                  </span>
+                  {account.isActive ? <Icon name="check" size={16} /> : null}
+                </button>
+              ))}
+
+              <button
+                type="button"
+                role="menuitem"
+                className="popover-action"
+                onClick={() => {
+                  setNotice(null);
+                  setOpen(false);
+                  login.mutate();
+                }}
+                disabled={busy}
+              >
+                <Icon name="plus" size={16} />
+                添加斗鱼账号
+              </button>
+
+              <div className="popover-sep" />
+              <div className="popover-label">
+                <span>B站 / 虎牙登录</span>
+                <span className="popover-hint">高画质 / 播放</span>
+              </div>
+              <PlatformAccountRow
+                platform="bilibili"
+                status={bilibiliStatus}
+                pending={bilibili.query.isPending}
+                busy={bilibiliBusy}
+                onLogin={() => {
+                  setNotice(null);
+                  setOpen(false);
+                  bilibili.login.mutate();
+                }}
+                onLogout={() => {
+                  setOpen(false);
+                  bilibili.logout.mutate();
+                }}
+              />
+              <PlatformAccountRow
+                platform="huya"
+                status={huyaStatus}
+                pending={huya.query.isPending}
+                busy={huyaBusy}
+                onLogin={() => {
+                  setNotice(null);
+                  setOpen(false);
+                  huya.login.mutate();
+                }}
+                onLogout={() => {
+                  setOpen(false);
+                  huya.logout.mutate();
+                }}
+              />
+
+              {activeAccount ? (
                 <>
-                  <div className="popover-label">斗鱼账号</div>
-                  {accounts.length === 0 ? (
-                    <p className="platform-empty">还没有斗鱼账号</p>
-                  ) : null}
-                  {accounts.map((account) => (
-                    <button
-                      key={account.id}
-                      type="button"
-                      role="menuitem"
-                      className={`account-row ${account.isActive ? 'is-active' : ''}`}
-                      onClick={() => {
-                        if (!account.isActive) switchAccount.mutate(account.id);
-                        setOpen(false);
-                      }}
-                      disabled={account.isActive || busy}
-                    >
-                      <AccountAvatar
-                        nickname={account.nickname}
-                        avatarUrl={account.avatarUrl}
-                        small
-                      />
-                      <span className="account-row-text">
-                        <strong>{account.nickname}</strong>
-                        <small>{account.status === 'active' ? '在线' : '登录过期'}</small>
-                      </span>
-                      {account.isActive ? <Icon name="check" size={16} /> : null}
-                    </button>
-                  ))}
-
-                  <div className="popover-sep" />
-                  <div className="popover-label">平台账号</div>
-                  <PlatformAccountRow
-                    platform="bilibili"
-                    status={bilibiliStatus}
-                    pending={bilibili.query.isPending}
-                    busy={bilibiliBusy}
-                    onLogin={() => {
-                      setNotice(null);
-                      setOpen(false);
-                      bilibili.login.mutate();
-                    }}
-                    onLogout={() => {
-                      setOpen(false);
-                      bilibili.logout.mutate();
-                    }}
-                  />
-                  <PlatformAccountRow
-                    platform="huya"
-                    status={huyaStatus}
-                    pending={huya.query.isPending}
-                    busy={huyaBusy}
-                    onLogin={() => {
-                      setNotice(null);
-                      setOpen(false);
-                      huya.login.mutate();
-                    }}
-                    onLogout={() => {
-                      setOpen(false);
-                      huya.logout.mutate();
-                    }}
-                  />
-
                   <div className="popover-sep" />
                   <button
                     type="button"
                     role="menuitem"
                     className="popover-action"
-                    onClick={() => setChooserOpen(true)}
+                    onClick={() => health.mutate(activeAccount.id)}
                     disabled={busy}
                   >
-                    <Icon name="plus" size={16} />
-                    登录 / 添加账号
+                    <Icon name="refresh" size={16} />
+                    刷新斗鱼状态
                   </button>
-                  {activeAccount ? (
-                    <>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        className="popover-action"
-                        onClick={() => health.mutate(activeAccount.id)}
-                        disabled={busy}
-                      >
-                        <Icon name="refresh" size={16} />
-                        刷新斗鱼状态
-                      </button>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        className="popover-action danger"
-                        onClick={() => {
-                          setOpen(false);
-                          logout.mutate(activeAccount.id);
-                        }}
-                        disabled={busy}
-                      >
-                        <Icon name="logout" size={16} />
-                        退出斗鱼账号
-                      </button>
-                    </>
-                  ) : null}
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="popover-action danger"
+                    onClick={() => {
+                      setOpen(false);
+                      logout.mutate(activeAccount.id);
+                    }}
+                    disabled={busy}
+                  >
+                    <Icon name="logout" size={16} />
+                    退出斗鱼账号
+                  </button>
                 </>
-              )}
+              ) : null}
             </div>
           </>
         ) : null}
