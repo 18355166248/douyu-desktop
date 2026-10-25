@@ -7,7 +7,6 @@ import type { StreamPlatform } from '@shared/contracts/stream';
 import { Icon } from '../../components/Icon';
 import { PLATFORM_ICON_URLS } from '../../lib/platformAssets';
 import { platformLabel, roomKey } from '../../lib/streamIdentity';
-import { formatHistoryTime } from '../history/roomHistory';
 import {
   resolveSpecialRooms,
   sortFollowedRooms,
@@ -35,7 +34,6 @@ interface HomeRoomRowProps {
   roomId: string;
   name: string;
   title: string;
-  meta?: string | undefined;
   cover?: string | undefined;
   isLive?: boolean | undefined;
   hasVideo?: boolean | undefined;
@@ -51,7 +49,6 @@ function HomeRoomRow({
   roomId,
   name,
   title,
-  meta,
   cover,
   isLive = false,
   hasVideo = false,
@@ -93,7 +90,7 @@ function HomeRoomRow({
             />
           ) : null}
           {showStatus && !isLive ? (
-            <span className="home-thumb-offline" aria-hidden="true">
+            <span className="home-thumb-offline">
               <strong>未开播</strong>
             </span>
           ) : null}
@@ -108,17 +105,11 @@ function HomeRoomRow({
           ) : null}
         </span>
         <span className="home-room-copy">
-          <strong>{name}</strong>
-          <span className="home-room-subtitle">{subtitle}</span>
-          <span className="home-room-meta">
-            {official ? (
-              <small className="home-official">斗鱼特别关注</small>
-            ) : showStatus && !isLive ? (
-              <small className="home-offline">未开播</small>
-            ) : null}
-            {meta ? <small>{meta}</small> : null}
-            <span className="home-room-id">#{roomId}</span>
+          <span className="home-room-head">
+            <strong title={name}>{name}</strong>
+            <span className="home-room-id" title={`房间号 ${roomId}`}>#{roomId}</span>
           </span>
+          <span className="home-room-subtitle" title={subtitle}>{subtitle}</span>
         </span>
       </button>
       {official ? (
@@ -384,7 +375,6 @@ export function HomePage({
                     roomId={entry.roomId}
                     name={name}
                     title={title}
-                    meta={formatHistoryTime(entry.visitedAt)}
                     cover={historyCover}
                     isLive={historyRoom?.isLive ?? false}
                     hasVideo={historyRoom?.hasVideo ?? false}

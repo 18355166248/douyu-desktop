@@ -278,14 +278,23 @@
   padding: 8px 10px 9px;
 }
 
-.home-room-copy strong,
+.home-room-head {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.home-room-head strong,
 .home-room-subtitle {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.home-room-copy strong {
+.home-room-head strong {
+  min-width: 0;
+  flex: 1;
   color: var(--text);
   font-size: 13px;
   font-weight: 700;
@@ -298,39 +307,13 @@
   line-height: 1.35;
 }
 
-.home-room-meta {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 6px;
-  margin-top: 2px;
-}
-
-.home-room-meta small,
 .home-room-id {
-  overflow: hidden;
+  flex: none;
   color: var(--dim);
-  font-size: 8.5px;
+  font-size: 9px;
   font-variant-numeric: tabular-nums;
-  text-overflow: ellipsis;
+  line-height: 1.35;
   white-space: nowrap;
-}
-
-.home-offline {
-  color: var(--dim);
-}
-
-.home-official {
-  overflow: hidden;
-  color: var(--accent-strong);
-  font-size: 8.5px;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.home-room-id {
-  margin-left: auto;
 }
 
 .home-star {
