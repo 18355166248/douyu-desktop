@@ -6,7 +6,7 @@ export interface UseFollowedRoomsResult {
   rooms: FollowedRoom[];
   loading: boolean;
   error: string | null;
-  reload: () => void;
+  reload: () => Promise<void>;
 }
 
 /**
@@ -23,19 +23,19 @@ export function useFollowedRooms(
   const requestId = useRef(0);
   const loadedAccount = useRef<string | null>(null);
 
-  const reload = useCallback((): void => {
+  const reload = useCallback((): Promise<void> => {
     const currentRequest = ++requestId.current;
     if (!accountId || !accountIsActive) {
       loadedAccount.current = accountId;
       setRooms([]);
       setLoading(false);
       setError(null);
-      return;
+      return Promise.resolve();
     }
 
     setLoading(true);
     setError(null);
-    void window.api.home
+    return window.api.home
       .followed()
       .then((result) => {
         if (requestId.current !== currentRequest) return;
@@ -60,7 +60,7 @@ export function useFollowedRooms(
     }
     if (loadedAccount.current === accountId) return;
     loadedAccount.current = accountId;
-    reload();
+    void reload();
   }, [accountId, accountIsActive, reload]);
 
   return { rooms, loading, error, reload };

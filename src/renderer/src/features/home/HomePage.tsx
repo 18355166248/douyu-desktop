@@ -24,7 +24,8 @@ interface HomePageProps {
   history: RoomHistoryEntry[];
   specials: SpecialFollowEntry[];
   specialError: string | null;
-  onRefreshFollowed: () => void;
+  refreshing: boolean;
+  onRefreshHome: () => void;
   onOpen: (platform: StreamPlatform, roomId: string) => void;
   onToggleSpecial: (target: SpecialFollowTarget) => void;
   onRemoveHistory: (keys: readonly string[]) => void;
@@ -157,7 +158,8 @@ export function HomePage({
   history,
   specials,
   specialError,
-  onRefreshFollowed,
+  refreshing,
+  onRefreshHome,
   onOpen,
   onToggleSpecial,
   onRemoveHistory,
@@ -224,6 +226,17 @@ export function HomePage({
             历史
           </span>
         </div>
+        <button
+          type="button"
+          className={`home-history-button home-refresh-global${refreshing ? ' is-busy' : ''}`}
+          onClick={onRefreshHome}
+          disabled={refreshing}
+          aria-label="刷新首页"
+          title="刷新关注、特别关注和历史记录"
+        >
+          <Icon name="refresh" size={14} />
+          {refreshing ? '刷新中' : '刷新'}
+        </button>
         <button
           type="button"
           className="home-history-button"
@@ -293,16 +306,6 @@ export function HomePage({
           </div>
           <div className="home-section-actions">
             <span className="home-section-count">{visibleFollowed.length}</span>
-            <button
-              type="button"
-              className="home-refresh"
-              onClick={onRefreshFollowed}
-              disabled={followedLoading || !accountIsActive}
-              title="刷新关注列表"
-            >
-              <Icon name="refresh" size={14} />
-              {followedLoading ? '刷新中' : '刷新'}
-            </button>
           </div>
         </header>
 
@@ -326,7 +329,7 @@ export function HomePage({
           <div className="home-error">
             <Icon name="alert" size={17} />
             <span className="selectable">{followedError}</span>
-            <button type="button" onClick={onRefreshFollowed}>
+            <button type="button" onClick={onRefreshHome}>
               重试
             </button>
           </div>

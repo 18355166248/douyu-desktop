@@ -12,6 +12,7 @@ import type { RoomHistoryEntry, RoomVisit } from './roomHistory';
 
 export interface UseRoomHistoryResult {
   entries: RoomHistoryEntry[];
+  reload: () => Promise<void>;
   recordVisit: (visit: RoomVisit) => void;
   removeHistory: (keys: readonly string[]) => void;
   clearHistory: () => void;
@@ -30,10 +31,15 @@ export function useRoomHistory(): UseRoomHistoryResult {
     };
   }, []);
 
-  const reloadFromGlobal = useCallback((): void => {
-    void window.api.history.load().then((result) => {
-      if (result.ok) setEntries(result.data);
-    });
+  const reloadFromGlobal = useCallback((): Promise<void> => {
+    return window.api.history
+      .load()
+      .then((result) => {
+        if (result.ok) setEntries(result.data);
+      })
+      .catch((reason: unknown) => {
+        console.warn('[history] 全局历史加载失败', reason);
+      });
   }, []);
 
   useEffect(() => {
@@ -133,7 +139,7 @@ export function useRoomHistory(): UseRoomHistoryResult {
         .then((result) => {
           if (result.ok) return;
           console.warn('[history] 全局历史保存失败', result.error.message);
-          reloadFromGlobal();
+          void reloadFromGlobal();
         });
     },
     [reloadFromGlobal],
@@ -146,7 +152,7 @@ export function useRoomHistory(): UseRoomHistoryResult {
       void window.api.history.remove([...keys]).then((result) => {
         if (result.ok) return;
         console.warn('[history] 全局历史删除失败', result.error.message);
-        reloadFromGlobal();
+        void reloadFromGlobal();
       });
     },
     [reloadFromGlobal],
@@ -157,9 +163,9 @@ export function useRoomHistory(): UseRoomHistoryResult {
     void window.api.history.clear().then((result) => {
       if (result.ok) return;
       console.warn('[history] 全局历史清空失败', result.error.message);
-      reloadFromGlobal();
+      void reloadFromGlobal();
     });
   }, [reloadFromGlobal]);
 
-  return { entries, recordVisit, removeHistory, clearHistory };
+  return { entries, reload: reloadFromGlobal, recordVisit, removeHistory, clearHistory };
 }

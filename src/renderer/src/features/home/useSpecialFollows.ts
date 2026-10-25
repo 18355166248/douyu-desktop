@@ -6,6 +6,7 @@ import { specialFollowKey } from './homeModel';
 export interface UseSpecialFollowsResult {
   entries: SpecialFollowEntry[];
   error: string | null;
+  reload: () => Promise<void>;
   toggle: (target: SpecialFollowTarget) => void;
 }
 
@@ -41,6 +42,17 @@ export function useSpecialFollows(): UseSpecialFollowsResult {
     };
   }, []);
 
+  const reload = useCallback((): Promise<void> => {
+    setError(null);
+    return window.api.special
+      .load()
+      .then((result) => {
+        if (result.ok) setEntries(result.data);
+        else setError(errorMessage(result.error));
+      })
+      .catch((reason: unknown) => setError(errorMessage(reason)));
+  }, []);
+
   const toggle = useCallback((target: SpecialFollowTarget): void => {
     setError(null);
     const key = specialFollowKey(target);
@@ -60,5 +72,5 @@ export function useSpecialFollows(): UseSpecialFollowsResult {
       .catch((reason: unknown) => setError(errorMessage(reason)));
   }, []);
 
-  return { entries, error, toggle };
+  return { entries, error, reload, toggle };
 }

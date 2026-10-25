@@ -57,18 +57,41 @@ export function App(): React.JSX.Element {
   const [isDanmakuSettingsOpen, setDanmakuSettingsOpen] = useState(false);
   const [isHistoryOpen, setHistoryOpen] = useState(false);
   const [isTaskOpen, setTaskOpen] = useState(false);
+  const [isHomeRefreshing, setHomeRefreshing] = useState(false);
   const [isImmersive, setImmersive] = useState(false);
   const [isImmersiveExitVisible, setImmersiveExitVisible] = useState(false);
   const roomInputRef = useRef<HTMLInputElement>(null);
   const danmakuSettingsRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);
+  const homeRefreshRef = useRef(false);
   const immersiveExitTimerRef = useRef<number | null>(null);
-  const { entries: roomHistory, recordVisit, removeHistory, clearHistory } = useRoomHistory();
+  const {
+    entries: roomHistory,
+    reload: reloadHistory,
+    recordVisit,
+    removeHistory,
+    clearHistory,
+  } = useRoomHistory();
   const followed = useFollowedRooms(
     activeAccount?.id ?? null,
     activeAccount?.status === 'active',
   );
   const special = useSpecialFollows();
+  const reloadFollowed = followed.reload;
+  const reloadSpecial = special.reload;
+  const refreshHome = useCallback(async (): Promise<void> => {
+    if (homeRefreshRef.current) return;
+    homeRefreshRef.current = true;
+    setHomeRefreshing(true);
+    try {
+      await Promise.all([reloadFollowed(), reloadSpecial(), reloadHistory()]);
+    } catch (reason) {
+      console.warn('[home] 刷新首页失败', reason);
+    } finally {
+      homeRefreshRef.current = false;
+      setHomeRefreshing(false);
+    }
+  }, [reloadFollowed, reloadHistory, reloadSpecial]);
   const historyCovers = new Map<string, string>();
   for (const room of [...followed.rooms, ...special.entries]) {
     if (room.cover) historyCovers.set(roomKey(room.platform, room.roomId), room.cover);
@@ -435,7 +458,8 @@ export function App(): React.JSX.Element {
                 history={roomHistory}
                 specials={special.entries}
                 specialError={special.error}
-                onRefreshFollowed={followed.reload}
+                refreshing={isHomeRefreshing}
+                onRefreshHome={() => void refreshHome()}
                 onOpen={handleRoomQuickOpen}
                 onToggleSpecial={special.toggle}
                 onRemoveHistory={removeHistory}
