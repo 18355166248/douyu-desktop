@@ -6,6 +6,7 @@ import { configureMediaCors } from './mediaCors';
 import { AccountSessionManager } from './services/AccountSessionManager';
 import { DouyuAuthService } from './services/DouyuAuthService';
 import { DouyuDanmakuSession } from './services/DouyuDanmakuSession';
+import { HuyaDanmakuSession } from './services/HuyaDanmakuSession';
 import { PlatformLoginManager } from './services/PlatformLoginManager';
 import { StreamService } from './services/StreamService';
 import { TaskService } from './services/TaskService';
@@ -40,11 +41,15 @@ if (!hasLock) {
       const streams = new StreamService(platforms);
       const tasks = new TaskService(accounts, logger);
       const douyuDanmaku = new DouyuDanmakuSession();
+      const huyaDanmaku = new HuyaDanmakuSession();
 
-      app.on('before-quit', () => streams.stop());
+      app.on('before-quit', () => {
+        streams.stop();
+        huyaDanmaku.stopAll();
+      });
       await streams.start();
 
-      registerIpcHandlers({ accounts, platforms, streams, tasks, douyuDanmaku });
+      registerIpcHandlers({ accounts, platforms, streams, tasks, douyuDanmaku, huyaDanmaku });
 
       mainWindow = createMainWindow();
       mainWindow.on('closed', () => {

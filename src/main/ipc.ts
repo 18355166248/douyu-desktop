@@ -7,6 +7,7 @@ import { AppError, toAppError } from '@core/errors';
 import { isAllowedExternalUrl } from './constants';
 import type { AccountSessionManager } from './services/AccountSessionManager';
 import type { DouyuDanmakuSession } from './services/DouyuDanmakuSession';
+import type { HuyaDanmakuSession } from './services/HuyaDanmakuSession';
 import type { PlatformLoginManager } from './services/PlatformLoginManager';
 import type { StreamService } from './services/StreamService';
 import type { TaskService } from './services/TaskService';
@@ -27,6 +28,8 @@ const runTaskSchema = z.object({
 
 const accountIdSchema = z.string().min(1);
 const platformLoginSchema = z.enum(['bilibili', 'huya']);
+const huyaRoomIdSchema = z.string().trim().min(1).max(32);
+const huyaSubscriptionSchema = z.string().uuid();
 
 function toPayload(error: unknown): AppErrorPayload {
   if (error instanceof z.ZodError) {
@@ -70,10 +73,11 @@ export interface IpcServices {
   streams: StreamService;
   tasks: TaskService;
   douyuDanmaku: DouyuDanmakuSession;
+  huyaDanmaku: HuyaDanmakuSession;
 }
 
 export function registerIpcHandlers(services: IpcServices): void {
-  const { accounts, platforms, streams, tasks, douyuDanmaku } = services;
+  const { accounts, platforms, streams, tasks, douyuDanmaku, huyaDanmaku } = services;
 
   ipcMain.on(IPC.windowMinimize, (event) => {
     BrowserWindow.fromWebContents(event.sender)?.minimize();
@@ -156,6 +160,20 @@ export function registerIpcHandlers(services: IpcServices): void {
   );
 
   ipcMain.handle(IPC.danmakuDouyuConfig, () => respond(() => douyuDanmaku.prepare()));
+
+  ipcMain.handle(IPC.danmakuHuyaStart, (event, rawRoomId: unknown) =>
+    respond(() => {
+      const roomId = huyaRoomIdSchema.parse(rawRoomId);
+      return huyaDanmaku.start(roomId, event.sender);
+    }),
+  );
+
+  ipcMain.handle(IPC.danmakuHuyaStop, (_event, rawSubscriptionId: unknown) =>
+    respond(() => {
+      const subscriptionId = huyaSubscriptionSchema.parse(rawSubscriptionId);
+      huyaDanmaku.stop(subscriptionId);
+    }),
+  );
 
   ipcMain.handle(IPC.tasksList, () => respond(() => tasks.list()));
 

@@ -23,11 +23,55 @@ function normalizeAvatar(value: unknown): string {
 
 function decode(value: string | undefined): string {
   if (!value) return '';
-  try {
-    return decodeURIComponent(value).trim();
-  } catch {
-    return value.trim();
+  let current = value;
+  for (let index = 0; index < 2; index += 1) {
+    try {
+      const decoded = decodeURIComponent(current);
+      if (decoded === current) break;
+      current = decoded;
+    } catch {
+      break;
+    }
   }
+  return current.trim();
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  return value as Record<string, unknown>;
+}
+
+function parseJsonp(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  const text = value.trim();
+  if (!text) return undefined;
+  if (text.startsWith('{') || text.startsWith('[')) {
+    try {
+      return JSON.parse(text) as unknown;
+    } catch {
+      return undefined;
+    }
+  }
+  const start = text.indexOf('(');
+  const end = text.lastIndexOf(')');
+  if (start < 0 || end <= start) return undefined;
+  try {
+    return JSON.parse(text.slice(start + 1, end)) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
+export function parseHuyaUserNick(payload: unknown): string {
+  const record = asRecord(parseJsonp(payload));
+  const nickname = record?.userNick;
+  return typeof nickname === 'string' ? nickname.trim() : '';
+}
+
+export function parseHuyaAvatar(payload: unknown): string {
+  const record = asRecord(parseJsonp(payload));
+  const data = asRecord(record?.data);
+  return normalizeAvatar(data?.avatar);
 }
 
 function cookieValues(cookies: readonly LoginCookie[]): Map<string, string> {
@@ -79,11 +123,8 @@ export function readHuyaIdentity(cookies: readonly LoginCookie[]): Identity {
 
   return {
     loggedIn: true,
-    nickname:
-      decode(values.get('udb_nickname')) ||
-      decode(values.get('username')) ||
-      '虎牙用户',
-    avatarUrl: normalizeAvatar(values.get('udb_avatar') ?? values.get('avatar')),
+    nickname: decode(values.get('udb_nickname')) || '虎牙用户',
+    avatarUrl: normalizeAvatar(values.get('udb_avatar')),
   };
 }
 

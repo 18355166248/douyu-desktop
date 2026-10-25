@@ -8,6 +8,7 @@ import {
   readHuyaIdentity,
   toPlatformStatus,
 } from './PlatformLoginProfile';
+import { fetchHuyaProfile, type HuyaProfile } from './HuyaProfile';
 
 const PARTITIONS: Readonly<Record<GuidedPlatform, string>> = {
   bilibili: 'persist:bilibili-login',
@@ -28,6 +29,13 @@ const BILIBILI_NAV_URL = 'https://api.bilibili.com/x/web-interface/nav';
 const BILIBILI_REFERER = 'https://live.bilibili.com/';
 const LOGIN_TIMEOUT_MS = 5 * 60 * 1000;
 const STATUS_TIMEOUT_MS = 4_000;
+const HUYA_PROFILE_CACHE_MS = 5 * 60 * 1000;
+const HUYA_PROFILE_RETRY_MS = 5_000;
+
+interface CacheEntry {
+  profile: HuyaProfile;
+  at: number;
+}
 
 interface HuyaLoginProbe {
   opened: boolean;
@@ -85,6 +93,7 @@ function isLoginUrl(platform: GuidedPlatform, value: string): boolean {
 
 export class PlatformLoginManager {
   private readonly pending = new Map<GuidedPlatform, Promise<PlatformLoginStatus>>();
+  private readonly huyaProfiles = new Map<string, CacheEntry>();
 
   constructor(private readonly getParentWindow: () => BrowserWindow | null) {}
 
@@ -110,6 +119,7 @@ export class PlatformLoginManager {
   }
 
   async logout(platform: GuidedPlatform): Promise<void> {
+    this.huyaProfiles.clear();
     await this.getSession(platform).clearStorageData();
   }
 
@@ -119,7 +129,30 @@ export class PlatformLoginManager {
     strict: boolean,
   ): Promise<PlatformLoginStatus> {
     if (platform === 'huya') {
-      return toPlatformStatus(platform, readHuyaIdentity(await loginSession.cookies.get({})));
+      const cookies = await loginSession.cookies.get({});
+      const identity = readHuyaIdentity(cookies);
+      if (!identity.loggedIn) {
+        return toPlatformStatus(platform, identity);
+      }
+
+      const uid = cookies.find((cookie) => cookie.name === 'udb_uid')?.value ?? '';
+      const now = Date.now();
+      const cached = this.huyaProfiles.get(uid);
+      const cachedAt = cached?.at ?? 0;
+      const complete = Boolean(cached?.profile.nickname && cached.profile.avatarUrl);
+      const maxAge = complete ? HUYA_PROFILE_CACHE_MS : HUYA_PROFILE_RETRY_MS;
+      let profile = cached?.profile ?? {};
+
+      if (!cached || now - cachedAt > maxAge) {
+        profile = await fetchHuyaProfile(loginSession, uid);
+        this.huyaProfiles.set(uid, { profile, at: now });
+      }
+
+      return toPlatformStatus(platform, {
+        loggedIn: true,
+        nickname: profile.nickname || identity.nickname,
+        avatarUrl: profile.avatarUrl || identity.avatarUrl,
+      });
     }
 
     const cookies = await loginSession.cookies.get({});

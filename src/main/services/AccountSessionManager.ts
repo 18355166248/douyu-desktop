@@ -8,10 +8,6 @@ import type { JsonAccountStore, AccountRecord } from '../adapters/storage/JsonAc
 import type { DouyuAuthService } from './DouyuAuthService';
 import type { DouyuProfile } from './DouyuProfile';
 
-function isPlaceholderNickname(nickname: string): boolean {
-  return /^斗鱼用户\s+\d+$/u.test(nickname.trim());
-}
-
 function applyProfile(record: AccountRecord, profile: DouyuProfile): AccountRecord {
   const nickname = profile.nickname?.trim() || record.nickname;
   const avatarUrl = profile.avatarUrl ?? record.avatarUrl;
@@ -61,7 +57,6 @@ export class AccountSessionManager {
   private async refreshProfile(record: AccountRecord): Promise<AccountRecord> {
     if (record.status !== 'active' || this.profileRefreshed.has(record.id)) return record;
     this.profileRefreshed.add(record.id);
-    if (record.avatarUrl && !isPlaceholderNickname(record.nickname)) return record;
 
     try {
       const profile = await this.auth.getProfile(session.fromPartition(record.partition));
@@ -69,6 +64,7 @@ export class AccountSessionManager {
       if (next !== record) await this.store.upsert(next);
       return next;
     } catch {
+      this.profileRefreshed.delete(record.id);
       return record;
     }
   }

@@ -29,8 +29,7 @@ function statusLabel(status: DanmakuStatusEvent): string {
 export function DanmakuOverlay({
   roomId,
   platform,
-}: DanmakuOverlayProps): React.JSX.Element | null {
-  if (platform === 'huya') return null;
+}: DanmakuOverlayProps): React.JSX.Element {
   return <DanmakuLayer roomId={roomId} platform={platform} />;
 }
 

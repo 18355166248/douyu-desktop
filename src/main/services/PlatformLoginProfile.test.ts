@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   hasBilibiliSession,
   parseBilibiliNav,
+  parseHuyaAvatar,
+  parseHuyaUserNick,
   readHuyaIdentity,
   toPlatformStatus,
 } from './PlatformLoginProfile';
@@ -56,13 +58,26 @@ describe('readHuyaIdentity', () => {
     expect(
       readHuyaIdentity([
         { name: 'udb_uid', value: '12345' },
-        { name: 'username', value: '%E8%99%8E%E7%89%99%E7%94%A8%E6%88%B7' },
+        { name: 'udb_nickname', value: '%E6%9F%92%E4%B8%96' },
         { name: 'udb_avatar', value: 'http://a.msstatic.com/avatar.jpg' },
       ]),
     ).toEqual({
       loggedIn: true,
-      nickname: '虎牙用户',
+      nickname: '柒世',
       avatarUrl: 'https://a.msstatic.com/avatar.jpg',
+    });
+  });
+
+  it('does not use the passport username as the display nickname', () => {
+    expect(
+      readHuyaIdentity([
+        { name: 'udb_uid', value: '12345' },
+        { name: 'username', value: 'qq_9r1f8o07fgtf' },
+      ]),
+    ).toEqual({
+      loggedIn: true,
+      nickname: '虎牙用户',
+      avatarUrl: '',
     });
   });
 
@@ -73,6 +88,35 @@ describe('readHuyaIdentity', () => {
       nickname: '虎牙用户',
       avatarUrl: '',
     });
+  });
+});
+
+describe('Huya profile payloads', () => {
+  it('parses the JSONP nickname response', () => {
+    expect(parseHuyaUserNick('cb({"userNick":"\\u67d2\\u4e16","userLogo":""})')).toBe('柒世');
+  });
+
+  it('parses the avatar response', () => {
+    expect(
+      parseHuyaAvatar(
+        JSON.stringify({
+          code: 200,
+          data: {
+            uid: 2336130853,
+            avatar:
+              'https://huyaimg.msstatic.com/avatar/1074/62/4945e91e569dd2e69a721cf044d430_180_135.jpg?1555418061',
+          },
+          message: '请求成功',
+        }),
+      ),
+    ).toBe(
+      'https://huyaimg.msstatic.com/avatar/1074/62/4945e91e569dd2e69a721cf044d430_180_135.jpg?1555418061',
+    );
+  });
+
+  it('returns an empty value for malformed payloads', () => {
+    expect(parseHuyaUserNick('<html>')).toBe('');
+    expect(parseHuyaAvatar('not-json')).toBe('');
   });
 });
 

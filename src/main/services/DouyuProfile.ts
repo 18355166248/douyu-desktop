@@ -10,6 +10,7 @@ export interface ProfileCookie {
 }
 
 const NICKNAME_KEYS = [
+  'nn',
   'nickname',
   'nickName',
   'nick_name',
@@ -19,17 +20,17 @@ const NICKNAME_KEYS = [
 ] as const;
 
 const AVATAR_KEYS = [
-  'avatar',
-  'avatarUrl',
-  'avatar_url',
+  'icon',
   'avatarV3',
   'avatar_v3',
   'avatarMiddle',
   'avatar_middle',
+  'avatarUrl',
+  'avatar_url',
+  'avatar',
   'headImage',
   'head_image',
   'head_img',
-  'icon',
 ] as const;
 
 const AVATAR_CHILD_KEYS = ['middle', 'big', 'small', 'url', 'src'] as const;
@@ -120,12 +121,26 @@ export function normalizeAvatarUrl(raw: string | undefined): string | undefined 
 
   let candidate = value;
   if (candidate.startsWith('//')) candidate = `https:${candidate}`;
-  else if (candidate.startsWith('/')) candidate = `https://www.douyu.com${candidate}`;
+  else if (candidate.startsWith('/')) {
+    candidate = candidate.startsWith('/upload/')
+      ? `https://apic.douyucdn.cn${candidate}`
+      : `https://www.douyu.com${candidate}`;
+  } else if (!/^[a-z][a-z0-9+.-]*:/i.test(candidate)) {
+    candidate = candidate.startsWith('upload/')
+      ? `https://apic.douyucdn.cn/${candidate}`
+      : `https://apic.douyucdn.cn/upload/${candidate}`;
+  }
 
   try {
     const url = new URL(candidate);
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return undefined;
     if (url.protocol === 'http:') url.protocol = 'https:';
+    // getInfo returns `info.icon` as `avatar_v3/...` (no file suffix). The CDN
+    // serves the actual file as `..._middle.jpg`; an old stored `..._` URL is
+    // repaired here as well.
+    if (!/\.(?:jpe?g|png|gif|webp)$/i.test(url.pathname)) {
+      url.pathname = `${url.pathname.replace(/_+$/, '')}_middle.jpg`;
+    }
     return url.toString();
   } catch {
     return undefined;

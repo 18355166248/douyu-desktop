@@ -40,6 +40,12 @@ export interface DanmakuStatusEvent {
   message?: string | undefined;
 }
 
+export interface HuyaDanmakuUpdate {
+  subscriptionId: string;
+  event?: DanmakuEvent | undefined;
+  status?: DanmakuStatusEvent | undefined;
+}
+
 export interface BilibiliDanmakuConfig {
   host: string;
   token: string;

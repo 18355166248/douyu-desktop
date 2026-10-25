@@ -1,5 +1,5 @@
 import type { AccountHealth, AccountSummary } from './account';
-import type { BilibiliDanmakuConfig, DouyuDanmakuConfig } from './danmaku';
+import type { BilibiliDanmakuConfig, DouyuDanmakuConfig, HuyaDanmakuUpdate } from './danmaku';
 import type { GuidedPlatform, PlatformLoginStatus } from './platformLogin';
 import type { ResolveStreamInput, StreamPlayback } from './stream';
 import type { Result } from './result';
@@ -24,6 +24,9 @@ export interface DesktopApi {
   danmaku: {
     bilibiliConfig(roomId: string): Promise<Result<BilibiliDanmakuConfig>>;
     douyuConfig(): Promise<Result<DouyuDanmakuConfig>>;
+    huyaStart(roomId: string): Promise<Result<string>>;
+    huyaStop(subscriptionId: string): Promise<Result<void>>;
+    onHuyaUpdate(listener: (update: HuyaDanmakuUpdate) => void): () => void;
   };
   tasks: {
     list(): Promise<Result<TaskDescriptor[]>>;
@@ -56,6 +59,9 @@ export const IPC = {
   streamsResolve: 'streams:resolve',
   danmakuBilibiliConfig: 'danmaku:bilibili-config',
   danmakuDouyuConfig: 'danmaku:douyu-config',
+  danmakuHuyaStart: 'danmaku:huya-start',
+  danmakuHuyaStop: 'danmaku:huya-stop',
+  danmakuHuyaUpdate: 'danmaku:huya-update',
   tasksList: 'tasks:list',
   tasksRun: 'tasks:run',
   tasksStatus: 'tasks:status',

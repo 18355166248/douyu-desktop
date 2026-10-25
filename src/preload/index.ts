@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { IPC } from '@shared/contracts/ipc';
 import type { DesktopApi } from '@shared/contracts/ipc';
+import type { HuyaDanmakuUpdate } from '@shared/contracts/danmaku';
 import type { TaskProgressEvent, TaskRunSnapshot } from '@shared/contracts/task';
 
 const api: DesktopApi = {
@@ -22,6 +23,17 @@ const api: DesktopApi = {
   danmaku: {
     bilibiliConfig: (roomId) => ipcRenderer.invoke(IPC.danmakuBilibiliConfig, roomId),
     douyuConfig: () => ipcRenderer.invoke(IPC.danmakuDouyuConfig),
+    huyaStart: (roomId) => ipcRenderer.invoke(IPC.danmakuHuyaStart, roomId),
+    huyaStop: (subscriptionId) => ipcRenderer.invoke(IPC.danmakuHuyaStop, subscriptionId),
+    onHuyaUpdate: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, update: HuyaDanmakuUpdate): void => {
+        listener(update);
+      };
+      ipcRenderer.on(IPC.danmakuHuyaUpdate, handler);
+      return () => {
+        ipcRenderer.removeListener(IPC.danmakuHuyaUpdate, handler);
+      };
+    },
   },
   tasks: {
     list: () => ipcRenderer.invoke(IPC.tasksList),

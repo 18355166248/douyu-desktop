@@ -79,6 +79,37 @@ export function useDanmaku(
       };
     }
 
+    if (platform === 'huya') {
+      let subscriptionId: string | null = null;
+      let disposed = false;
+      const unsubscribe = window.api.danmaku.onHuyaUpdate((update) => {
+        if (!active || update.subscriptionId !== subscriptionId) return;
+        if (update.status) emit(update.status);
+        if (update.event) onEventRef.current(update.event);
+      });
+
+      void window.api.danmaku
+        .huyaStart(roomId)
+        .then((result) => unwrap(result))
+        .then((id) => {
+          if (disposed) {
+            void window.api.danmaku.huyaStop(id);
+            return;
+          }
+          subscriptionId = id;
+        })
+        .catch((error: unknown) => {
+          emit({ roomId, platform, status: 'error', message: errorMessage(error) });
+        });
+
+      return () => {
+        active = false;
+        disposed = true;
+        unsubscribe();
+        if (subscriptionId) void window.api.danmaku.huyaStop(subscriptionId);
+      };
+    }
+
     emit({ roomId, platform, status: 'error', message: '暂不支持该平台弹幕' });
     return () => {
       active = false;

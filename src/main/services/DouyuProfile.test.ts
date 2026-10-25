@@ -57,6 +57,24 @@ describe('parseProfilePayload', () => {
     });
   });
 
+  it('reads the current getInfo shape with nn and icon', () => {
+    expect(
+      parseProfilePayload({
+        error: 0,
+        msg: {
+          info: {
+            nn: '18355166248',
+            icon: 'avatar_v3/201811/a76c28fd131da730d2731368338023be',
+          },
+        },
+      }),
+    ).toEqual({
+      nickname: '18355166248',
+      avatarUrl:
+        'https://apic.douyucdn.cn/upload/avatar_v3/201811/a76c28fd131da730d2731368338023be_middle.jpg',
+    });
+  });
+
   it('ignores failed responses', () => {
     expect(
       parseProfilePayload({
@@ -93,6 +111,22 @@ describe('normalizeAvatarUrl', () => {
   it('upgrades http avatars to https', () => {
     expect(normalizeAvatarUrl('http://apic.douyucdn.cn/a.jpg')).toBe(
       'https://apic.douyucdn.cn/a.jpg',
+    );
+  });
+
+  it('repairs a legacy avatar path that ends in an underscore', () => {
+    expect(
+      normalizeAvatarUrl(
+        'https://apic.douyucdn.cn/upload/avatar_v3/201811/a76c28fd131da730d2731368338023be_',
+      ),
+    ).toBe(
+      'https://apic.douyucdn.cn/upload/avatar_v3/201811/a76c28fd131da730d2731368338023be_middle.jpg',
+    );
+  });
+
+  it('builds a CDN URL from a relative icon path', () => {
+    expect(normalizeAvatarUrl('avatar_v3/201811/a76c28fd131da730d2731368338023be')).toBe(
+      'https://apic.douyucdn.cn/upload/avatar_v3/201811/a76c28fd131da730d2731368338023be_middle.jpg',
     );
   });
 
