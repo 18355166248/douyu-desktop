@@ -42,11 +42,27 @@ npm run package:dir   # release/win-unpacked，可直接运行
 npm run package       # NSIS 安装包
 ```
 
+打包成功后终端会直接打印绝对路径，例如：
+
+```text
+打包成功（NSIS 安装包）
+版本：0.8.8
+输出目录：F:\FrontEnd\code\douyu-desktop\release
+安装包地址：F:\FrontEnd\code\douyu-desktop\release\douyu-desktop-0.8.8-x64.exe
+免安装版地址：F:\FrontEnd\code\douyu-desktop\release\win-unpacked\斗鱼多屏.exe
+打包记录：F:\FrontEnd\code\douyu-desktop\release\package-result.json
+```
+
+同时会写入 `release/package-result.json`，记录版本、输出目录、安装包和免安装版路径。打包失败时不会打印成功地址，并返回非零退出码。
+
 如果 Windows 占用了 `release/win-unpacked`，先关闭正在运行的 app，或换输出目录：
 
-```bash
-npx electron-builder --win nsis --config.directories.output=release-nsis
+```powershell
+$env:PACKAGE_OUTPUT_DIR = 'release-nsis'
+npm run package
 ```
+
+`PACKAGE_OUTPUT_DIR` 支持相对项目根目录的路径，也支持绝对路径。
 
 ## 当前范围（P2 + P3 + 平台登录引导）
 
