@@ -1360,6 +1360,12 @@
   color: #ffb86b;
 }
 
+.video-stall-spinner {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+}
+
 .video-stall-copy {
   display: flex;
   min-width: 0;

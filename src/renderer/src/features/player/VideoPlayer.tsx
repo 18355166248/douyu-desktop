@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { RoomAudienceSnapshot } from '@shared/contracts/audience';
 import type { StreamPlayback, StreamQuality } from '@shared/contracts/stream';
 import { Icon } from '../../components/Icon';
@@ -9,7 +9,7 @@ import { DanmakuOverlay } from '../danmaku/DanmakuOverlay';
 import { useDanmakuSettings } from '../danmaku/DanmakuSettingsContext';
 import { RoomContextMenu } from './RoomContextMenu';
 import { qualityOptionsFor } from './streamQuality';
-import { STALL_TIMEOUT_MS } from './streamStall';
+import { STALL_TIMEOUT_MS, AUTO_RECOVERY_RESET_MS } from './streamStall';
 import { attachPlayback } from './playbackSession';
 import { useAutoHideControls } from './useAutoHideControls';
 import { roomAudienceKey } from './useRoomAudience';
@@ -54,6 +54,10 @@ export function VideoPlayer({
   const videoRef = useRef<HTMLVideoElement>(null);
   const userPausedRef = useRef(false);
   const wasReloadingRef = useRef(false);
+  const autoRecoveredRef = useRef(false);
+  const onReloadRef = useRef(onReload);
+  onReloadRef.current = onReload;
+  const [autoRecovering, setAutoRecovering] = useState(false);
   const [danmakuRevision, setDanmakuRevision] = useState(0);
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -64,6 +68,7 @@ export function VideoPlayer({
   const queryClient = useQueryClient();
   const { settings, update } = useDanmakuSettings();
   const stall = useStreamStall(videoRef, isReady && !error && !isReloading);
+  const { stalled: streamStalled, dismiss: dismissStall } = stall;
   const qualityOptions = qualityOptionsFor(playback.platform);
   const qualityLabel = qualityOptions.find((option) => option.value === quality)?.label ?? quality;
   const audience = queryClient.getQueryData<RoomAudienceSnapshot>(
@@ -101,6 +106,35 @@ export function VideoPlayer({
     }
     wasReloadingRef.current = isReloading;
   }, [isReloading]);
+
+  useEffect(() => {
+    autoRecoveredRef.current = false;
+    setAutoRecovering(false);
+  }, [playback.roomId]);
+
+  // Run before paint so the manual "stalled" prompt never flashes when an
+  // automatic recovery is about to start.
+  useLayoutEffect(() => {
+    if (!streamStalled || isReloading) return;
+    if (autoRecoveredRef.current) {
+      setAutoRecovering(false);
+      return;
+    }
+
+    autoRecoveredRef.current = true;
+    setAutoRecovering(true);
+    dismissStall();
+    onReloadRef.current();
+  }, [dismissStall, isReloading, streamStalled]);
+
+  useEffect(() => {
+    if (!isReady || !isPlaying || isReloading || streamStalled) return undefined;
+    const timer = window.setTimeout(() => {
+      autoRecoveredRef.current = false;
+      setAutoRecovering(false);
+    }, AUTO_RECOVERY_RESET_MS);
+    return () => window.clearTimeout(timer);
+  }, [isPlaying, isReady, isReloading, streamStalled]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -272,20 +306,38 @@ export function VideoPlayer({
           platform={playback.platform}
         />
 
-        {stall.stalled ? (
+        {autoRecovering && isReloading ? (
+          <div className="video-stall is-auto" role="status" aria-live="polite">
+            <span className="video-stall-icon" aria-hidden="true">
+              <span className="spinner video-stall-spinner" />
+            </span>
+            <div className="video-stall-copy">
+              <strong>检测到画面卡顿</strong>
+              <span>正在自动重新加载直播流…</span>
+            </div>
+          </div>
+        ) : null}
+
+        {stall.stalled && !isReloading ? (
           <div className="video-stall" role="alert" aria-live="assertive">
             <span className="video-stall-icon" aria-hidden="true">
               <Icon name="alert" size={18} />
             </span>
             <div className="video-stall-copy">
-              <strong>直播可能卡住了</strong>
-              <span>画面已超过 {STALL_TIMEOUT_MS / 1000} 秒没有更新</span>
+              <strong>{autoRecoveredRef.current ? '自动刷新后仍卡顿' : '直播可能卡住了'}</strong>
+              <span>
+                {autoRecoveredRef.current
+                  ? '已尝试自动重新加载，但画面仍未更新'
+                  : `画面已超过 ${STALL_TIMEOUT_MS / 1000} 秒没有更新`}
+              </span>
             </div>
             <div className="video-stall-actions">
               <button
                 type="button"
                 className="btn primary"
                 onClick={() => {
+                  autoRecoveredRef.current = false;
+                  setAutoRecovering(false);
                   stall.dismiss();
                   onReload();
                 }}
