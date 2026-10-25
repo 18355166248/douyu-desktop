@@ -71,21 +71,6 @@ function PolledRoomAudience({ platform, roomId }: RoomAudienceProps): React.JSX.
           </div>
         ) : null}
       </div>
-      <button
-        type="button"
-        className="room-audience-refresh"
-        disabled={query.isFetching}
-        onClick={() => void query.refetch()}
-        aria-label={query.isError ? '重试直播间统计' : '刷新直播间统计'}
-        title={
-          query.isFetching
-            ? '正在更新直播间统计'
-            : `${query.isError ? '重试' : '刷新'}直播间统计${updateTime ? ` · 上次更新 ${updateTime}` : ''}`
-        }
-      >
-        <Icon name="refresh" size={12} className={query.isFetching ? 'is-spinning' : undefined} />
-        {query.isError ? <span>重试</span> : null}
-      </button>
     </div>
   );
 }

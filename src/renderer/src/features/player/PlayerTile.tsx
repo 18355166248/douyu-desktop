@@ -1,7 +1,9 @@
+import { useQueryClient } from '@tanstack/react-query';
 import type { StreamPlayback, StreamQuality } from '@shared/contracts/stream';
 import { Icon } from '../../components/Icon';
 import { platformLabel } from '../../lib/streamIdentity';
 import { RoomAudience } from './RoomAudience';
+import { roomAudienceKey } from './useRoomAudience';
 import type { StreamResolveOptions } from './useStreamGrid';
 import { VideoPlayer } from './VideoPlayer';
 
@@ -38,6 +40,15 @@ export function PlayerTile({
   onVolumeChange,
   onOpenDanmakuSettings,
 }: PlayerTileProps): React.JSX.Element {
+  const queryClient = useQueryClient();
+
+  function reloadPlaybackAndAudience(): void {
+    onReload();
+    void queryClient.invalidateQueries({
+      queryKey: roomAudienceKey(playback.platform, playback.roomId),
+    });
+  }
+
   return (
     <section className={`player-card${compact ? ' is-compact' : ''}`}>
       <header className="player-head">
@@ -66,10 +77,10 @@ export function PlayerTile({
           <button
             type="button"
             className="icon-btn"
-            onClick={onReload}
+            onClick={reloadPlaybackAndAudience}
             disabled={isReloading}
-            aria-label="重新解析"
-            title="重新解析"
+            aria-label="重新解析并刷新房间统计"
+            title={isReloading ? '正在重新解析并刷新统计' : '重新解析播放并刷新房间统计'}
           >
             <Icon name="refresh" size={compact ? 15 : 17} />
           </button>
@@ -93,7 +104,7 @@ export function PlayerTile({
         <div className="player-alert" role="alert">
           <Icon name="alert" size={14} />
           <span className="selectable">{error}</span>
-          <button type="button" onClick={onReload} disabled={isReloading}>
+          <button type="button" onClick={reloadPlaybackAndAudience} disabled={isReloading}>
             重试
           </button>
         </div>

@@ -31,10 +31,6 @@ export function DouyuRoomAudience({ roomId }: { roomId: string }): React.JSX.Ele
     : query.isPending
       ? '正在获取统计…'
       : null;
-  const updateTime = query.data
-    ? new Date(query.data.fetchedAt).toLocaleTimeString('zh-CN', { hour12: false })
-    : null;
-
   return (
     <div className="douyu-audience">
       <div className="room-audience" role="group" aria-label="直播间统计">
@@ -71,21 +67,6 @@ export function DouyuRoomAudience({ roomId }: { roomId: string }): React.JSX.Ele
             </span>
           ) : null}
         </div>
-        <button
-          type="button"
-          className="room-audience-refresh"
-          disabled={query.isFetching}
-          onClick={() => void query.refetch()}
-          aria-label={query.isError ? '重试直播间统计' : '刷新直播间统计'}
-          title={
-            query.isFetching
-              ? '正在更新直播间统计'
-              : `刷新直播间统计${updateTime ? ` · 上次更新 ${updateTime}` : ''}`
-          }
-        >
-          <Icon name="refresh" size={12} className={query.isFetching ? 'is-spinning' : undefined} />
-          {query.isError ? <span>重试</span> : null}
-        </button>
         <button
           ref={rankingToggleRef}
           type="button"
