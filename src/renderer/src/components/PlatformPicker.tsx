@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { StreamPlatform } from '@shared/contracts/stream';
+import { useDismissableLayer } from '../lib/useDismissableLayer';
 import { platformLabel } from '../lib/streamIdentity';
 import { Icon } from './Icon';
 
@@ -21,27 +22,13 @@ export function PlatformPicker({ value, onChange }: PlatformPickerProps): React.
   const listRef = useRef<HTMLDivElement>(null);
   const listboxId = useId();
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handlePointerDown = (event: PointerEvent): void => {
-      if (event.target instanceof Node && rootRef.current?.contains(event.target)) return;
-      setOpen(false);
-    };
-    const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
-        setOpen(false);
-        buttonRef.current?.focus();
-      }
-    };
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen]);
+  useDismissableLayer({
+    open: isOpen,
+    onClose: () => setOpen(false),
+    layerRef: rootRef,
+    triggerRef: buttonRef,
+    restoreFocusRef: buttonRef,
+  });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -56,7 +43,9 @@ export function PlatformPicker({ value, onChange }: PlatformPickerProps): React.
   };
 
   const moveFocus = (direction: 1 | -1): void => {
-    const items = [...(listRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? [])];
+    const items = [
+      ...(listRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? []),
+    ];
     if (items.length === 0) return;
     const current = items.indexOf(document.activeElement as HTMLButtonElement);
     const nextIndex = current < 0 ? 0 : (current + direction + items.length) % items.length;

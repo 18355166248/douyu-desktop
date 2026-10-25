@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { StreamPlatform } from '@shared/contracts/stream';
 import { Icon } from './components/Icon';
 import { PlatformPicker } from './components/PlatformPicker';
@@ -15,6 +15,7 @@ import { MAX_STREAMS, canAddStream } from './features/player/streamGridLayout';
 import { defaultStreamOptions, useStreamGrid } from './features/player/useStreamGrid';
 import type { StreamResolveOptions } from './features/player/useStreamGrid';
 import { platformLabel } from './lib/streamIdentity';
+import { useDismissableLayer } from './lib/useDismissableLayer';
 import { AutoSignRunner } from './features/tasks/AutoSignRunner';
 import { TaskButton } from './features/tasks/TaskButton';
 import { TaskPanel } from './features/tasks/TaskPanel';
@@ -50,65 +51,23 @@ export function App(): React.JSX.Element {
   const roomInputRef = useRef<HTMLInputElement>(null);
   const danmakuSettingsRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);
-  const {
-    entries: roomHistory,
-    recordVisit,
-    removeHistory,
-    clearHistory,
-  } = useRoomHistory();
+  const { entries: roomHistory, recordVisit, removeHistory, clearHistory } = useRoomHistory();
 
-  useEffect(() => {
-    if (!isDanmakuSettingsOpen) return;
-
-    const handlePointerDown = (event: PointerEvent): void => {
-      if (event.target instanceof Node && danmakuSettingsRef.current?.contains(event.target)) {
-        return;
-      }
-      setDanmakuSettingsOpen(false);
-    };
-    const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') setDanmakuSettingsOpen(false);
-    };
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isDanmakuSettingsOpen]);
-
-  useEffect(() => {
-    if (!isHistoryOpen) return;
-
-    const handlePointerDown = (event: PointerEvent): void => {
-      if (event.target instanceof Node && historyRef.current?.contains(event.target)) {
-        return;
-      }
-      setHistoryOpen(false);
-    };
-    const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') setHistoryOpen(false);
-    };
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isHistoryOpen]);
-
-  useEffect(() => {
-    if (!isTaskOpen) return;
-
-    const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') setTaskOpen(false);
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isTaskOpen]);
+  useDismissableLayer({
+    open: isDanmakuSettingsOpen,
+    onClose: () => setDanmakuSettingsOpen(false),
+    layerRef: danmakuSettingsRef,
+  });
+  useDismissableLayer({
+    open: isHistoryOpen,
+    onClose: () => setHistoryOpen(false),
+    layerRef: historyRef,
+  });
+  useDismissableLayer({
+    open: isTaskOpen,
+    onClose: () => setTaskOpen(false),
+    closeOnPointerDown: false,
+  });
 
   const canAdd = canAddStream(streams.length);
   const canSubmit = canAdd && roomId.trim().length > 0;
@@ -151,10 +110,7 @@ export function App(): React.JSX.Element {
     });
   }
 
-  function handleStreamOptionsChange(
-    key: string,
-    patch: Partial<StreamResolveOptions>,
-  ): void {
+  function handleStreamOptionsChange(key: string, patch: Partial<StreamResolveOptions>): void {
     void setStreamOptions(key, patch).then((message) => {
       if (message) setError(message);
     });

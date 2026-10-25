@@ -1,5 +1,6 @@
-import { useId, useState } from 'react';
+import { useCallback, useId, useRef, useState } from 'react';
 import type { RoomAudienceMetric, RoomAudienceRanking } from '@shared/contracts/audience';
+import { FloatingPanel } from '../../components/FloatingPanel';
 import { Icon } from '../../components/Icon';
 import { errorMessage } from '../../lib/api';
 import { audienceMetricTooltip, formatAudienceValue } from './audienceDisplay';
@@ -20,6 +21,8 @@ export function DouyuRoomAudience({ roomId }: { roomId: string }): React.JSX.Ele
   const [expanded, setExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<RoomAudienceRanking['key']>('day');
   const panelId = useId();
+  const rankingToggleRef = useRef<HTMLButtonElement>(null);
+  const closeRanking = useCallback(() => setExpanded(false), []);
   const ranking = query.data?.rankings?.find((entry) => entry.key === activeTab);
   const statusText = query.isError
     ? query.data
@@ -84,6 +87,7 @@ export function DouyuRoomAudience({ roomId }: { roomId: string }): React.JSX.Ele
           {query.isError ? <span>重试</span> : null}
         </button>
         <button
+          ref={rankingToggleRef}
           type="button"
           className={`room-ranking-toggle${expanded ? ' is-expanded' : ''}`}
           aria-expanded={expanded}
@@ -94,93 +98,98 @@ export function DouyuRoomAudience({ roomId }: { roomId: string }): React.JSX.Ele
           <Icon name="chevron" size={12} />
         </button>
       </div>
-      {expanded ? (
-        <section className="room-rankings" id={panelId} aria-label="活跃榜">
-          <div className="room-ranking-tabs" role="tablist" aria-label="活跃榜周期">
-            {rankingTabs.map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                role="tab"
-                id={`${panelId}-${tab.key}-tab`}
-                aria-controls={`${panelId}-${tab.key}-panel`}
-                aria-selected={activeTab === tab.key}
-                tabIndex={activeTab === tab.key ? 0 : -1}
-                onClick={() => setActiveTab(tab.key)}
-                onKeyDown={(event) => {
-                  const index = rankingTabs.findIndex((entry) => entry.key === tab.key);
-                  const nextIndex =
-                    event.key === 'ArrowRight'
-                      ? (index + 1) % rankingTabs.length
-                      : event.key === 'ArrowLeft'
-                        ? (index + rankingTabs.length - 1) % rankingTabs.length
-                        : event.key === 'Home'
-                          ? 0
-                          : event.key === 'End'
-                            ? rankingTabs.length - 1
-                            : null;
-                  const next = nextIndex === null ? undefined : rankingTabs[nextIndex];
-                  if (!next) return;
-                  event.preventDefault();
-                  setActiveTab(next.key);
-                  document.getElementById(`${panelId}-${next.key}-tab`)?.focus();
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
-            <span
-              className="room-ranking-note"
-              title="平台仅返回前 10 名及贡献值，不能据此推算房间总活跃人数"
+      <FloatingPanel
+        open={expanded}
+        onClose={closeRanking}
+        triggerRef={rankingToggleRef}
+        panelId={panelId}
+        label="活跃榜"
+        className="room-rankings"
+      >
+        <div className="room-ranking-tabs" role="tablist" aria-label="活跃榜周期">
+          {rankingTabs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              role="tab"
+              id={`${panelId}-${tab.key}-tab`}
+              aria-controls={`${panelId}-${tab.key}-panel`}
+              aria-selected={activeTab === tab.key}
+              tabIndex={activeTab === tab.key ? 0 : -1}
+              onClick={() => setActiveTab(tab.key)}
+              onKeyDown={(event) => {
+                const index = rankingTabs.findIndex((entry) => entry.key === tab.key);
+                const nextIndex =
+                  event.key === 'ArrowRight'
+                    ? (index + 1) % rankingTabs.length
+                    : event.key === 'ArrowLeft'
+                      ? (index + rankingTabs.length - 1) % rankingTabs.length
+                      : event.key === 'Home'
+                        ? 0
+                        : event.key === 'End'
+                          ? rankingTabs.length - 1
+                          : null;
+                const next = nextIndex === null ? undefined : rankingTabs[nextIndex];
+                if (!next) return;
+                event.preventDefault();
+                setActiveTab(next.key);
+                document.getElementById(`${panelId}-${next.key}-tab`)?.focus();
+              }}
             >
-              前 10 名
-            </span>
-          </div>
-          <div
-            className="room-ranking-panel"
-            id={`${panelId}-${activeTab}-panel`}
-            role="tabpanel"
-            aria-labelledby={`${panelId}-${activeTab}-tab`}
-            tabIndex={0}
+              {tab.label}
+            </button>
+          ))}
+          <span
+            className="room-ranking-note"
+            title="平台仅返回前 10 名及贡献值，不能据此推算房间总活跃人数"
           >
-            {ranking && ranking.entries.length > 0 ? (
-              <table className="room-ranking-table">
-                <thead>
-                  <tr>
-                    <th scope="col">排名</th>
-                    <th scope="col">用户</th>
-                    <th scope="col" title="平台返回的贡献值">
-                      贡献值
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ranking.entries.slice(0, 10).map((entry, index) => {
-                    const contribution = formatAudienceValue(entry.contribution);
-                    return (
-                      <tr key={`${entry.userId}-${entry.rank}-${index}`}>
-                        <td>{entry.rank}</td>
-                        <td title={entry.nickname || `用户 ${entry.userId}`}>
-                          {entry.nickname || `用户 ${entry.userId}`}
-                        </td>
-                        <td title={`贡献值：${contribution.exact}`}>{contribution.display}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            ) : (
-              <p className="room-ranking-empty" role="status">
-                {ranking
-                  ? '暂无用户上榜'
-                  : query.isPending || query.isFetching
-                    ? '正在获取榜单…'
-                    : '榜单暂未获取，可刷新重试'}
-              </p>
-            )}
-          </div>
-        </section>
-      ) : null}
+            前 10 名
+          </span>
+        </div>
+        <div
+          className="room-ranking-panel"
+          id={`${panelId}-${activeTab}-panel`}
+          role="tabpanel"
+          aria-labelledby={`${panelId}-${activeTab}-tab`}
+          tabIndex={0}
+        >
+          {ranking && ranking.entries.length > 0 ? (
+            <table className="room-ranking-table">
+              <thead>
+                <tr>
+                  <th scope="col">排名</th>
+                  <th scope="col">用户</th>
+                  <th scope="col" title="平台返回的贡献值">
+                    贡献值
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {ranking.entries.slice(0, 10).map((entry, index) => {
+                  const contribution = formatAudienceValue(entry.contribution);
+                  return (
+                    <tr key={`${entry.userId}-${entry.rank}-${index}`}>
+                      <td>{entry.rank}</td>
+                      <td title={entry.nickname || `用户 ${entry.userId}`}>
+                        {entry.nickname || `用户 ${entry.userId}`}
+                      </td>
+                      <td title={`贡献值：${contribution.exact}`}>{contribution.display}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          ) : (
+            <p className="room-ranking-empty" role="status">
+              {ranking
+                ? '暂无用户上榜'
+                : query.isPending || query.isFetching
+                  ? '正在获取榜单…'
+                  : '榜单暂未获取，可刷新重试'}
+            </p>
+          )}
+        </div>
+      </FloatingPanel>
     </div>
   );
 }

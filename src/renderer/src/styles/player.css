@@ -290,22 +290,25 @@
   transform: rotate(180deg);
 }
 
-.room-rankings {
+.floating-panel {
   position: absolute;
   z-index: 40;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgb(14 19 25 / 97%);
+  box-shadow: 0 22px 60px rgb(0 0 0 / 58%);
+  backdrop-filter: blur(14px);
+}
+
+.room-rankings {
   top: calc(100% + 6px);
   right: 10px;
   display: flex;
   flex-direction: column;
   width: min(560px, calc(100% - 24px));
   max-height: 360px;
-  overflow: hidden;
   padding: 9px 14px 9px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: rgb(14 19 25 / 97%);
-  box-shadow: 0 22px 60px rgb(0 0 0 / 58%);
-  backdrop-filter: blur(14px);
 }
 
 .room-ranking-tabs {
