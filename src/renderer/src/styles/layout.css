@@ -291,6 +291,29 @@
   -webkit-app-region: no-drag;
 }
 
+.titlebar-immersive {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: 5px;
+  height: 32px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgb(20 27 34 / 70%);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+  -webkit-app-region: no-drag;
+  cursor: pointer;
+}
+
+.titlebar-immersive:hover {
+  border-color: rgb(255 107 53 / 38%);
+  background: rgb(255 107 53 / 9%);
+  color: #ffc3a6;
+}
+
 .titlebar-task:hover,
 .titlebar-task.is-active {
   border-color: rgb(255 107 53 / 38%);
@@ -926,6 +949,91 @@
 .stream-grid > * {
   min-width: 0;
   min-height: 0;
+}
+
+.window-frame.is-immersive,
+.window-frame.is-immersive .app-shell,
+.window-frame.is-immersive .main,
+.window-frame.is-immersive .workspace,
+.window-frame.is-immersive .stage {
+  background: #000;
+}
+
+.window-frame.is-immersive .titlebar {
+  display: none;
+}
+
+.window-frame.is-immersive .main {
+  padding: 0;
+  overflow: hidden;
+}
+
+.window-frame.is-immersive .stage {
+  min-height: 0;
+}
+
+.window-frame.is-immersive .stream-grid {
+  height: 100%;
+  gap: 2px;
+}
+
+.window-frame.is-immersive .player-card {
+  border: 0;
+  border-radius: 0;
+  background: #000;
+  box-shadow: none;
+}
+
+.window-frame.is-immersive .player-head,
+.window-frame.is-immersive .player-alert,
+.window-frame.is-immersive .alert,
+.window-frame.is-immersive .video-topline {
+  display: none;
+}
+
+.window-frame.is-immersive .player-card .video-shell {
+  min-height: 0;
+}
+
+.immersive-exit {
+  position: fixed;
+  z-index: 95;
+  top: 16px;
+  right: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 9px;
+  background: rgb(8 11 15 / 82%);
+  box-shadow: 0 8px 30px rgb(0 0 0 / 35%);
+  color: #f2f5f7;
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  backdrop-filter: blur(10px);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.window-frame.is-immersive:hover .immersive-exit,
+.immersive-exit.is-visible,
+.immersive-exit:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.immersive-exit:hover {
+  border-color: rgb(255 255 255 / 28%);
+  background: rgb(20 26 32 / 92%);
 }
 
 .history-anchor {

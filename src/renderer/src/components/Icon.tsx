@@ -25,7 +25,8 @@ export type IconName =
   | 'maximize'
   | 'restore'
   | 'history'
-  | 'trash';
+  | 'trash'
+  | 'expand';
 
 const paths: Record<IconName, ReactNode> = {
   live: (
@@ -151,6 +152,7 @@ const paths: Record<IconName, ReactNode> = {
       <path d="M10 10.5v6M14 10.5v6" />
     </>
   ),
+  expand: <path d="M9 4H4v5M15 4h5v5M20 15v5h-5M4 15v5h5" />,
 };
 
 export interface IconProps extends SVGProps<SVGSVGElement> {

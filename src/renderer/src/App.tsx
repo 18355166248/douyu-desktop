@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { StreamPlatform } from '@shared/contracts/stream';
 import { Icon } from './components/Icon';
 import { PlatformPicker } from './components/PlatformPicker';
@@ -48,6 +48,8 @@ export function App(): React.JSX.Element {
   const [isDanmakuSettingsOpen, setDanmakuSettingsOpen] = useState(false);
   const [isHistoryOpen, setHistoryOpen] = useState(false);
   const [isTaskOpen, setTaskOpen] = useState(false);
+  const [isImmersive, setImmersive] = useState(false);
+  const [isImmersiveExitVisible, setImmersiveExitVisible] = useState(false);
   const roomInputRef = useRef<HTMLInputElement>(null);
   const danmakuSettingsRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);
@@ -68,6 +70,17 @@ export function App(): React.JSX.Element {
     onClose: () => setTaskOpen(false),
     closeOnPointerDown: false,
   });
+
+  useEffect(() => {
+    if (!isImmersive) return;
+
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key === 'Escape') setImmersive(false);
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isImmersive]);
 
   const canAdd = canAddStream(streams.length);
   const canSubmit = canAdd && roomId.trim().length > 0;
@@ -110,6 +123,13 @@ export function App(): React.JSX.Element {
     });
   }
 
+  function enterImmersive(): void {
+    setHistoryOpen(false);
+    setTaskOpen(false);
+    setDanmakuSettingsOpen(false);
+    setImmersive(true);
+  }
+
   function handleStreamOptionsChange(key: string, patch: Partial<StreamResolveOptions>): void {
     void setStreamOptions(key, patch).then((message) => {
       if (message) setError(message);
@@ -133,7 +153,11 @@ export function App(): React.JSX.Element {
   }
 
   return (
-    <div className="window-frame">
+    <div
+      className={`window-frame${isImmersive ? ' is-immersive' : ''}`}
+      onPointerEnter={() => setImmersiveExitVisible(true)}
+      onPointerLeave={() => setImmersiveExitVisible(false)}
+    >
       <AutoSignRunner account={activeAccount} />
       <TitleBar>
         <div className="titlebar-tab" aria-label={`直播工作台，当前 ${streams.length} 路`}>
@@ -210,6 +234,19 @@ export function App(): React.JSX.Element {
           ) : null}
         </form>
 
+        {streams.length > 0 ? (
+          <button
+            type="button"
+            className="titlebar-immersive"
+            onClick={enterImmersive}
+            title="进入沉浸模式"
+            aria-label="进入沉浸模式"
+          >
+            <Icon name="expand" size={14} />
+            <span>沉浸</span>
+          </button>
+        ) : null}
+
         <TaskButton open={isTaskOpen} onToggle={() => setTaskOpen((open) => !open)} />
 
         <AccountBar compact />
@@ -255,6 +292,19 @@ export function App(): React.JSX.Element {
           </div>
         </main>
       </div>
+
+      {isImmersive ? (
+        <button
+          type="button"
+          className={`immersive-exit${isImmersiveExitVisible ? ' is-visible' : ''}`}
+          onClick={() => setImmersive(false)}
+          title="退出沉浸模式（Esc）"
+          aria-label="退出沉浸模式"
+        >
+          <Icon name="minimize" size={14} />
+          <span>退出沉浸</span>
+        </button>
+      ) : null}
 
       {isTaskOpen ? (
         <div
