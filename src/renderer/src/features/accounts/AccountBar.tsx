@@ -8,7 +8,7 @@ import { platformLabel } from '../../lib/streamIdentity';
 import { useAccounts } from './useAccounts';
 import { usePlatformLogin } from './usePlatformLogin';
 
-const ACCOUNT_ERROR_VISIBLE_MS = 4000;
+const ACCOUNT_MESSAGE_VISIBLE_MS = 4000;
 
 function initialOf(name: string): string {
   return name.trim().slice(0, 1) || '斗';
@@ -143,43 +143,67 @@ function PlatformAccountRow({
   platform,
   status,
   pending,
+  failed,
   busy,
   onLogin,
   onLogout,
+  onRetry,
 }: {
   platform: GuidedPlatform;
   status: PlatformLoginStatus | undefined;
   pending: boolean;
+  failed: boolean;
   busy: boolean;
   onLogin: () => void;
   onLogout: () => void;
+  onRetry: () => void;
 }): React.JSX.Element {
   const label = platformLabel(platform);
   const loggedIn = Boolean(status?.loggedIn);
   const nickname = status?.nickname || label;
-  const loggedInDetail =
-    status?.message?.trim() ||
-    (platform === 'bilibili' ? '已登录 · 高画质可用' : '已登录 · 播放可用');
+  const retryOnly = failed && !loggedIn;
   const detail = pending
     ? '检查登录状态…'
+    : failed
+      ? loggedIn
+        ? '状态检查失败，可退出重登'
+        : '状态检查失败'
+      : loggedIn
+        ? status?.message?.trim() ||
+          (platform === 'bilibili' ? '已登录 · 高画质可用' : '已登录 · 播放可用')
+        : '扫码登录';
+  const title = pending
+    ? `${label}检查中`
     : loggedIn
-      ? loggedInDetail
-      : '扫码登录';
+      ? nickname
+      : failed
+        ? `${label}状态未知`
+        : `${label}未登录`;
 
   return (
     <div className="platform-account-row">
       <AccountAvatar nickname={nickname} avatarUrl={status?.avatarUrl ?? ''} small />
       <span className="account-row-text">
-        <strong>{loggedIn ? nickname : `${label}未登录`}</strong>
-        <small>{detail}</small>
+        <strong>{title}</strong>
+        <small className={failed && !pending ? 'is-error' : undefined}>
+          {!pending && loggedIn && !failed ? <i className="status-dot active" /> : null}
+          {detail}
+        </small>
       </span>
       <button
         type="button"
         className="platform-account-action"
-        onClick={loggedIn ? onLogout : onLogin}
+        onClick={retryOnly ? onRetry : loggedIn ? onLogout : onLogin}
         disabled={busy || pending}
+        aria-label={
+          retryOnly
+            ? `重试检查${label}登录状态`
+            : loggedIn
+              ? `退出${label}登录`
+              : `登录${label}`
+        }
       >
-        {pending ? '…' : loggedIn ? '退出' : '登录'}
+        {pending ? '…' : retryOnly ? '重试' : loggedIn ? '退出' : '登录'}
       </button>
     </div>
   );
@@ -192,6 +216,17 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
   const [open, setOpen] = useState(false);
   const [chooserOpen, setChooserOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open && !chooserOpen) return;
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') return;
+      setOpen(false);
+      setChooserOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, chooserOpen]);
   const rawError =
     login.error ??
     switchAccount.error ??
@@ -210,25 +245,57 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
     }
 
     setVisibleError(rawError);
-    const timer = window.setTimeout(() => setVisibleError(null), ACCOUNT_ERROR_VISIBLE_MS);
+    const timer = window.setTimeout(() => setVisibleError(null), ACCOUNT_MESSAGE_VISIBLE_MS);
     return () => window.clearTimeout(timer);
   }, [rawError]);
 
   useEffect(() => {
-    const status = bilibili.login.data;
-    if (!status?.loggedIn) return;
-    setNotice('B站登录成功');
-    const timer = window.setTimeout(() => setNotice(null), ACCOUNT_ERROR_VISIBLE_MS);
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), ACCOUNT_MESSAGE_VISIBLE_MS);
     return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  useEffect(() => {
+    if (!bilibili.login.data?.loggedIn) return;
+    setNotice('B站登录成功');
   }, [bilibili.login.data]);
 
   useEffect(() => {
-    const status = huya.login.data;
-    if (!status?.loggedIn) return;
+    if (!huya.login.data?.loggedIn) return;
     setNotice('虎牙登录成功');
-    const timer = window.setTimeout(() => setNotice(null), ACCOUNT_ERROR_VISIBLE_MS);
-    return () => window.clearTimeout(timer);
   }, [huya.login.data]);
+
+  useEffect(() => {
+    if (!bilibili.logout.isSuccess) return;
+    setNotice('已退出B站');
+  }, [bilibili.logout.isSuccess]);
+
+  useEffect(() => {
+    if (!huya.logout.isSuccess) return;
+    setNotice('已退出虎牙');
+  }, [huya.logout.isSuccess]);
+
+  useEffect(() => {
+    if (!login.data) return;
+    setNotice(`斗鱼登录成功：${login.data.nickname}`);
+  }, [login.data]);
+
+  useEffect(() => {
+    if (!switchAccount.isSuccess) return;
+    setNotice('已切换斗鱼账号');
+  }, [switchAccount.isSuccess]);
+
+  useEffect(() => {
+    if (!logout.isSuccess) return;
+    setNotice('已退出斗鱼账号');
+  }, [logout.isSuccess]);
+
+  useEffect(() => {
+    if (!health.data) return;
+    setNotice(
+      health.data.status === 'active' ? '斗鱼账号状态正常' : '斗鱼账号登录已过期',
+    );
+  }, [health.data]);
 
   const error = visibleError;
   const bilibiliBusy = bilibili.login.isPending || bilibili.logout.isPending;
@@ -304,6 +371,14 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
     huya.login.mutate();
   };
 
+  const refreshAll = (): void => {
+    setNotice(null);
+    if (activeAccount) health.mutate(activeAccount.id);
+    void query.refetch();
+    void bilibili.query.refetch();
+    void huya.query.refetch();
+  };
+
   if (!display) {
     return (
       <div className={`account-area${compact ? ' is-compact' : ''}`}>
@@ -333,8 +408,8 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
                   activeAccount={activeAccount}
                   bilibili={bilibiliStatus}
                   huya={huyaStatus}
-                  bilibiliPending={bilibili.query.isPending}
-                  huyaPending={huya.query.isPending}
+                  bilibiliPending={bilibili.query.isFetching}
+                  huyaPending={huya.query.isFetching}
                   busy={busy}
                   onChoose={choosePlatform}
                 />
@@ -448,7 +523,8 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
               <PlatformAccountRow
                 platform="bilibili"
                 status={bilibiliStatus}
-                pending={bilibili.query.isPending}
+                pending={bilibili.query.isFetching}
+                failed={bilibili.query.isError}
                 busy={bilibiliBusy}
                 onLogin={() => {
                   setNotice(null);
@@ -459,11 +535,13 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
                   setOpen(false);
                   bilibili.logout.mutate();
                 }}
+                onRetry={() => void bilibili.query.refetch()}
               />
               <PlatformAccountRow
                 platform="huya"
                 status={huyaStatus}
-                pending={huya.query.isPending}
+                pending={huya.query.isFetching}
+                failed={huya.query.isError}
                 busy={huyaBusy}
                 onLogin={() => {
                   setNotice(null);
@@ -474,35 +552,39 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
                   setOpen(false);
                   huya.logout.mutate();
                 }}
+                onRetry={() => void huya.query.refetch()}
               />
 
+              <div className="popover-sep" />
+              <button
+                type="button"
+                role="menuitem"
+                className="popover-action"
+                onClick={refreshAll}
+                disabled={
+                  busy ||
+                  query.isFetching ||
+                  bilibili.query.isFetching ||
+                  huya.query.isFetching
+                }
+              >
+                <Icon name="refresh" size={16} />
+                刷新账号状态
+              </button>
               {activeAccount ? (
-                <>
-                  <div className="popover-sep" />
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="popover-action"
-                    onClick={() => health.mutate(activeAccount.id)}
-                    disabled={busy}
-                  >
-                    <Icon name="refresh" size={16} />
-                    刷新斗鱼状态
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="popover-action danger"
-                    onClick={() => {
-                      setOpen(false);
-                      logout.mutate(activeAccount.id);
-                    }}
-                    disabled={busy}
-                  >
-                    <Icon name="logout" size={16} />
-                    退出斗鱼账号
-                  </button>
-                </>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="popover-action danger"
+                  onClick={() => {
+                    setOpen(false);
+                    logout.mutate(activeAccount.id);
+                  }}
+                  disabled={busy}
+                >
+                  <Icon name="logout" size={16} />
+                  退出斗鱼账号
+                </button>
               ) : null}
             </div>
           </>
