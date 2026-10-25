@@ -22,6 +22,8 @@ export interface DanmakuSettings {
   showNickname: boolean;
   showEnter: boolean;
   showGift: boolean;
+  showSmallGift: boolean;
+  showLargeGift: boolean;
 }
 
 export const DEFAULT_DANMAKU_SETTINGS: DanmakuSettings = {
@@ -42,6 +44,8 @@ export const DEFAULT_DANMAKU_SETTINGS: DanmakuSettings = {
   showNickname: false,
   showEnter: false,
   showGift: true,
+  showSmallGift: true,
+  showLargeGift: true,
 };
 
 const STORAGE_KEY = 'douyu-desktop.danmaku.settings.v2';
@@ -87,6 +91,8 @@ export function parseDanmakuSettings(raw: unknown): DanmakuSettings {
     showNickname: boolOr(value.showNickname, DEFAULT_DANMAKU_SETTINGS.showNickname),
     showEnter: boolOr(value.showEnter, DEFAULT_DANMAKU_SETTINGS.showEnter),
     showGift: boolOr(value.showGift, DEFAULT_DANMAKU_SETTINGS.showGift),
+    showSmallGift: boolOr(value.showSmallGift, DEFAULT_DANMAKU_SETTINGS.showSmallGift),
+    showLargeGift: boolOr(value.showLargeGift, DEFAULT_DANMAKU_SETTINGS.showLargeGift),
   };
 }
 

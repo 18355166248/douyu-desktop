@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { DanmakuPlatform, DanmakuStatusEvent } from '@shared/contracts/danmaku';
 import { DanmakuEngine } from './DanmakuEngine';
+import { GiftFeed } from './GiftFeed';
+import type { GiftFeedHandle } from './GiftFeed';
 import { useDanmakuSettings } from './DanmakuSettingsContext';
 import { useDanmaku } from './useDanmaku';
 
@@ -42,9 +44,16 @@ function DanmakuLayer({
 }): React.JSX.Element {
   const trackRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<DanmakuEngine | null>(null);
+  const giftFeedRef = useRef<GiftFeedHandle>(null);
   const { settings, clearToken } = useDanmakuSettings();
   const initialSettingsRef = useRef(settings);
-  const status = useDanmaku(roomId, platform, (event) => engineRef.current?.push(event));
+  const status = useDanmaku(roomId, platform, (event) => {
+    if (event.kind === 'gift') {
+      giftFeedRef.current?.push(event);
+      return;
+    }
+    engineRef.current?.push(event);
+  });
 
   useLayoutEffect(() => {
     const track = trackRef.current;
@@ -75,6 +84,14 @@ function DanmakuLayer({
   return (
     <div className={`danmaku-layer${settings.visible ? '' : ' is-hidden'}`}>
       <div className="danmaku-track" ref={trackRef} aria-hidden="true" />
+      <GiftFeed
+        key={`${platform}:${roomId}`}
+        ref={giftFeedRef}
+        settings={settings}
+        roomId={roomId}
+        platform={platform}
+        clearToken={clearToken}
+      />
       {settings.paused || status.status !== 'connected' ? (
         <span className={`danmaku-state ${stateClass}`} role="status" aria-live="polite">
           {stateText}

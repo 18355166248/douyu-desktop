@@ -37,6 +37,8 @@ describe('danmaku settings', () => {
       blockRole: true,
       simplified: true,
       showGift: false,
+      showSmallGift: false,
+      showLargeGift: false,
     });
 
     expect(parsed).toMatchObject({
@@ -46,6 +48,8 @@ describe('danmaku settings', () => {
       blockRole: true,
       simplified: true,
       showGift: false,
+      showSmallGift: false,
+      showLargeGift: false,
     });
   });
 

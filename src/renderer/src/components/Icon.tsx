@@ -27,6 +27,7 @@ export type IconName =
   | 'history'
   | 'home'
   | 'star'
+  | 'gift'
   | 'trash'
   | 'expand';
 
@@ -155,6 +156,14 @@ const paths: Record<IconName, ReactNode> = {
   ),
   star: (
     <path d="m12 3.6 2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z" />
+  ),
+  gift: (
+    <>
+      <rect x="3.5" y="8.5" width="17" height="12" rx="2.5" />
+      <path d="M3.5 12.5h17M12 8.5v12" />
+      <path d="M12 8.5C9.5 8.5 8 7.7 8 6.2 8 4.9 9.1 4 10.3 4c1.2 0 1.7 1.5 1.7 4.5Z" />
+      <path d="M12 8.5c2.5 0 4-.8 4-2.3C16 4.9 14.9 4 13.7 4c-1.2 0-1.7 1.5-1.7 4.5Z" />
+    </>
   ),
   trash: (
     <>

@@ -45,6 +45,8 @@ export class DanmakuEngine {
   }
 
   push(event: DanmakuEvent): void {
+    // Gifts have their own bottom-left feed; never mix them into the flying layer.
+    if (event.kind === 'gift') return;
     if (!this.settings.visible || !shouldRenderDanmaku(event, this.settings)) return;
     this.queue.push(event);
     if (this.queue.length > MAX_QUEUE) {

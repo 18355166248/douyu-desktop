@@ -240,8 +240,21 @@ export function DanmakuSettingsPanel({ onClose }: DanmakuSettingsPanelProps): Re
           />
           <ToggleRow
             label="礼物提示"
+            description="在画面左下角显示礼物动态"
             checked={settings.showGift}
             onChange={(showGift) => update({ showGift })}
+          />
+          <ToggleRow
+            label="小礼物"
+            description="普通礼物和低连击礼物，紧凑展示"
+            checked={settings.showSmallGift}
+            onChange={(showSmallGift) => update({ showSmallGift })}
+          />
+          <ToggleRow
+            label="大礼物"
+            description="高价值或高连击礼物，展示强化动效"
+            checked={settings.showLargeGift}
+            onChange={(showLargeGift) => update({ showLargeGift })}
           />
         </div>
       </div>

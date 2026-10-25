@@ -1053,6 +1053,151 @@
   color: #ffd8a8;
 }
 
+.gift-feed {
+  position: absolute;
+  z-index: 3;
+  bottom: 58px;
+  left: 12px;
+  display: flex;
+  width: min(300px, calc(100% - 24px));
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.gift-feed.is-paused .gift-toast {
+  animation-play-state: paused;
+}
+
+.gift-toast {
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px;
+  border: 1px solid rgb(255 190 118 / 20%);
+  border-radius: 8px;
+  background: linear-gradient(100deg, rgb(54 30 14 / 90%), rgb(14 17 22 / 82%));
+  box-shadow: 0 5px 16px rgb(0 0 0 / 24%);
+  color: #ffe3bd;
+  backdrop-filter: blur(8px);
+  animation: gift-toast-in 220ms ease-out both;
+}
+
+.gift-toast.is-large {
+  gap: 10px;
+  padding: 8px 12px;
+  border-color: rgb(255 196 91 / 48%);
+  background: linear-gradient(100deg, rgb(109 57 15 / 94%), rgb(33 22 12 / 90%));
+  box-shadow:
+    0 0 0 1px rgb(255 227 170 / 8%) inset,
+    0 10px 30px rgb(0 0 0 / 34%),
+    0 0 24px rgb(255 167 55 / 20%);
+  animation: gift-toast-large-in 280ms cubic-bezier(0.2, 0.8, 0.25, 1.15) both;
+}
+
+.gift-toast-icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  place-items: center;
+  border-radius: 7px;
+  background: rgb(255 170 80 / 12%);
+  color: #ffc078;
+}
+
+.gift-toast.is-large .gift-toast-icon {
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(145deg, rgb(255 190 80 / 25%), rgb(255 107 53 / 12%));
+  box-shadow: 0 0 14px rgb(255 170 60 / 18%);
+  color: #ffd88d;
+}
+
+.gift-toast-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gift-toast-head {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.gift-toast-head strong {
+  overflow: hidden;
+  color: #ffd39a;
+  font-size: 10px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gift-toast-tier {
+  flex: none;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, #ffd479, #ff9a3c);
+  color: #3a2100;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1.55;
+}
+
+.gift-toast-text {
+  overflow: hidden;
+  color: #f7f0e5;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gift-toast-text em {
+  color: #ffbf72;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.gift-toast.is-large .gift-toast-head strong {
+  font-size: 11.5px;
+}
+
+.gift-toast.is-large .gift-toast-text {
+  font-size: 13px;
+}
+
+@keyframes gift-toast-in {
+  from {
+    opacity: 0;
+    transform: translate3d(-8px, 6px, 0) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes gift-toast-large-in {
+  from {
+    opacity: 0;
+    transform: translate3d(-12px, 8px, 0) scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
 .danmaku-badge {
   display: inline-flex;
   align-items: center;
@@ -1565,6 +1710,51 @@
 
 .player-card.is-compact .danmaku-item.is-gift {
   padding: 1px 6px 1px 4px;
+}
+
+.player-card.is-compact .gift-feed {
+  bottom: 44px;
+  left: 8px;
+  width: min(230px, calc(100% - 16px));
+  gap: 4px;
+}
+
+.player-card.is-compact .gift-toast {
+  gap: 6px;
+  padding: 4px 7px;
+  border-radius: 6px;
+}
+
+.player-card.is-compact .gift-toast-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+}
+
+.player-card.is-compact .gift-toast-head strong {
+  font-size: 9px;
+}
+
+.player-card.is-compact .gift-toast-text {
+  font-size: 9.5px;
+}
+
+.player-card.is-compact .gift-toast.is-large {
+  gap: 8px;
+  padding: 6px 9px;
+}
+
+.player-card.is-compact .gift-toast.is-large .gift-toast-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.player-card.is-compact .gift-toast.is-large .gift-toast-head strong {
+  font-size: 10px;
+}
+
+.player-card.is-compact .gift-toast.is-large .gift-toast-text {
+  font-size: 11px;
 }
 
 .player-card.is-compact .danmaku-state {
