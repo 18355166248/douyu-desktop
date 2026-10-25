@@ -7,7 +7,11 @@ import type { DanmakuSettings } from './danmakuSettings';
 const BASE_SPEED_PX_PER_SECOND = 100;
 const ENTRY_GAP_PX = 18;
 const MAX_QUEUE = 120;
-const SPAWN_INTERVAL_MS = 70;
+// Do not replay a backlog that is already several seconds behind live chat.
+const MAX_QUEUE_AGE_MS = 2_500;
+// 24ms allows roughly 40 spawns per second; lane availability remains the
+// real limiter, so busy rooms no longer build a stale queue as quickly.
+const SPAWN_INTERVAL_MS = 24;
 const GEOMETRY_RESYNC_MS = 200;
 
 interface ActiveItem {
@@ -48,9 +52,18 @@ export class DanmakuEngine {
     // Gifts have their own bottom-left feed; never mix them into the flying layer.
     if (event.kind === 'gift') return;
     if (!this.settings.visible || !shouldRenderDanmaku(event, this.settings)) return;
+    this.pruneStaleQueue(Date.now());
     this.queue.push(event);
     if (this.queue.length > MAX_QUEUE) {
       this.queue.splice(0, this.queue.length - MAX_QUEUE);
+    }
+  }
+
+  private pruneStaleQueue(now: number): void {
+    while (this.queue.length > 0) {
+      const oldest = this.queue[0];
+      if (!oldest || now - oldest.timestamp <= MAX_QUEUE_AGE_MS) return;
+      this.queue.shift();
     }
   }
 
@@ -148,6 +161,7 @@ export class DanmakuEngine {
   }
 
   private drainQueue(): void {
+    this.pruneStaleQueue(Date.now());
     if (this.queue.length === 0) return;
     const now = performance.now();
     if (now - this.lastSpawnAt < SPAWN_INTERVAL_MS) return;

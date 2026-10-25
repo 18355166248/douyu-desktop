@@ -53,6 +53,8 @@ export function VideoPlayer({
 }: VideoPlayerProps): React.JSX.Element {
   const videoRef = useRef<HTMLVideoElement>(null);
   const userPausedRef = useRef(false);
+  const wasReloadingRef = useRef(false);
+  const [danmakuRevision, setDanmakuRevision] = useState(0);
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +92,15 @@ export function VideoPlayer({
     const video = videoRef.current;
     if (video) video.muted = muted;
   }, [muted]);
+
+  // The refresh button re-resolves the stream but keeps the same room. Danmaku
+  // owns a separate socket, so remount the overlay to reconnect it as well.
+  useEffect(() => {
+    if (isReloading && !wasReloadingRef.current) {
+      setDanmakuRevision((revision) => revision + 1);
+    }
+    wasReloadingRef.current = isReloading;
+  }, [isReloading]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -255,7 +266,11 @@ export function VideoPlayer({
           aria-hidden="true"
         />
 
-        <DanmakuOverlay roomId={playback.roomId} platform={playback.platform} />
+        <DanmakuOverlay
+          key={`${playback.platform}:${playback.roomId}:${danmakuRevision}`}
+          roomId={playback.roomId}
+          platform={playback.platform}
+        />
 
         {stall.stalled ? (
           <div className="video-stall" role="alert" aria-live="assertive">

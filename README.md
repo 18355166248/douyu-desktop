@@ -106,6 +106,7 @@ npm run package
 - [x] 每路斗鱼实时弹幕：聊天/进场弹幕、左下角透明礼物动态、斗鱼颜色索引、粉丝牌、贵族/房管标识
 - [x] 斗鱼直播间统计：贵宾、钻石粉丝和日/周/总活跃榜；贵宾 `oni.un` 支持 `1万`/`1.2万`/`1亿` 平台缩写，显示为 `1万`，显式 `+` 仍按下限处理
 - [x] 斗鱼弹幕改走 `danmuproxy` visitor + `joingroup` + `sub/mt@=o`；修复“只能看历史、没有实时 `chatmsg`”
+- [x] 弹幕低延迟：刷新播放时重建弹幕连接；队列积压超过 2.5 秒直接丢弃，轨道空闲时约 24ms 上屏一条，避免回放已经过时的弹幕
 - [x] 斗鱼心跳对齐官方 `type@=mr`（20 秒），设备 Cookie 由 main 注入，渲染层不接触账号 Cookie
 - [x] 开发入口移除 React StrictMode，避免播放器/弹幕 WebSocket 双挂载导致重复消息和误暂停
 - [x] 右向左轨道飞行弹幕：默认 20px 字号、按实际文本宽度占用轨道，同轨保留安全间距；调整速度/字号/位置/透明度时，已在屏弹幕保持不消失并平滑过渡
@@ -192,6 +193,7 @@ npm run package
 - `npm run check`：类型、ESLint、架构边界、264 个单测全部通过
 - `npm run build`：main / preload / renderer 生产构建通过
 - 斗鱼实时弹幕联调：`24422` 房间 20 秒收到 3 条 `chatmsg`，`subres` 正常，界面渲染 2 条；`wsproxy` 仅历史消息
+- 斗鱼弹幕延迟实测（房间 `138243`，14 秒）：优化前 p50 约 4.0 秒、p90 约 7.9 秒；优化后 p50 约 7ms、p90 约 63ms；刷新按钮创建新的 `danmuproxy` WebSocket 并清空旧弹幕
 - B 站流解析联调：短号 `6` → 真实房间 `7734200`，FLV/HLS 均可取流，匿名画质回写为 `250`
 - 登录页联调：斗鱼 `member/login`、B 站 `passport.bilibili.com/login` 直接返回登录/扫码页；虎牙不再直接打开 `aq` 内页，改为首页自动点“登录”后显示官方 UDB 登录弹层
 - B 站登录状态接口联调：未登录请求 `/x/web-interface/nav` 返回 `code=-101 / isLogin=false`；登录窗口只有在同时看到 `SESSDATA` 且 `nav.isLogin=true` 时才把状态置为已登录
