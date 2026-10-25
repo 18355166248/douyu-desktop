@@ -3,6 +3,7 @@ import {
   MAX_ROOM_HISTORY,
   formatHistoryTime,
   parseRoomHistory,
+  removeRoomHistory,
   upsertRoomHistory,
 } from './roomHistory';
 
@@ -53,9 +54,37 @@ describe('room history', () => {
     expect(parsed[0]?.roomId).toBe(String(MAX_ROOM_HISTORY + 5));
   });
 
+  it('keeps the same room id from different platforms separately', () => {
+    const entries = parseRoomHistory([
+      { platform: 'douyu', roomId: '6', title: '斗鱼', anchorName: '', visitedAt: t(20) },
+      { platform: 'bilibili', roomId: '6', title: 'B站', anchorName: '', visitedAt: t(21) },
+      { roomId: '6', title: '旧版本记录', anchorName: '', visitedAt: t(22) },
+    ]);
+
+    expect(entries).toHaveLength(2);
+    expect(entries[0]).toMatchObject({ platform: 'douyu', title: '旧版本记录' });
+    expect(entries[1]).toMatchObject({ platform: 'bilibili', title: 'B站' });
+  });
+
   it('formats local date and time and rejects invalid timestamps', () => {
     expect(formatHistoryTime(new Date(2026, 9, 24, 23, 39).getTime())).toBe('2026-10-24 23:39');
     expect(formatHistoryTime(0)).toBe('');
     expect(formatHistoryTime(Number.NaN)).toBe('');
+  });
+
+  it('removes one or many entries by platform-scoped room key', () => {
+    const entries = parseRoomHistory([
+      { platform: 'douyu', roomId: '6', title: '斗鱼', anchorName: '', visitedAt: t(20) },
+      { platform: 'bilibili', roomId: '6', title: 'B站', anchorName: '', visitedAt: t(21) },
+      { platform: 'douyu', roomId: '111', title: '另一个', anchorName: '', visitedAt: t(22) },
+    ]);
+
+    expect(removeRoomHistory(entries, ['bilibili:6']).map((entry) => entry.roomId)).toEqual([
+      '111',
+      '6',
+    ]);
+    expect(removeRoomHistory(entries, ['bilibili:6', 'douyu:111'])).toHaveLength(1);
+    expect(removeRoomHistory(entries, ['douyu:6', 'douyu:111'])).toHaveLength(1);
+    expect(removeRoomHistory(entries, [])).toEqual(entries);
   });
 });

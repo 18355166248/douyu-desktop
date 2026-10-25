@@ -1,8 +1,8 @@
 # 斗鱼多屏（douyu-desktop）
 
-Windows 桌面端斗鱼多直播间客户端。当前是 **P2 多路播放 + 飞行弹幕**：登录斗鱼、最多 4 路同屏、每路实时弹幕、单路重载/关闭、房间签到。
+Windows 桌面端多直播间客户端。当前是 **P2 多路播放 + P3 B 站接入**：斗鱼/B 站最多 4 路同屏、每路实时弹幕、单路重载/关闭、画质切换、房间签到。
 
-多平台评估见 [docs/platform-support.md](docs/platform-support.md)：B 站可行且优先，虎牙直播可行但弹幕协议成本高。
+多平台评估见 [docs/platform-support.md](docs/platform-support.md)：B 站已落地；虎牙接口可解析，但 FLV 只返回短块、HLS 403，P4 暂不暴露入口。
 
 ## 技术栈
 
@@ -48,7 +48,7 @@ npm run package       # NSIS 安装包
 npx electron-builder --win nsis --config.directories.output=release-nsis
 ```
 
-## 当前范围（P2）
+## 当前范围（P2 + P3）
 
 - [x] 深色桌面壳 + 单路播放器
 - [x] 无边框窗口 + 自绘顶栏：品牌、房间输入/添加/历史/清空、签到入口、账号登录、最小化/最大化/关闭
@@ -69,7 +69,16 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - [x] 斗鱼 `getEncryption` + `getH5PlayV1` 流解析
 - [x] FLV/HLS 播放（HLS 不可用时自动回退 FLV）
 - [x] 房间标题/主播名补全（`betard`，失败不影响播放）
+- [x] 顶栏平台选择器：斗鱼 / B 站；房间按 `${platform}:${roomId}` 隔离；自绘深色下拉，12px 高对比文字，支持方向键、Esc、外部点击和 Tab 离开
+- [x] B 站短号/真实房间号解析、开播状态、标题和主播名
+- [x] B 站 FLV/HLS 播放：main 补 Referer，HLS 优先选 ts/fmp4，FLV 优先 avc
+- [x] B 站画质 `80/150/250/400/10000`；匿名实际最高 250，UI 自动回写到实际画质
+- [x] B 站实时弹幕：legacy `getConf` 取 token/host，op 7 认证、op 2 心跳、op 5 消息、zlib 解压
+- [x] B 站已解析 `DANMU_MSG`、`SEND_GIFT`、`INTERACT_WORD`、`SUPER_CHAT_MESSAGE`
 - [x] 每路斗鱼实时弹幕：聊天/进场/礼物、斗鱼颜色索引、粉丝牌、贵族/房管标识
+- [x] 斗鱼弹幕改走 `danmuproxy` visitor + `joingroup` + `sub/mt@=o`；修复“只能看历史、没有实时 `chatmsg`”
+- [x] 斗鱼心跳对齐官方 `type@=mr`（20 秒），设备 Cookie 由 main 注入，渲染层不接触账号 Cookie
+- [x] 开发入口移除 React StrictMode，避免播放器/弹幕 WebSocket 双挂载导致重复消息和误暂停
 - [x] 右向左轨道飞行弹幕：默认 20px 字号、按实际文本宽度占用轨道，同轨保留安全间距；调整速度/字号/位置/透明度时，已在屏弹幕保持不消失并平滑过渡
 - [x] 弹幕设置面板：速度、不透明度、字号、位置（全屏/1/4/上半/下半）、屏蔽类型、超级留言、精简弹幕
 - [x] 弹幕参数实时生效：速度用动画 playbackRate 平滑变速，字号/位置/轨道数变化时正在飞行的弹幕平滑重排，透明度 220ms 过渡，粉丝牌/昵称切换时当前弹幕同步更新
@@ -80,7 +89,7 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - [x] 房间签到任务：后台单飞、每天自动一次（可关闭）、手动触发、dry-run、限速、逐房间结果
 - [x] typed preload + IPC `Result` 封装
 - [x] 房间访问历史：成功解析过的房间按最近访问时间倒序记录，可点击重新打开，localStorage 最多保留 30 条
-- [x] 边界检查脚本 + 58 个单测
+- [x] 边界检查脚本 + 73 个单测
 - [x] electron-builder Windows 打包配置
 
 ## 多路操作
@@ -98,9 +107,11 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - 新加入的房间默认开启声音，已有房间的静音状态保持不变；每路可独立静音/取消静音，多路可同时出声；拖动某一路音量会取消该路静音（拖到 0 则静音该路）
 - 新房间默认按原画 + FLV 解析，加入后可在底部切换到高清/超清/蓝光，或尝试 HLS
 - 3 路时会显示“再加一路”空位；顶栏“清空”一次关闭全部
-- 顶栏“历史”按最近访问时间倒序列出房间标题、主播、房间号和访问时间；点击记录可直接重新加入，重复访问只保留一条并更新时间
-- 历史面板突出主播名和标题：主播名为橙色加粗，标题为 14px 白色加粗、最多两行；房间号和时间作为次要信息
-- 历史写入 `localStorage`（`douyu-desktop.room-history.v1`），最多保留 30 条；面板支持清空，点击外部或 Esc 关闭
+- 顶栏“历史”按最近访问时间倒序列出房间标题、主播、平台、房间号和访问时间；点击记录可直接重新加入，重复访问只保留一条并更新时间
+- 历史卡片左侧为平台徽标（本地官方 favicon：斗鱼鱼形、B站 TV、虎牙虎形，来源见 [assets/platforms/README.md](src/renderer/src/assets/platforms/README.md)），整行垂直居中；主播名 13.5px 橙色、标题 15.5px 白色、房间号和时间 10.5px
+- 历史支持单条删除、管理多选（全选/删除 N）、全部清空；清空需二次确认，3 秒未确认自动回退
+- 桌面端默认禁止选中界面文本（顶栏、按钮、历史、弹幕和播放覆盖层）；房间/任务输入框仍可编辑和选中；错误提示通过 `.selectable` 保留复制排障能力
+- 历史写入 `localStorage`（`douyu-desktop.room-history.v2`），按 `${platform}:${roomId}` 去重，最多保留 30 条；旧 v1 记录自动迁移；点击外部或 Esc 关闭
 - 顶栏“签到”打开居中任务弹窗，不再占用右侧列；弹窗支持关闭按钮、点击遮罩或 Esc 关闭
 - 签到默认在每天首次启动后自动在后台跑一次；成功/部分完成/跳过会记录当天，同账号当天不再自动重复，失败下次启动可重试；可在弹窗内关闭“每天自动签到”，设置写入 `localStorage`（`douyu-desktop.auto-sign.v1`）
 - 手动或自动签到都在独立后台任务里运行；关闭签到面板、切换直播、最小化应用都不会中断，顶栏按钮实时显示“签到 x/y”和“已签到/部分失败”
@@ -112,7 +123,10 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 
 ## 弹幕说明
 
-- 弹幕连接是匿名只读 WebSocket，不读取账号 Cookie
+- 弹幕连接是匿名只读 WebSocket：斗鱼只使用 main 注入的设备 Cookie，不读取账号 Cookie；B 站使用 main 解析的匿名 token
+- 斗鱼：`danmuproxy.douyu.com:8502` visitor 登录 → `joingroup`（`gid` 为空）→ `sub/mt@=o` → 每 20 秒 `mr`；没有 `sub` 时只能收到历史/房间状态
+- 斗鱼 `wsproxy` 的 `hischatmsg` 是历史消息，不是实时聊天；实时聊天解析 `chatmsg`
+- B 站：legacy `Danmu/getConf` 取 token/host，16 字节包头，op 7 认证、op 2 心跳、op 5 消息；协议版本 2 用 zlib 解压
 - 聊天和礼物默认从右向左飞行；进场提示默认关闭，可在“显示内容”里打开，避免进场消息刷屏
 - 默认字号 20px，最低 16px；字号调小后仍不会退回到 12px 的不可读尺寸
 - 按实际文本宽度占用轨道，测量前先应用字号；轨道释放前不会重复占用
@@ -134,8 +148,12 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 
 ## 已验证
 
-- `npm run check`：类型、ESLint、架构边界、58 个单测全部通过
+- `npm run check`：类型、ESLint、架构边界、73 个单测全部通过
 - `npm run build`：main / preload / renderer 生产构建通过
+- 斗鱼实时弹幕联调：`24422` 房间 20 秒收到 3 条 `chatmsg`，`subres` 正常，界面渲染 2 条；`wsproxy` 仅历史消息
+- B 站流解析联调：短号 `6` → 真实房间 `7734200`，FLV/HLS 均可取流，匿名画质回写为 `250`
+- B 站弹幕联调：legacy `getConf` 成功取到 token/host，WS 认证后解析 `DANMU_MSG`/`SEND_GIFT`/`INTERACT_WORD`
+- 虎牙验证：`mp.huya.com` 返回 FLV/HLS，但 FLV 每次只下发 0.2–0.5 秒短块，HLS 403，故 P4 暂不暴露 UI
 - `node scripts/probe-douyu.mjs 9999`：真实斗鱼签名接口返回 FLV 地址；CDN 返回 `Access-Control-Allow-Origin: *`
 - `node scripts/probe-danmaku.mjs 9999`：真实斗鱼弹幕连接；12 秒收到 90 个包，含 `chatmsg`/`uenter`/`dgb`
 - `node --experimental-strip-types scripts/verify-danmaku.mjs 9999`：用应用自身的编解码器解析真实帧；10 秒解码出 22 条聊天、60 条进场、2 条礼物，真实消息带 `dms`
@@ -148,7 +166,10 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - 画面角标联调：初始 LIVE/ROOM `opacity: 0` 且 `aria-hidden=true`，鼠标进入后 `opacity: 1`，静止/移出后重新隐藏，与底部控制条同步
 - 画面播放联调：点击视频不再触发 `play/pause`；音量键左侧按钮从“继续播放”切到“暂停播放”，再点击触发暂停并恢复“继续播放”
 - 历史记录联调：依次添加 4 个房间后按最新访问倒序显示，时间为 `YYYY-MM-DD HH:mm`；关闭其中一路后从历史点击可重新加入并更新时间，刷新页面后记录仍存在
-- 历史面板联调：从顶栏“历史”打开，宽 380px，4 条记录内容区高 363px；面板紧贴顶栏下方，右边缘不超出窗口；主播名 12.5px/750、标题 14px/700，单条记录无横向溢出
+- 历史面板联调：宽 400px、高 460px；首列平台徽标（B站 53×26），主播名 13.5px/750、标题 15.5px/700、房间号和时间 10.5px；平台徽标、正文和时间中心线一致（164.8px），单条高度 101px；10 条记录正常滚动，无横向溢出
+- 历史删除联调：10 条时单删 1 条剩 9；管理多选 2 条后“删除 2”剩 7；全选显示“已选 7 条/删除 7”；清空第一次进入“确认清空”，第二次才清空；刷新后恢复 10 条测试数据
+- 文本选中联调：`body`、顶栏品牌、历史按钮、历史标题、平台徽标、删除按钮的 `user-select` 均为 `none`；房间输入框和所有 `input` 为 `text`，`setSelectionRange(0,2)` 成功；`.selectable` 错误详情为 `text`
+- 平台图标改为本地官方 favicon：斗鱼 48×48、B 站 32×32、虎牙 32×32，均保留透明通道；页面实际渲染 15.76px，10 张图片全部 `complete`，无外链请求
 - 顶栏空间联调：1360×900 下顶栏高 44px，房间输入固定 220px，历史、添加、清空、签到和登录都在同一行，播放卡片从 50px 开始、宽 1328px、高 693px，底部只留 6px；4 路卡片宽 658px
 - 最小窗口联调：1084px 内容宽下顶栏无横向溢出；签到按钮显示“已签到”时表单宽 486px，运行态最宽“签到 10/12”时表单仍保留 454px；房间输入固定 220px，账号按钮显示“登录”；4 路控制条 508px 无溢出
 - 底部信息精简：移除整行 `.statusbar`，不再重复展示账号昵称、路数和“P2 · 多路 + 弹幕”；账号状态保留在顶栏账号按钮，路数保留在“直播”页签
@@ -159,12 +180,11 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 - 账号资料兜底：`acf_nickname` 支持 URL 解码；头像对象支持 `small/middle/big`，协议相对 URL 转为 HTTPS；接口 `error != 0` 时不采用资料
 - 签到弹窗联调：顶栏“签到”打开 430px 居中弹窗，关闭按钮、点击遮罩和 Esc 均可关闭；直播区不再渲染 `.task-panel`
 - 设置入口联调：右侧齿轮打开固定右下角面板（356×649，距右 24/距底 46，顶部留出 44px 自绘顶栏），关闭按钮生效；画质四项中选中项为橙色，其余为 `#eef3f7` 深色底高对比
-- 自绘顶栏联调（浏览器 CDP + mock window API）：顶栏高 44，顶栏、品牌、页签、操作栏空白和表单空白均为 `drag`；房间输入、历史/添加/清空/签到/账号/窗口按钮均为 `no-drag`，按钮优先接收事件，不会被拖拽吞掉；双击表单空白/品牌/顶栏空白触发最大化，双击输入框或按钮不触发；真实无边框窗口拖拽和系统窗口按钮需在 Windows 桌面用安装包验证
-- 当前执行环境没有可用的交互式 Electron 窗口（最小 Electron 窗口也会崩），所以窗口级 UI 需在正常 Windows 桌面执行 `npm run dev` 验证
+- 自绘顶栏联调（浏览器 CDP + mock window API）：顶栏高 44，顶栏、品牌、页签、操作栏空白和表单空白均为 `drag`；房间输入、历史/添加/清空/签到/账号/窗口按钮均为 `no-drag`，按钮优先接收事件，不会被拖拽吞掉；双击表单空白/品牌/顶栏空白触发最大化，双击输入框或按钮不触发；真实无边框窗口拖拽和系统窗口按钮需在 Windows 桌面验证
 
 ## 暂未做
 
-- B 站/虎牙直播与弹幕（可行性见 [docs/platform-support.md](docs/platform-support.md)）
+- 虎牙直播/弹幕（P4；FLV 短块 + HLS 403，待专用分块代理或 P2P 适配器）
 - 9 宫格、拖拽排序、画中画
 - 弹幕屏蔽词/用户屏蔽/重复弹幕合并/发送弹幕
 - 弹幕 Net/Render Worker（当前 4 路用独立 RAF 轨道引擎；9 路或高流量再拆）
@@ -176,19 +196,19 @@ npx electron-builder --win nsis --config.directories.output=release-nsis
 ```text
 main → core → shared
 renderer → preload → main
-renderer → 匿名弹幕 WebSocket（只读，不携带 Cookie）
+renderer → 匿名弹幕 WebSocket（斗鱼设备 Cookie / B 站 token 由 main 下发）
 ```
 
 - `core` 不依赖 Electron/React/Node 内置模块
 - `renderer` 不依赖 Electron/Node/core/main
-- 弹幕协议编解码在 `shared/douyu`，纯函数、可单测，供 renderer 复用
+- 弹幕协议编解码在 `shared/douyu` 和 `shared/bilibili`，纯函数、可单测，供 renderer 复用
 - 弹幕飞行引擎、过滤规则、轨道布局在 `renderer/features/danmaku`；布局和过滤是纯函数
 - 弹幕设置通过 Context 全局共享，持久化在 renderer `localStorage`，不进入 main/IPC
-- Cookie、`dyToken`、CSRF 只在 main；renderer 只拿 `AccountSummary`
+- Cookie、`dyToken`、CSRF 只在 main；renderer 只拿 `AccountSummary`；斗鱼弹幕设备 Cookie 由 main 注入，B 站弹幕只下发匿名 token
 - 任务通过 `TaskDefinition + TaskRunner + TaskRegistry` 注册，不在 UI 里写业务
 - 签到运行状态由 main 的 `TaskService` 持有，通过 `tasks:state` / `tasks:progress` 广播；renderer 的 `TasksProvider` 在应用级订阅，弹窗关闭不会丢进度，同一时刻只允许一个运行中的 run
 - 请求级限速/重试在 `DouyuHttpClient`，任务级超时/取消在 `TaskRunner`
 
 ## 免责声明
 
-斗鱼接口/页面可能随时变化；签到等自动化操作可能违反平台规则，风险由使用者承担。本项目不存账号密码，不绕过验证码/付费/DRM，不做自动送礼、抢宝箱、抽奖、自动关注。
+斗鱼、B 站接口/页面可能随时变化；签到等自动化操作可能违反平台规则，风险由使用者承担。本项目不存账号密码，不绕过验证码/付费/DRM，不做自动送礼、抢宝箱、抽奖、自动关注。

@@ -1,15 +1,19 @@
 export type DouyuQuality = '0' | '3' | '4' | '8';
+export type BilibiliQuality = '80' | '150' | '250' | '400' | '10000';
+export type StreamQuality = DouyuQuality | BilibiliQuality;
+export type StreamPlatform = 'douyu' | 'bilibili' | 'huya';
 
 export interface ResolveStreamInput {
   roomId: string;
-  quality?: DouyuQuality | undefined;
+  platform?: StreamPlatform | undefined;
+  quality?: StreamQuality | undefined;
   preferHls?: boolean | undefined;
 }
 
 export type StreamFormat = 'hls' | 'flv';
 
 export interface StreamPlayback {
-  platform: 'douyu' | 'bilibili' | 'huya';
+  platform: StreamPlatform;
   roomId: string;
   title: string;
   anchorName: string;

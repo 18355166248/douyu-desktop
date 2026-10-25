@@ -135,6 +135,27 @@ describe('douyu danmaku protocol', () => {
     expect(message?.badgeLevel).toBeUndefined();
   });
 
+  it('parses gateway history chat messages', () => {
+    const message = parseDouyuDanmaku(
+      'nn@=Alice/col@=2/cst@=1792887694/brid@=9999/type@=hischatmsg/rid@=9999/uid@=123/level@=42/txt@=hello@Sworld/col@=2/bnn@=小僵尸/bl@=12/rg@=1/pg@=1/nl@=0/',
+      '9999',
+    );
+
+    expect(message).toMatchObject({
+      platform: 'douyu',
+      roomId: '9999',
+      kind: 'chat',
+      userId: '123',
+      nickname: 'Alice',
+      text: 'hello/world',
+      color: '#1e87f0',
+      level: 42,
+      badgeName: '小僵尸',
+      badgeLevel: 12,
+      position: 'scroll',
+    });
+  });
+
   it('ignores unknown or empty messages', () => {
     expect(parseDouyuDanmaku('type@=loginres/userid@=0/', '9999')).toBeNull();
     expect(parseDouyuDanmaku('not-a-packet', '9999')).toBeNull();

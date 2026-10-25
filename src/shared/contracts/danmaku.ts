@@ -39,3 +39,12 @@ export interface DanmakuStatusEvent {
   status: DanmakuConnectionStatus;
   message?: string | undefined;
 }
+
+export interface BilibiliDanmakuConfig {
+  host: string;
+  token: string;
+}
+
+export interface DouyuDanmakuConfig {
+  host: string;
+}

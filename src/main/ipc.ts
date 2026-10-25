@@ -6,12 +6,14 @@ import { fail, ok } from '@shared/contracts/result';
 import { AppError, toAppError } from '@core/errors';
 import { isAllowedExternalUrl } from './constants';
 import type { AccountSessionManager } from './services/AccountSessionManager';
+import type { DouyuDanmakuSession } from './services/DouyuDanmakuSession';
 import type { StreamService } from './services/StreamService';
 import type { TaskService } from './services/TaskService';
 
 const resolveStreamSchema = z.object({
   roomId: z.string().trim().min(1).max(32),
-  quality: z.enum(['0', '3', '4', '8']).optional(),
+  platform: z.enum(['douyu', 'bilibili', 'huya']).optional(),
+  quality: z.enum(['0', '3', '4', '8', '80', '150', '250', '400', '10000']).optional(),
   preferHls: z.boolean().optional(),
 });
 
@@ -64,10 +66,11 @@ export interface IpcServices {
   accounts: AccountSessionManager;
   streams: StreamService;
   tasks: TaskService;
+  douyuDanmaku: DouyuDanmakuSession;
 }
 
 export function registerIpcHandlers(services: IpcServices): void {
-  const { accounts, streams, tasks } = services;
+  const { accounts, streams, tasks, douyuDanmaku } = services;
 
   ipcMain.on(IPC.windowMinimize, (event) => {
     BrowserWindow.fromWebContents(event.sender)?.minimize();
@@ -120,6 +123,15 @@ export function registerIpcHandlers(services: IpcServices): void {
       return streams.resolve(input);
     }),
   );
+
+  ipcMain.handle(IPC.danmakuBilibiliConfig, (_event, rawRoomId: unknown) =>
+    respond(async () => {
+      const roomId = z.string().trim().min(1).max(32).parse(rawRoomId);
+      return streams.bilibiliDanmakuConfig(roomId);
+    }),
+  );
+
+  ipcMain.handle(IPC.danmakuDouyuConfig, () => respond(() => douyuDanmaku.prepare()));
 
   ipcMain.handle(IPC.tasksList, () => respond(() => tasks.list()));
 

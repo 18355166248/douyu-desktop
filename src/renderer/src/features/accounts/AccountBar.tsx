@@ -90,7 +90,7 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
           {login.isPending ? '等待…' : compact ? '登录' : '登录斗鱼'}
         </button>
         {error ? (
-          <span className="account-error" role="status">
+          <span className="account-error selectable" role="status">
             {errorMessage(error)}
           </span>
         ) : null}
@@ -200,7 +200,7 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
         ) : null}
       </div>
       {error ? (
-        <span className="account-error" role="status">
+        <span className="account-error selectable" role="status">
           {errorMessage(error)}
         </span>
       ) : null}

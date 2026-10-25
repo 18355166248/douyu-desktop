@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import mpegts from 'mpegts.js';
-import type { DouyuQuality, StreamPlayback } from '@shared/contracts/stream';
+import type { StreamPlayback, StreamQuality } from '@shared/contracts/stream';
 import { Icon } from '../../components/Icon';
 import { DanmakuOverlay } from '../danmaku/DanmakuOverlay';
 import { useDanmakuSettings } from '../danmaku/DanmakuSettingsContext';
-import { QUALITY_OPTIONS } from './streamQuality';
+import { qualityOptionsFor } from './streamQuality';
 import { STALL_TIMEOUT_MS } from './streamStall';
 import { useAutoHideControls } from './useAutoHideControls';
 import { useStreamStall } from './useStreamStall';
@@ -15,7 +15,7 @@ interface VideoPlayerProps {
   playback: StreamPlayback;
   muted: boolean;
   volume: number;
-  quality: DouyuQuality;
+  quality: StreamQuality;
   preferHls: boolean;
   isReloading: boolean;
   onReload: () => void;
@@ -39,12 +39,14 @@ export function VideoPlayer({
   onOpenDanmakuSettings,
 }: VideoPlayerProps): React.JSX.Element {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const userPausedRef = useRef(false);
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const controls = useAutoHideControls();
   const { settings, update } = useDanmakuSettings();
   const stall = useStreamStall(videoRef, isReady && !error && !isReloading);
+  const qualityOptions = qualityOptionsFor(playback.platform);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -60,12 +62,24 @@ export function VideoPlayer({
     setError(null);
     setIsReady(false);
     setIsPlaying(false);
+    userPausedRef.current = false;
 
     const play = (): void => {
       void Promise.resolve(video.play()).catch(() => {
         // Autoplay policy can still reject; muted playback usually succeeds.
       });
     };
+
+    // mpegts/hls can call play() before the media element is buffered enough.
+    // Retry once the element reports it can play, without overriding a user pause.
+    const resumeWhenReady = (): void => {
+      if (!disposed && !userPausedRef.current && video.paused) play();
+    };
+    video.addEventListener('canplay', resumeWhenReady);
+    video.addEventListener('loadeddata', resumeWhenReady);
+    const retryTimers = [800, 2_000, 4_000].map((delay) =>
+      window.setTimeout(resumeWhenReady, delay),
+    );
 
     if (playback.format === 'hls' || playback.url.includes('.m3u8')) {
       if (Hls.isSupported()) {
@@ -124,6 +138,9 @@ export function VideoPlayer({
 
     return () => {
       disposed = true;
+      for (const timer of retryTimers) window.clearTimeout(timer);
+      video.removeEventListener('canplay', resumeWhenReady);
+      video.removeEventListener('loadeddata', resumeWhenReady);
       if (hls) hls.destroy();
       if (flv) {
         flv.pause();
@@ -150,10 +167,12 @@ export function VideoPlayer({
     const video = videoRef.current;
     if (!video) return;
     if (video.paused) {
+      userPausedRef.current = false;
       void video.play().catch(() => {
         // Autoplay rejection is surfaced by the loading/error state.
       });
     } else {
+      userPausedRef.current = true;
       video.pause();
     }
   }
@@ -240,7 +259,7 @@ export function VideoPlayer({
       ) : null}
 
       {error ? (
-        <div className="video-error">
+        <div className="video-error selectable">
           <Icon name="alert" size={24} />
           <strong>{error}</strong>
           <span>可以尝试重新解析，或切换 HLS 模式。</span>
@@ -313,12 +332,12 @@ export function VideoPlayer({
             <select
               className="video-select"
               value={quality}
-              onChange={(event) => onOptionsChange({ quality: event.target.value as DouyuQuality })}
+              onChange={(event) => onOptionsChange({ quality: event.target.value as StreamQuality })}
               disabled={isReloading}
               aria-label="画质"
               title="切换画质并重新解析"
             >
-              {QUALITY_OPTIONS.map((option) => (
+              {qualityOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>

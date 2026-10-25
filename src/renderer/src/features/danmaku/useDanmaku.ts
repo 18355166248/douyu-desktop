@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import type { DanmakuEvent, DanmakuStatusEvent } from '@shared/contracts/danmaku';
+import type { DanmakuEvent, DanmakuPlatform, DanmakuStatusEvent } from '@shared/contracts/danmaku';
+import { errorMessage, unwrap } from '../../lib/api';
+import { BilibiliDanmakuClient } from './BilibiliDanmakuClient';
 import { DouyuDanmakuClient } from './douyuDanmakuClient';
 
 export function useDanmaku(
   roomId: string,
+  platform: DanmakuPlatform,
   onEvent: (event: DanmakuEvent) => void,
 ): DanmakuStatusEvent {
   const [status, setStatus] = useState<DanmakuStatusEvent>({
     roomId,
-    platform: 'douyu',
+    platform,
     status: 'connecting',
   });
   const onEventRef = useRef(onEvent);
@@ -16,25 +19,71 @@ export function useDanmaku(
 
   useEffect(() => {
     let active = true;
-    setStatus({ roomId, platform: 'douyu', status: 'connecting' });
+    let bilibili: BilibiliDanmakuClient | null = null;
+    const emit = (event: DanmakuStatusEvent): void => {
+      if (active) setStatus(event);
+    };
+    setStatus({ roomId, platform, status: 'connecting' });
 
-    const client = new DouyuDanmakuClient({
-      roomId,
-      onEvent: (event) => {
-        if (active) onEventRef.current(event);
-      },
-      onStatus: (event) => {
-        if (active) setStatus(event);
-      },
-    });
+    if (platform === 'bilibili') {
+      void window.api.danmaku
+        .bilibiliConfig(roomId)
+        .then((result) => unwrap(result))
+        .then((config) => {
+          if (!active) return;
+          bilibili = new BilibiliDanmakuClient({
+            roomId,
+            host: config.host,
+            token: config.token,
+            onEvent: (event) => {
+              if (active) onEventRef.current(event);
+            },
+            onStatus: emit,
+          });
+          bilibili.connect();
+        })
+        .catch((error: unknown) => {
+          emit({ roomId, platform, status: 'error', message: errorMessage(error) });
+        });
 
-    client.connect();
+      return () => {
+        active = false;
+        bilibili?.close();
+      };
+    }
 
+    if (platform === 'douyu') {
+      let douyu: DouyuDanmakuClient | null = null;
+      void window.api.danmaku
+        .douyuConfig()
+        .then((result) => unwrap(result))
+        .then((config) => {
+          if (!active) return;
+          douyu = new DouyuDanmakuClient({
+            roomId,
+            host: config.host,
+            onEvent: (event) => {
+              if (active) onEventRef.current(event);
+            },
+            onStatus: emit,
+          });
+          douyu.connect();
+        })
+        .catch((error: unknown) => {
+          emit({ roomId, platform, status: 'error', message: errorMessage(error) });
+        });
+
+      return () => {
+        active = false;
+        douyu?.close();
+      };
+    }
+
+    emit({ roomId, platform, status: 'error', message: '暂不支持该平台弹幕' });
     return () => {
       active = false;
-      client.close();
     };
-  }, [roomId]);
+  }, [roomId, platform]);
 
   return status;
 }

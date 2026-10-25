@@ -14,6 +14,10 @@ const api: DesktopApi = {
   streams: {
     resolve: (input) => ipcRenderer.invoke(IPC.streamsResolve, input),
   },
+  danmaku: {
+    bilibiliConfig: (roomId) => ipcRenderer.invoke(IPC.danmakuBilibiliConfig, roomId),
+    douyuConfig: () => ipcRenderer.invoke(IPC.danmakuDouyuConfig),
+  },
   tasks: {
     list: () => ipcRenderer.invoke(IPC.tasksList),
     run: (input) => ipcRenderer.invoke(IPC.tasksRun, input),

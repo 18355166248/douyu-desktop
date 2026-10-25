@@ -24,7 +24,8 @@ export type IconName =
   | 'minimize'
   | 'maximize'
   | 'restore'
-  | 'history';
+  | 'history'
+  | 'trash';
 
 const paths: Record<IconName, ReactNode> = {
   live: (
@@ -140,6 +141,14 @@ const paths: Record<IconName, ReactNode> = {
       <path d="M3.5 12a8.5 8.5 0 1 0 2.2-5.8" />
       <path d="M3.5 4.5v5h5" />
       <path d="M12 7.5V12l3 1.8" />
+    </>
+  ),
+  trash: (
+    <>
+      <path d="M4 7h16" />
+      <path d="M9 7V4.5h6V7" />
+      <path d="m6.5 7 .8 12.5h9.4L17.5 7" />
+      <path d="M10 10.5v6M14 10.5v6" />
     </>
   ),
 };

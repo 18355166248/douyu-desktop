@@ -7,16 +7,34 @@ import {
 
 interface DouyuDanmakuClientOptions {
   roomId: string;
+  host: string;
   onEvent: (event: DanmakuEvent) => void;
   onStatus: (status: DanmakuStatusEvent) => void;
 }
 
-const HEARTBEAT_MS = 40_000;
+const HEARTBEAT_MS = 20_000;
 const RECONNECT_MS = 3_000;
 const CONNECT_TIMEOUT_MS = 10_000;
 
+export function buildDouyuVisitorLogin(roomId: string): string {
+  const username = `visitor${Math.floor(1_000_000 + Math.random() * 9_000_000)}`;
+  const uid = String(Math.floor(1_000_000_000 + Math.random() * 900_000_000));
+  return [
+    'type@=loginreq',
+    `roomid@=${roomId}`,
+    'dfl@=sn@AA=105@ASss@AA=1',
+    `username@=${username}`,
+    `uid@=${uid}`,
+    'ver@=20220825',
+    'aver@=218101901',
+    'ct@=0',
+    '',
+  ].join('/');
+}
+
 export class DouyuDanmakuClient {
   private readonly roomId: string;
+  private readonly host: string;
   private readonly onEvent: (event: DanmakuEvent) => void;
   private readonly onStatus: (status: DanmakuStatusEvent) => void;
   private ws: WebSocket | null = null;
@@ -25,9 +43,12 @@ export class DouyuDanmakuClient {
   private reconnectTimer: number | null = null;
   private sequence = 0;
   private closed = false;
+  private joined = false;
+  private joinTimer: number | null = null;
 
   constructor(options: DouyuDanmakuClientOptions) {
     this.roomId = options.roomId;
+    this.host = options.host;
     this.onEvent = options.onEvent;
     this.onStatus = options.onStatus;
   }
@@ -41,6 +62,7 @@ export class DouyuDanmakuClient {
     this.closed = true;
     this.stopHeartbeat();
     this.clearConnectTimer();
+    this.clearJoinTimer();
     this.clearReconnect();
     const ws = this.ws;
     this.ws = null;
@@ -63,14 +85,16 @@ export class DouyuDanmakuClient {
 
     this.clearReconnect();
     this.clearConnectTimer();
+    this.clearJoinTimer();
+    this.joined = false;
     this.onStatus({
       roomId: this.roomId,
       platform: 'douyu',
       status: 'connecting',
     });
 
-    const port = 8502 + Math.floor(Math.random() * 4);
-    const ws = new WebSocket(`wss://danmuproxy.douyu.com:${port}`);
+    const host = this.host.replace(/\/+$/, '');
+    const ws = new WebSocket(`wss://${host}/`);
     this.ws = ws;
     ws.binaryType = 'arraybuffer';
 
@@ -92,9 +116,11 @@ export class DouyuDanmakuClient {
         ws.close();
         return;
       }
-      this.send(`type@=loginreq/roomid@=${this.roomId}`);
-      this.send(`type@=joingroup/rid@=${this.roomId}/gid@=-9999/`);
+      this.send(buildDouyuVisitorLogin(this.roomId));
       this.startHeartbeat();
+      // The gateway normally replies with loginres; keep a fallback so a
+      // non-gateway proxy still receives a joingroup.
+      this.joinTimer = window.setTimeout(() => this.joinGroup(), 3_000);
       this.onStatus({
         roomId: this.roomId,
         platform: 'douyu',
@@ -122,6 +148,8 @@ export class DouyuDanmakuClient {
       if (this.ws !== ws) return;
       this.ws = null;
       this.clearConnectTimer();
+      this.clearJoinTimer();
+      this.joined = false;
       this.stopHeartbeat();
       if (this.closed) return;
       this.onStatus({
@@ -136,10 +164,22 @@ export class DouyuDanmakuClient {
 
   private handleFrame(data: ArrayBuffer): void {
     for (const payload of decodeDouyuPackets(new Uint8Array(data))) {
+      if (payload.includes('type@=loginres/')) {
+        this.joinGroup();
+      }
       const message = parseDouyuDanmaku(payload, this.roomId);
       if (!message) continue;
       this.emit(message);
     }
+  }
+
+  private joinGroup(): void {
+    if (this.joined || this.closed) return;
+    this.joined = true;
+    this.clearJoinTimer();
+    this.send(`type@=joingroup/rid@=${this.roomId}/gid@`);
+    this.send('type@=mr');
+    this.send('type@=sub/mt@=o');
   }
 
   private emit(message: DanmakuMessage): void {
@@ -164,7 +204,7 @@ export class DouyuDanmakuClient {
   private startHeartbeat(): void {
     this.stopHeartbeat();
     this.heartbeat = window.setInterval(() => {
-      this.send('type@=mrkl/');
+      this.send('type@=mr');
     }, HEARTBEAT_MS);
   }
 
@@ -179,6 +219,13 @@ export class DouyuDanmakuClient {
     if (this.connectTimer !== null) {
       window.clearTimeout(this.connectTimer);
       this.connectTimer = null;
+    }
+  }
+
+  private clearJoinTimer(): void {
+    if (this.joinTimer !== null) {
+      window.clearTimeout(this.joinTimer);
+      this.joinTimer = null;
     }
   }
 

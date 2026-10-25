@@ -38,7 +38,7 @@ export function TitleBar({ children }: TitleBarProps): React.JSX.Element {
     return (
       target instanceof Element &&
       target.closest(
-        'button, input, select, textarea, a, [role="dialog"], [role="menu"], .room-field, .account-area, .history-anchor, .titlebar-controls',
+        'button, input, select, textarea, a, [role="dialog"], [role="menu"], .platform-picker, .room-field, .account-area, .history-anchor, .titlebar-controls',
       ) !== null
     );
   }

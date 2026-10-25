@@ -30,6 +30,8 @@ html,
 body,
 #root {
   height: 100%;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 body {
@@ -41,6 +43,14 @@ body {
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+input,
+textarea,
+[contenteditable='true'],
+.selectable {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 button,

@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react';
-import type { DouyuQuality, StreamPlayback } from '@shared/contracts/stream';
+import type { StreamPlatform, StreamPlayback, StreamQuality } from '@shared/contracts/stream';
 import { errorMessage, unwrap } from '../../lib/api';
+import { roomKey, streamKey } from '../../lib/streamIdentity';
 import { canAddStream, MAX_STREAMS } from './streamGridLayout';
+import { defaultQuality, qualityFromLabel } from './streamQuality';
 
 export interface StreamGridEntry {
   playback: StreamPlayback;
@@ -10,45 +12,43 @@ export interface StreamGridEntry {
 }
 
 export interface StreamResolveOptions {
-  quality: DouyuQuality;
+  quality: StreamQuality;
   preferHls: boolean;
 }
 
 export interface AddStreamOptions extends StreamResolveOptions {
+  platform: StreamPlatform;
   roomId: string;
 }
 
 export interface UseStreamGridResult {
   streams: StreamGridEntry[];
   isAdding: boolean;
-  reloadingRoomId: string | null;
+  reloadingKey: string | null;
   mutedRooms: Record<string, boolean>;
   volumes: Record<string, number>;
   addStream: (
     options: AddStreamOptions,
     onResolved?: (playback: StreamPlayback) => void,
   ) => Promise<string | null>;
-  reloadStream: (roomId: string, options?: StreamResolveOptions) => Promise<string | null>;
-  setStreamOptions: (
-    roomId: string,
-    patch: Partial<StreamResolveOptions>,
-  ) => Promise<string | null>;
-  removeStream: (roomId: string) => void;
+  reloadStream: (key: string, options?: StreamResolveOptions) => Promise<string | null>;
+  setStreamOptions: (key: string, patch: Partial<StreamResolveOptions>) => Promise<string | null>;
+  removeStream: (key: string) => void;
   clearStreams: () => void;
-  toggleMute: (roomId: string) => void;
-  setVolume: (roomId: string, volume: number) => void;
+  toggleMute: (key: string) => void;
+  setVolume: (key: string, volume: number) => void;
 }
 
 export const DEFAULT_VOLUME = 1;
-export const DEFAULT_STREAM_OPTIONS: StreamResolveOptions = {
-  quality: '0',
-  preferHls: false,
-};
+
+export function defaultStreamOptions(platform: StreamPlatform): StreamResolveOptions {
+  return { quality: defaultQuality(platform), preferHls: false };
+}
 
 export function useStreamGrid(): UseStreamGridResult {
   const [streams, setStreams] = useState<StreamGridEntry[]>([]);
   const [isAdding, setIsAdding] = useState(false);
-  const [reloadingRoomId, setReloadingRoomId] = useState<string | null>(null);
+  const [reloadingKey, setReloadingKey] = useState<string | null>(null);
   const [mutedRooms, setMutedRooms] = useState<Record<string, boolean>>({});
   const [volumes, setVolumes] = useState<Record<string, number>>({});
   const addingRef = useRef(false);
@@ -59,9 +59,13 @@ export function useStreamGrid(): UseStreamGridResult {
     onResolved?: (playback: StreamPlayback) => void,
   ): Promise<string | null> {
     const roomId = options.roomId.trim();
-    if (!roomId) return '请输入斗鱼房间号';
+    if (!roomId) {
+      if (options.platform === 'bilibili') return '请输入 B 站房间号';
+      return '请输入斗鱼房间号';
+    }
     if (addingRef.current) return '正在解析其他房间，请稍候';
-    if (streams.some((entry) => entry.playback.roomId === roomId)) {
+    const requestedKey = roomKey(options.platform, roomId);
+    if (streams.some((entry) => streamKey(entry.playback) === requestedKey)) {
       return `房间 ${roomId} 已在多屏中`;
     }
     if (!canAddStream(streams.length)) {
@@ -73,22 +77,29 @@ export function useStreamGrid(): UseStreamGridResult {
     try {
       const playback = unwrap(
         await window.api.streams.resolve({
+          platform: options.platform,
           roomId,
           quality: options.quality,
           preferHls: options.preferHls,
         }),
       );
+      const key = streamKey(playback);
+      if (streams.some((entry) => streamKey(entry.playback) === key)) {
+        return `房间 ${playback.roomId} 已在多屏中`;
+      }
+      const actualQuality =
+        qualityFromLabel(playback.platform, playback.quality) ?? options.quality;
       setStreams((current) => [
         ...current,
         {
           playback,
           error: null,
-          options: { quality: options.quality, preferHls: options.preferHls },
+          options: { quality: actualQuality, preferHls: options.preferHls },
         },
       ]);
-      setMutedRooms((current) => ({ ...current, [roomId]: false }));
+      setMutedRooms((current) => ({ ...current, [key]: false }));
       setVolumes((current) =>
-        current[roomId] === undefined ? { ...current, [roomId]: DEFAULT_VOLUME } : current,
+        current[key] === undefined ? { ...current, [key]: DEFAULT_VOLUME } : current,
       );
       onResolved?.(playback);
       return null;
@@ -101,77 +112,86 @@ export function useStreamGrid(): UseStreamGridResult {
   }
 
   async function reloadStream(
-    roomId: string,
+    key: string,
     options?: StreamResolveOptions,
   ): Promise<string | null> {
-    const entry = streams.find((item) => item.playback.roomId === roomId);
+    const entry = streams.find((item) => streamKey(item.playback) === key);
     if (!entry) return null;
     if (reloadingRef.current !== null) return '正在重新解析其他房间，请稍候';
 
     const effectiveOptions = options ?? entry.options;
     setStreams((current) =>
       current.map((item) =>
-        item.playback.roomId === roomId
+        streamKey(item.playback) === key
           ? { ...item, options: effectiveOptions, error: null }
           : item,
       ),
     );
 
-    reloadingRef.current = roomId;
-    setReloadingRoomId(roomId);
+    reloadingRef.current = key;
+    setReloadingKey(key);
     try {
       const playback = unwrap(
         await window.api.streams.resolve({
-          roomId,
+          platform: entry.playback.platform,
+          roomId: entry.playback.roomId,
           quality: effectiveOptions.quality,
           preferHls: effectiveOptions.preferHls,
         }),
       );
+      const actualQuality =
+        qualityFromLabel(playback.platform, playback.quality) ?? effectiveOptions.quality;
       setStreams((current) =>
-        current.map((entry) =>
-          entry.playback.roomId === roomId ? { ...entry, playback, error: null } : entry,
+        current.map((item) =>
+          streamKey(item.playback) === key
+            ? {
+                ...item,
+                playback,
+                options: { ...effectiveOptions, quality: actualQuality },
+                error: null,
+              }
+            : item,
         ),
       );
       return null;
     } catch (error) {
       const message = errorMessage(error);
       setStreams((current) =>
-        current.map((entry) =>
-          entry.playback.roomId === roomId ? { ...entry, error: message } : entry,
+        current.map((item) =>
+          streamKey(item.playback) === key ? { ...item, error: message } : item,
         ),
       );
       return null;
     } finally {
       reloadingRef.current = null;
-      setReloadingRoomId(null);
+      setReloadingKey(null);
     }
   }
 
   async function setStreamOptions(
-    roomId: string,
+    key: string,
     patch: Partial<StreamResolveOptions>,
   ): Promise<string | null> {
-    const entry = streams.find((item) => item.playback.roomId === roomId);
+    const entry = streams.find((item) => streamKey(item.playback) === key);
     if (!entry) return null;
-    return reloadStream(roomId, { ...entry.options, ...patch });
+    return reloadStream(key, { ...entry.options, ...patch });
   }
 
-  function removeStream(roomId: string): void {
-    const remaining = streams.filter((entry) => entry.playback.roomId !== roomId);
-    setStreams(remaining);
+  function removeStream(key: string): void {
+    setStreams((current) => current.filter((entry) => streamKey(entry.playback) !== key));
     setMutedRooms((current) => {
       const next = { ...current };
-      delete next[roomId];
+      delete next[key];
       return next;
     });
     setVolumes((current) => {
       const next = { ...current };
-      delete next[roomId];
+      delete next[key];
       return next;
     });
-    if (reloadingRef.current === roomId) {
+    if (reloadingRef.current === key) {
       reloadingRef.current = null;
-      setReloadingRoomId(null);
+      setReloadingKey(null);
     }
   }
 
@@ -180,31 +200,31 @@ export function useStreamGrid(): UseStreamGridResult {
     setMutedRooms({});
     setVolumes({});
     reloadingRef.current = null;
-    setReloadingRoomId(null);
+    setReloadingKey(null);
   }
 
-  function toggleMute(roomId: string): void {
-    const nextMuted = !(mutedRooms[roomId] ?? false);
-    setMutedRooms((current) => ({ ...current, [roomId]: nextMuted }));
-    if (!nextMuted && (volumes[roomId] ?? DEFAULT_VOLUME) <= 0) {
-      setVolumes((current) => ({ ...current, [roomId]: DEFAULT_VOLUME }));
+  function toggleMute(key: string): void {
+    const nextMuted = !(mutedRooms[key] ?? false);
+    setMutedRooms((current) => ({ ...current, [key]: nextMuted }));
+    if (!nextMuted && (volumes[key] ?? DEFAULT_VOLUME) <= 0) {
+      setVolumes((current) => ({ ...current, [key]: DEFAULT_VOLUME }));
     }
   }
 
-  function setVolume(roomId: string, volume: number): void {
+  function setVolume(key: string, volume: number): void {
     const nextVolume = Math.min(1, Math.max(0, volume));
-    setVolumes((current) => ({ ...current, [roomId]: nextVolume }));
+    setVolumes((current) => ({ ...current, [key]: nextVolume }));
     setMutedRooms((current) => {
       const nextMuted = nextVolume <= 0;
-      if ((current[roomId] ?? false) === nextMuted) return current;
-      return { ...current, [roomId]: nextMuted };
+      if ((current[key] ?? false) === nextMuted) return current;
+      return { ...current, [key]: nextMuted };
     });
   }
 
   return {
     streams,
     isAdding,
-    reloadingRoomId,
+    reloadingKey,
     mutedRooms,
     volumes,
     addStream,

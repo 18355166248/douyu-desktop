@@ -1,4 +1,5 @@
 import type { AccountHealth, AccountSummary } from './account';
+import type { BilibiliDanmakuConfig, DouyuDanmakuConfig } from './danmaku';
 import type { ResolveStreamInput, StreamPlayback } from './stream';
 import type { Result } from './result';
 import type { RunTaskInput, TaskDescriptor, TaskProgressEvent, TaskRunResult, TaskRunSnapshot } from './task';
@@ -13,6 +14,10 @@ export interface DesktopApi {
   };
   streams: {
     resolve(input: ResolveStreamInput): Promise<Result<StreamPlayback>>;
+  };
+  danmaku: {
+    bilibiliConfig(roomId: string): Promise<Result<BilibiliDanmakuConfig>>;
+    douyuConfig(): Promise<Result<DouyuDanmakuConfig>>;
   };
   tasks: {
     list(): Promise<Result<TaskDescriptor[]>>;
@@ -40,6 +45,8 @@ export const IPC = {
   accountsLogout: 'accounts:logout',
   accountsHealth: 'accounts:health',
   streamsResolve: 'streams:resolve',
+  danmakuBilibiliConfig: 'danmaku:bilibili-config',
+  danmakuDouyuConfig: 'danmaku:douyu-config',
   tasksList: 'tasks:list',
   tasksRun: 'tasks:run',
   tasksStatus: 'tasks:status',

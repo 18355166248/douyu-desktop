@@ -62,10 +62,8 @@ export function decodeDouyuPackets(data: Uint8Array): string[] {
 }
 
 function parseFields(payload: string): Record<string, string> {
-  const start = payload.indexOf('type@=');
-  if (start < 0) return {};
+  if (!payload.includes('type@=')) return {};
   return payload
-    .slice(start)
     .split('/')
     .filter(Boolean)
     .reduce<Record<string, string>>((fields, part) => {
@@ -138,7 +136,7 @@ export function parseDouyuDanmaku(payload: string, roomId: string): DanmakuMessa
   const type = fields.type;
   if (!type) return null;
 
-  if (type === 'chatmsg') {
+  if (type === 'chatmsg' || type === 'hischatmsg') {
     const text = fields.txt ?? '';
     if (!text) return null;
     return {

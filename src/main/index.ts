@@ -5,6 +5,7 @@ import { JsonLogger } from './adapters/electron/JsonLogger';
 import { configureMediaCors } from './mediaCors';
 import { AccountSessionManager } from './services/AccountSessionManager';
 import { DouyuAuthService } from './services/DouyuAuthService';
+import { DouyuDanmakuSession } from './services/DouyuDanmakuSession';
 import { StreamService } from './services/StreamService';
 import { TaskService } from './services/TaskService';
 import { registerIpcHandlers } from './ipc';
@@ -36,8 +37,9 @@ if (!hasLock) {
       const accounts = new AccountSessionManager(store, auth, () => mainWindow);
       const streams = new StreamService();
       const tasks = new TaskService(accounts, logger);
+      const douyuDanmaku = new DouyuDanmakuSession();
 
-      registerIpcHandlers({ accounts, streams, tasks });
+      registerIpcHandlers({ accounts, streams, tasks, douyuDanmaku });
 
       mainWindow = createMainWindow();
       mainWindow.on('closed', () => {

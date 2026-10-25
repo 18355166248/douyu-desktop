@@ -1,26 +1,35 @@
 import { useEffect, useRef, useState } from 'react';
+import type { StreamPlatform } from '@shared/contracts/stream';
 import { Icon } from './components/Icon';
+import { PlatformPicker } from './components/PlatformPicker';
 import { TitleBar } from './components/TitleBar';
 import { AccountBar } from './features/accounts/AccountBar';
 import { useAccounts } from './features/accounts/useAccounts';
 import { DanmakuSettingsPanel } from './features/danmaku/DanmakuSettingsPanel';
 import { RoomHistoryPanel } from './features/history/RoomHistoryPanel';
 import { useRoomHistory } from './features/history/useRoomHistory';
+import type { RoomHistoryEntry } from './features/history/roomHistory';
 import { EmptyStage } from './features/player/EmptyStage';
 import { StreamGrid } from './features/player/StreamGrid';
 import { MAX_STREAMS, canAddStream } from './features/player/streamGridLayout';
-import { DEFAULT_STREAM_OPTIONS, useStreamGrid } from './features/player/useStreamGrid';
+import { defaultStreamOptions, useStreamGrid } from './features/player/useStreamGrid';
 import type { StreamResolveOptions } from './features/player/useStreamGrid';
+import { platformLabel } from './lib/streamIdentity';
 import { AutoSignRunner } from './features/tasks/AutoSignRunner';
 import { TaskButton } from './features/tasks/TaskButton';
 import { TaskPanel } from './features/tasks/TaskPanel';
+
+function roomPlaceholder(platform: StreamPlatform): string {
+  if (platform === 'bilibili') return 'B站房间号，如 6';
+  return '房间号，如 9999';
+}
 
 export function App(): React.JSX.Element {
   const { activeAccount } = useAccounts();
   const {
     streams,
     isAdding,
-    reloadingRoomId,
+    reloadingKey,
     mutedRooms,
     volumes,
     addStream,
@@ -31,6 +40,7 @@ export function App(): React.JSX.Element {
     toggleMute,
     setVolume,
   } = useStreamGrid();
+  const [platform, setPlatform] = useState<StreamPlatform>('douyu');
   const [roomId, setRoomId] = useState('9999');
   const [error, setError] = useState<string | null>(null);
   const [isDanmakuSettingsOpen, setDanmakuSettingsOpen] = useState(false);
@@ -39,7 +49,12 @@ export function App(): React.JSX.Element {
   const roomInputRef = useRef<HTMLInputElement>(null);
   const danmakuSettingsRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);
-  const { entries: roomHistory, recordVisit, clearHistory } = useRoomHistory();
+  const {
+    entries: roomHistory,
+    recordVisit,
+    removeHistory,
+    clearHistory,
+  } = useRoomHistory();
 
   useEffect(() => {
     if (!isDanmakuSettingsOpen) return;
@@ -97,12 +112,17 @@ export function App(): React.JSX.Element {
   const canAdd = canAddStream(streams.length);
   const canSubmit = canAdd && roomId.trim().length > 0;
 
-  async function handleAdd(targetRoomId: string): Promise<void> {
+  async function handleAdd(targetPlatform: StreamPlatform, targetRoomId: string): Promise<void> {
     setError(null);
     const message = await addStream(
-      { roomId: targetRoomId, ...DEFAULT_STREAM_OPTIONS },
+      {
+        platform: targetPlatform,
+        roomId: targetRoomId,
+        ...defaultStreamOptions(targetPlatform),
+      },
       (playback) => {
         recordVisit({
+          platform: playback.platform,
           roomId: playback.roomId,
           title: playback.title,
           anchorName: playback.anchorName,
@@ -117,23 +137,24 @@ export function App(): React.JSX.Element {
     focusRoomInput();
   }
 
-  function handleHistorySelect(targetRoomId: string): void {
+  function handleHistorySelect(entry: RoomHistoryEntry): void {
     setHistoryOpen(false);
-    setRoomId(targetRoomId);
-    void handleAdd(targetRoomId);
+    setPlatform(entry.platform);
+    setRoomId(entry.roomId);
+    void handleAdd(entry.platform, entry.roomId);
   }
 
-  function handleReload(targetRoomId: string): void {
-    void reloadStream(targetRoomId).then((message) => {
+  function handleReload(key: string): void {
+    void reloadStream(key).then((message) => {
       if (message) setError(message);
     });
   }
 
   function handleStreamOptionsChange(
-    targetRoomId: string,
+    key: string,
     patch: Partial<StreamResolveOptions>,
   ): void {
-    void setStreamOptions(targetRoomId, patch).then((message) => {
+    void setStreamOptions(key, patch).then((message) => {
       if (message) setError(message);
     });
   }
@@ -170,18 +191,20 @@ export function App(): React.JSX.Element {
           className="titlebar-form"
           onSubmit={(event) => {
             event.preventDefault();
-            if (canSubmit) void handleAdd(roomId);
+            if (canSubmit) void handleAdd(platform, roomId);
           }}
         >
+          <PlatformPicker value={platform} onChange={setPlatform} />
+
           <div className="room-field">
             <Icon name="live" size={15} />
             <input
               ref={roomInputRef}
               value={roomId}
               onChange={(event) => setRoomId(event.target.value)}
-              placeholder="房间号，如 9999"
+              placeholder={roomPlaceholder(platform)}
               spellCheck={false}
-              aria-label="斗鱼房间号"
+              aria-label={`${platformLabel(platform)}房间号`}
             />
           </div>
 
@@ -202,6 +225,7 @@ export function App(): React.JSX.Element {
               <RoomHistoryPanel
                 entries={roomHistory}
                 onSelect={handleHistorySelect}
+                onRemove={removeHistory}
                 onClear={clearHistory}
                 onClose={() => setHistoryOpen(false)}
               />
@@ -238,7 +262,7 @@ export function App(): React.JSX.Element {
           {error ? (
             <div className="alert" role="alert">
               <Icon name="alert" size={18} />
-              <span>{error}</span>
+              <span className="selectable">{error}</span>
               <button type="button" className="alert-close" onClick={() => setError(null)}>
                 <Icon name="close" size={15} />
               </button>
@@ -250,14 +274,15 @@ export function App(): React.JSX.Element {
               {streams.length === 0 ? (
                 <EmptyStage
                   onPickExample={() => {
+                    setPlatform('douyu');
                     setRoomId('9999');
-                    void handleAdd('9999');
+                    void handleAdd('douyu', '9999');
                   }}
                 />
               ) : (
                 <StreamGrid
                   streams={streams}
-                  reloadingRoomId={reloadingRoomId}
+                  reloadingKey={reloadingKey}
                   mutedRooms={mutedRooms}
                   volumes={volumes}
                   onReload={handleReload}

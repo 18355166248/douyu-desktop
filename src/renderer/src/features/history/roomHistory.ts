@@ -1,7 +1,12 @@
-export const ROOM_HISTORY_STORAGE_KEY = 'douyu-desktop.room-history.v1';
+import type { StreamPlatform } from '@shared/contracts/stream';
+import { roomKey } from '../../lib/streamIdentity';
+
+export const ROOM_HISTORY_STORAGE_KEY = 'douyu-desktop.room-history.v2';
+export const LEGACY_ROOM_HISTORY_STORAGE_KEY = 'douyu-desktop.room-history.v1';
 export const MAX_ROOM_HISTORY = 30;
 
 export interface RoomHistoryEntry {
+  platform: StreamPlatform;
   roomId: string;
   title: string;
   anchorName: string;
@@ -10,6 +15,7 @@ export interface RoomHistoryEntry {
 }
 
 export interface RoomVisit {
+  platform?: StreamPlatform | undefined;
   roomId: string;
   title: string;
   anchorName: string;
@@ -18,6 +24,10 @@ export interface RoomVisit {
 function cleanText(value: unknown, maxLength: number): string {
   if (typeof value !== 'string') return '';
   return value.trim().slice(0, maxLength);
+}
+
+function parsePlatform(value: unknown): StreamPlatform {
+  return value === 'bilibili' || value === 'huya' ? value : 'douyu';
 }
 
 function parseEntry(raw: unknown): RoomHistoryEntry | null {
@@ -35,6 +45,7 @@ function parseEntry(raw: unknown): RoomHistoryEntry | null {
   }
 
   return {
+    platform: parsePlatform(value.platform),
     roomId,
     title: cleanText(value.title, 200),
     anchorName: cleanText(value.anchorName, 80),
@@ -43,7 +54,7 @@ function parseEntry(raw: unknown): RoomHistoryEntry | null {
 }
 
 /**
- * Keeps the most recent entry per room and sorts newest visits first.
+ * Keeps the most recent entry per platform/room and sorts newest visits first.
  */
 export function parseRoomHistory(raw: unknown): RoomHistoryEntry[] {
   if (!Array.isArray(raw)) return [];
@@ -53,8 +64,9 @@ export function parseRoomHistory(raw: unknown): RoomHistoryEntry[] {
     .filter((entry): entry is RoomHistoryEntry => entry !== null)
     .sort((left, right) => right.visitedAt - left.visitedAt)
     .filter((entry) => {
-      if (seen.has(entry.roomId)) return false;
-      seen.add(entry.roomId);
+      const key = roomKey(entry.platform, entry.roomId);
+      if (seen.has(key)) return false;
+      seen.add(key);
       return true;
     })
     .slice(0, MAX_ROOM_HISTORY);
@@ -70,6 +82,7 @@ export function upsertRoomHistory(
 
   return parseRoomHistory([
     {
+      platform: visit.platform ?? 'douyu',
       roomId,
       title: visit.title,
       anchorName: visit.anchorName,
@@ -77,6 +90,19 @@ export function upsertRoomHistory(
     },
     ...entries,
   ]);
+}
+
+export function removeRoomHistory(
+  entries: readonly RoomHistoryEntry[],
+  keys: readonly string[],
+): RoomHistoryEntry[] {
+  const remove = new Set(keys);
+  if (remove.size === 0) return [...entries];
+  return entries.filter((entry) => !remove.has(roomKey(entry.platform, entry.roomId)));
+}
+
+export function historyLabel(entry: RoomHistoryEntry): string {
+  return `房间 ${entry.roomId}`;
 }
 
 export function formatHistoryTime(timestamp: number): string {
@@ -102,7 +128,9 @@ export function loadRoomHistory(): RoomHistoryEntry[] {
   const storage = getStorage();
   if (!storage) return [];
   try {
-    const raw = storage.getItem(ROOM_HISTORY_STORAGE_KEY);
+    const raw =
+      storage.getItem(ROOM_HISTORY_STORAGE_KEY) ??
+      storage.getItem(LEGACY_ROOM_HISTORY_STORAGE_KEY);
     return raw ? parseRoomHistory(JSON.parse(raw)) : [];
   } catch {
     return [];

@@ -57,7 +57,7 @@ export function TaskPanel({ hasAccount, onClose }: TaskPanelProps): React.JSX.El
       {query.isError ? (
         <div className="task-locked">
           <Icon name="alert" size={18} />
-          <p>{errorMessage(query.error)}</p>
+          <p className="selectable">{errorMessage(query.error)}</p>
           <button type="button" className="btn subtle" onClick={() => void query.refetch()}>
             重试
           </button>
@@ -165,7 +165,7 @@ export function TaskPanel({ hasAccount, onClose }: TaskPanelProps): React.JSX.El
           {runTask.error ? (
             <div className="task-result failed">
               <strong>运行失败</strong>
-              <p>{errorMessage(runTask.error)}</p>
+              <p className="selectable">{errorMessage(runTask.error)}</p>
             </div>
           ) : null}
 

@@ -1,5 +1,6 @@
-import type { DouyuQuality, StreamPlayback } from '@shared/contracts/stream';
+import type { StreamPlayback, StreamQuality } from '@shared/contracts/stream';
 import { Icon } from '../../components/Icon';
+import { platformLabel } from '../../lib/streamIdentity';
 import type { StreamResolveOptions } from './useStreamGrid';
 import { VideoPlayer } from './VideoPlayer';
 
@@ -10,7 +11,7 @@ interface PlayerTileProps {
   error?: string | null;
   muted: boolean;
   volume: number;
-  quality: DouyuQuality;
+  quality: StreamQuality;
   preferHls: boolean;
   onReload: () => void;
   onOptionsChange: (patch: Partial<StreamResolveOptions>) => void;
@@ -47,11 +48,13 @@ export function PlayerTile({
           <div>
             <h2>{playback.title || `房间 ${playback.roomId}`}</h2>
             <p>
-              {playback.anchorName || '斗鱼主播'} · 房间 {playback.roomId}
+              {playback.anchorName || `${platformLabel(playback.platform)}主播`} · 房间{' '}
+              {playback.roomId}
             </p>
           </div>
         </div>
         <div className="player-actions">
+          <span className="tag">{platformLabel(playback.platform)}</span>
           <span className="tag">{playback.quality}</span>
           <span className="tag">{playback.format.toUpperCase()}</span>
           <button
@@ -79,7 +82,7 @@ export function PlayerTile({
       {error ? (
         <div className="player-alert" role="alert">
           <Icon name="alert" size={14} />
-          <span>{error}</span>
+          <span className="selectable">{error}</span>
           <button type="button" onClick={onReload} disabled={isReloading}>
             重试
           </button>

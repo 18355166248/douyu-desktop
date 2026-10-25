@@ -30,16 +30,22 @@ export function DanmakuOverlay({
   roomId,
   platform,
 }: DanmakuOverlayProps): React.JSX.Element | null {
-  if (platform !== 'douyu') return null;
-  return <DouyuDanmakuOverlay roomId={roomId} />;
+  if (platform === 'huya') return null;
+  return <DanmakuLayer roomId={roomId} platform={platform} />;
 }
 
-function DouyuDanmakuOverlay({ roomId }: { roomId: string }): React.JSX.Element {
+function DanmakuLayer({
+  roomId,
+  platform,
+}: {
+  roomId: string;
+  platform: DanmakuPlatform;
+}): React.JSX.Element {
   const trackRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<DanmakuEngine | null>(null);
   const { settings, clearToken } = useDanmakuSettings();
   const initialSettingsRef = useRef(settings);
-  const status = useDanmaku(roomId, (event) => engineRef.current?.push(event));
+  const status = useDanmaku(roomId, platform, (event) => engineRef.current?.push(event));
 
   useLayoutEffect(() => {
     const track = trackRef.current;
@@ -58,7 +64,7 @@ function DouyuDanmakuOverlay({ roomId }: { roomId: string }): React.JSX.Element 
 
   useEffect(() => {
     engineRef.current?.clear();
-  }, [roomId]);
+  }, [roomId, platform]);
 
   useEffect(() => {
     if (clearToken > 0) engineRef.current?.clear();
