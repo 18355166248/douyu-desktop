@@ -76,4 +76,15 @@ export class JsonRoomHistoryStore {
     await write;
     return entries;
   }
+
+  /**
+   * Adds entries to the existing global history. Used once to bring over
+   * history written by the Vite dev origin (`http://localhost:5173`), which
+   * packaged builds cannot read through localStorage.
+   */
+  async merge(rawEntries: unknown): Promise<RoomHistoryEntry[]> {
+    const existing = await this.load();
+    const incoming = normalize(roomHistoryEntriesSchema.parse(rawEntries));
+    return this.save(normalize([...existing, ...incoming]));
+  }
 }

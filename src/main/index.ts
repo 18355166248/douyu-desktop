@@ -11,12 +11,14 @@ import { HuyaDanmakuSession } from './services/HuyaDanmakuSession';
 import { PlatformLoginManager } from './services/PlatformLoginManager';
 import { StreamService } from './services/StreamService';
 import { TaskService } from './services/TaskService';
+import { LegacyDevHistoryMigration } from './services/LegacyDevHistoryMigration';
 import { registerIpcHandlers } from './ipc';
 import { createMainWindow } from './window';
 
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
 let mainWindow: BrowserWindow | null = null;
+let hasCreatedMainWindow = false;
 
 const hasLock = app.requestSingleInstanceLock();
 if (!hasLock) {
@@ -39,6 +41,11 @@ if (!hasLock) {
       const history = new JsonRoomHistoryStore(
         join(app.getPath('home'), '.douyu-desktop', 'room-history.json'),
       );
+      await new LegacyDevHistoryMigration(
+        history,
+        join(app.getPath('userData'), 'legacy-dev-history-migrated.v1.json'),
+        logger,
+      ).migrate();
       const auth = new DouyuAuthService();
       const accounts = new AccountSessionManager(store, auth, () => mainWindow);
       const platforms = new PlatformLoginManager(() => mainWindow);
@@ -64,6 +71,7 @@ if (!hasLock) {
       });
 
       mainWindow = createMainWindow();
+      hasCreatedMainWindow = true;
       mainWindow.on('closed', () => {
         mainWindow = null;
       });
@@ -91,6 +99,10 @@ if (!hasLock) {
     });
 
   app.on('window-all-closed', () => {
+    if (!hasCreatedMainWindow) return;
+    // A destroy from the temporary migration window can queue this event after
+    // the real window has already been created.
+    if (BrowserWindow.getAllWindows().length > 0) return;
     if (process.platform !== 'darwin') app.quit();
   });
 }

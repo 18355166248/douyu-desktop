@@ -58,6 +58,29 @@ describe('JsonRoomHistoryStore', () => {
     await expect(store.load()).resolves.toEqual([]);
   });
 
+  it('merges incoming history into the existing global file', async () => {
+    const store = new JsonRoomHistoryStore(historyPath);
+    await store.save([entry('111', 10, '旧标题')]);
+
+    const merged = await store.merge([entry('222', 20), entry('111', 30, '新标题')]);
+
+    expect(merged.map((item) => item.roomId)).toEqual(['111', '222']);
+    expect(merged[0]?.title).toBe('新标题');
+    await expect(new JsonRoomHistoryStore(historyPath).load()).resolves.toEqual(merged);
+  });
+
+  it('keeps at most the shared maximum when merging two full lists', async () => {
+    const store = new JsonRoomHistoryStore(historyPath);
+    await store.save(Array.from({ length: 30 }, (_, index) => entry(String(index + 1), index + 1)));
+
+    const merged = await store.merge(
+      Array.from({ length: 30 }, (_, index) => entry(String(index + 31), index + 31)),
+    );
+
+    expect(merged).toHaveLength(30);
+    expect(merged[0]?.roomId).toBe('60');
+  });
+
   it('rejects a renderer list larger than the shared maximum', async () => {
     const store = new JsonRoomHistoryStore(historyPath);
 
