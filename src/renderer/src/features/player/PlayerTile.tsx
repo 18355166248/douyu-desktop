@@ -13,7 +13,6 @@ interface PlayerTileProps {
   compact?: boolean;
   error?: string | null;
   immersive?: boolean;
-  suspended?: boolean;
   shortcutsEnabled?: boolean;
   onActivate?: () => void;
   muted: boolean;
@@ -35,7 +34,6 @@ export function PlayerTile({
   compact = false,
   error = null,
   immersive = false,
-  suspended = false,
   shortcutsEnabled = false,
   onActivate,
   muted,
@@ -135,7 +133,6 @@ export function PlayerTile({
         isReloading={isReloading}
         shortcutsEnabled={shortcutsEnabled}
         immersive={immersive}
-        suspended={suspended}
         onReload={reloadPlaybackAndAudience}
         onToggleMute={onToggleMute}
         onVolumeChange={onVolumeChange}

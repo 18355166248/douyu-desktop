@@ -25,7 +25,6 @@ interface VideoPlayerProps {
   isReloading: boolean;
   shortcutsEnabled: boolean;
   immersive: boolean;
-  suspended?: boolean;
   onReload: () => void;
   onToggleMute: () => void;
   onVolumeChange: (volume: number) => void;
@@ -44,7 +43,6 @@ export function VideoPlayer({
   isReloading,
   shortcutsEnabled,
   immersive,
-  suspended = false,
   onReload,
   onToggleMute,
   onVolumeChange,
@@ -55,7 +53,6 @@ export function VideoPlayer({
 }: VideoPlayerProps): React.JSX.Element {
   const videoRef = useRef<HTMLVideoElement>(null);
   const userPausedRef = useRef(false);
-  const resumeAfterSuspendRef = useRef(false);
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +80,6 @@ export function VideoPlayer({
     setIsReady(false);
     setIsPlaying(false);
     userPausedRef.current = false;
-    resumeAfterSuspendRef.current = false;
     return attachPlayback(video, playback, {
       isUserPaused: () => userPausedRef.current,
       onError: setError,
@@ -99,31 +95,6 @@ export function VideoPlayer({
     const video = videoRef.current;
     if (video) video.volume = Math.min(1, Math.max(0, volume));
   }, [volume]);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return undefined;
-
-    if (suspended) {
-      const pause = (): void => {
-        if (video.paused) return;
-        resumeAfterSuspendRef.current = true;
-        video.pause();
-      };
-      pause();
-      video.addEventListener('play', pause);
-      return () => video.removeEventListener('play', pause);
-    }
-
-    if (!resumeAfterSuspendRef.current) return undefined;
-    resumeAfterSuspendRef.current = false;
-    if (!userPausedRef.current) {
-      void video.play().catch(() => {
-        // The player remains paused if the platform rejects autoplay.
-      });
-    }
-    return undefined;
-  }, [playback, suspended]);
 
   const togglePlayback = useCallback((): void => {
     const video = videoRef.current;

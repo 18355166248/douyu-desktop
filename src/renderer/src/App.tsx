@@ -463,7 +463,7 @@ export function App(): React.JSX.Element {
                   <StreamGrid
                     streams={streams}
                     immersive={isImmersive}
-                    suspended={activeView === 'home'}
+                    keyboardActive={activeView === 'live'}
                     reloadingKey={reloadingKey}
                     mutedRooms={mutedRooms}
                     volumes={volumes}
