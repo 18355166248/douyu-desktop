@@ -407,7 +407,7 @@ export function App(): React.JSX.Element {
         <AccountBar compact />
       </TitleBar>
       <div className="app-shell">
-        <main className="main">
+        <main className={`main${activeView === 'live' ? ' is-live' : ''}`}>
           {error ? (
             <div className="alert" role="alert">
               <Icon name="alert" size={18} />

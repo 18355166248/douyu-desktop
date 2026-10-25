@@ -640,6 +640,10 @@
   overflow: hidden;
 }
 
+.main.is-live {
+  padding-bottom: 0;
+}
+
 .account-area {
   position: relative;
   display: flex;
