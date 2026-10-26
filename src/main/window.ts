@@ -28,6 +28,10 @@ export function createMainWindow(options: CreateMainWindowOptions = {}): Browser
       contextIsolation: true,
       nodeIntegration: false,
       webSecurity: true,
+      // Keep live video frames and timers running while the window is covered
+      // or left in the background; otherwise audio continues while video is
+      // throttled and the picture drifts out of sync until refocus.
+      backgroundThrottling: false,
     },
   });
 
