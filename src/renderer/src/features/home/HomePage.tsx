@@ -6,6 +6,7 @@ import type { SpecialFollowEntry, SpecialFollowTarget } from '@shared/contracts/
 import type { StreamPlatform } from '@shared/contracts/stream';
 import { Icon } from '../../components/Icon';
 import { AppLogo } from '../../components/AppLogo';
+import { RoomHoverPreview } from './RoomHoverPreview';
 import { PLATFORM_ICON_URLS } from '../../lib/platformAssets';
 import { platformLabel, roomKey } from '../../lib/streamIdentity';
 import { RoomHistoryPanel } from '../history/RoomHistoryPanel';
@@ -20,6 +21,7 @@ import {
 } from './homeModel';
 
 interface HomePageProps {
+  active?: boolean;
   accountsLoading: boolean;
   activeAccount: AccountSummary | undefined;
   followed: FollowedRoom[];
@@ -37,6 +39,7 @@ interface HomePageProps {
 }
 
 interface HomeRoomRowProps {
+  previewEnabled: boolean;
   platform: StreamPlatform;
   roomId: string;
   name: string;
@@ -52,6 +55,7 @@ interface HomeRoomRowProps {
 }
 
 function HomeRoomRow({
+  previewEnabled,
   platform,
   roomId,
   name,
@@ -66,6 +70,10 @@ function HomeRoomRow({
   onToggle,
 }: HomeRoomRowProps): React.JSX.Element {
   const [coverFailed, setCoverFailed] = useState(false);
+  const [previewRequested, setPreviewRequested] = useState(false);
+  useEffect(() => {
+    if (!previewEnabled) setPreviewRequested(false);
+  }, [previewEnabled]);
   useEffect(() => {
     setCoverFailed(false);
   }, [cover]);
@@ -78,7 +86,19 @@ function HomeRoomRow({
       <button
         type="button"
         className="home-room-open"
-        onClick={onOpen}
+        onPointerEnter={(event) => {
+          if (event.pointerType === 'mouse') setPreviewRequested(true);
+        }}
+        onPointerLeave={() => setPreviewRequested(false)}
+        onPointerCancel={() => setPreviewRequested(false)}
+        onFocus={(event) => {
+          if (event.currentTarget.matches(':focus-visible')) setPreviewRequested(true);
+        }}
+        onBlur={() => setPreviewRequested(false)}
+        onClick={() => {
+          setPreviewRequested(false);
+          onOpen();
+        }}
         title={`打开${platformLabel(platform)}房间 ${roomId}`}
       >
         <span className={`home-room-thumb home-room-thumb-${platform}`}>
@@ -101,6 +121,9 @@ function HomeRoomRow({
               draggable={false}
               onError={() => setCoverFailed(true)}
             />
+          ) : null}
+          {previewRequested && previewEnabled && (isLive || !showStatus) ? (
+            <RoomHoverPreview key={`${platform}:${roomId}`} platform={platform} roomId={roomId} />
           ) : null}
           {showStatus && !isLive ? (
             <span className="home-thumb-offline">
@@ -162,6 +185,7 @@ function HomeSkeleton(): React.JSX.Element {
 }
 
 export function HomePage({
+  active = true,
   accountsLoading,
   activeAccount,
   followed,
@@ -331,6 +355,7 @@ export function HomePage({
             ) : null}
             {filteredSpecials.map((room) => (
               <HomeRoomRow
+                previewEnabled={active && !isHistoryOpen}
                 key={specialFollowKey(room)}
                 platform={room.platform}
                 roomId={room.roomId}
@@ -411,6 +436,7 @@ export function HomePage({
             {filteredFollowed.map((room) => (
               <div role="listitem" key={roomKey(room.platform, room.roomId)}>
                 <HomeRoomRow
+                  previewEnabled={active && !isHistoryOpen}
                   platform={room.platform}
                   roomId={room.roomId}
                   name={room.name}

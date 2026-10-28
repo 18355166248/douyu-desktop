@@ -627,6 +627,7 @@ export function App(): React.JSX.Element {
               hidden={activeView !== 'home'}
             >
               <HomePage
+                active={activeView === 'home'}
                 accountsLoading={accountsQuery.isLoading}
                 activeAccount={activeAccount}
                 followed={followed.rooms}
