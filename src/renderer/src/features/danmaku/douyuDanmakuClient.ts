@@ -15,6 +15,7 @@ interface DouyuDanmakuClientOptions {
 const HEARTBEAT_MS = 20_000;
 const RECONNECT_MS = 3_000;
 const CONNECT_TIMEOUT_MS = 10_000;
+const RECEIVE_TIMEOUT_MS = 60_000;
 
 export function buildDouyuVisitorLogin(roomId: string): string {
   const username = `visitor${Math.floor(1_000_000 + Math.random() * 9_000_000)}`;
@@ -44,6 +45,7 @@ export class DouyuDanmakuClient {
   private sequence = 0;
   private closed = false;
   private joined = false;
+  private lastReceivedAt = 0;
   private joinTimer: number | null = null;
 
   constructor(options: DouyuDanmakuClientOptions) {
@@ -107,7 +109,7 @@ export class DouyuDanmakuClient {
         status: 'error',
         message: '弹幕连接超时',
       });
-      ws.close();
+      this.reconnect();
     }, CONNECT_TIMEOUT_MS);
 
     ws.onopen = () => {
@@ -117,6 +119,7 @@ export class DouyuDanmakuClient {
         return;
       }
       this.send(buildDouyuVisitorLogin(this.roomId));
+      this.lastReceivedAt = Date.now();
       this.startHeartbeat();
       // The gateway normally replies with loginres; keep a fallback so a
       // non-gateway proxy still receives a joingroup.
@@ -130,6 +133,7 @@ export class DouyuDanmakuClient {
 
     ws.onmessage = (event) => {
       if (!this.closed && this.ws === ws && event.data instanceof ArrayBuffer) {
+        this.lastReceivedAt = Date.now();
         this.handleFrame(event.data);
       }
     };
@@ -142,6 +146,7 @@ export class DouyuDanmakuClient {
         status: 'error',
         message: '弹幕连接失败',
       });
+      this.reconnect();
     };
 
     ws.onclose = () => {
@@ -204,8 +209,28 @@ export class DouyuDanmakuClient {
   private startHeartbeat(): void {
     this.stopHeartbeat();
     this.heartbeat = window.setInterval(() => {
+      // 半开连接不一定触发 onclose；心跳期间长期收不到任何帧则主动换连接。
+      if (Date.now() - this.lastReceivedAt >= RECEIVE_TIMEOUT_MS) {
+        this.reconnect();
+        return;
+      }
       this.send('type@=mr');
     }, HEARTBEAT_MS);
+  }
+
+  private reconnect(): void {
+    if (this.closed) return;
+    const ws = this.ws;
+    this.ws = null;
+    this.stopHeartbeat();
+    this.clearConnectTimer();
+    this.clearJoinTimer();
+    if (ws) {
+      ws.onopen = ws.onmessage = ws.onerror = ws.onclose = null;
+      ws.close();
+    }
+    this.onStatus({ roomId: this.roomId, platform: 'douyu', status: 'reconnecting' });
+    this.scheduleReconnect();
   }
 
   private stopHeartbeat(): void {

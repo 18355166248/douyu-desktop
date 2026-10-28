@@ -9,6 +9,7 @@ import { useDanmaku } from './useDanmaku';
 interface DanmakuOverlayProps {
   roomId: string;
   platform: DanmakuPlatform;
+  suspended: boolean;
 }
 
 function statusLabel(status: DanmakuStatusEvent): string {
@@ -31,23 +32,16 @@ function statusLabel(status: DanmakuStatusEvent): string {
 export function DanmakuOverlay({
   roomId,
   platform,
+  suspended,
 }: DanmakuOverlayProps): React.JSX.Element {
-  return <DanmakuLayer roomId={roomId} platform={platform} />;
-}
-
-function DanmakuLayer({
-  roomId,
-  platform,
-}: {
-  roomId: string;
-  platform: DanmakuPlatform;
-}): React.JSX.Element {
   const trackRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<DanmakuEngine | null>(null);
   const giftFeedRef = useRef<GiftFeedHandle>(null);
   const { settings, clearToken } = useDanmakuSettings();
   const initialSettingsRef = useRef(settings);
   const status = useDanmaku(roomId, platform, (event) => {
+    // 视频没有实际播放时丢弃实时消息，恢复后不补播断流期间的旧弹幕。
+    if (suspended) return;
     if (event.kind === 'gift') {
       giftFeedRef.current?.push(event);
       return;
@@ -67,8 +61,13 @@ function DanmakuLayer({
   }, []);
 
   useEffect(() => {
-    engineRef.current?.updateSettings(settings);
-  }, [settings]);
+    engineRef.current?.updateSettings({ ...settings, visible: settings.visible && !suspended });
+  }, [settings, suspended]);
+
+  useLayoutEffect(() => {
+    engineRef.current?.clear();
+    giftFeedRef.current?.clear();
+  }, [suspended]);
 
   useEffect(() => {
     engineRef.current?.clear();
@@ -82,7 +81,7 @@ function DanmakuLayer({
   const stateText = settings.paused ? '弹幕已暂停' : statusLabel(status);
 
   return (
-    <div className={`danmaku-layer${settings.visible ? '' : ' is-hidden'}`}>
+    <div className={`danmaku-layer${settings.visible && !suspended ? '' : ' is-hidden'}`}>
       <div className="danmaku-track" ref={trackRef} aria-hidden="true" />
       <GiftFeed
         key={`${platform}:${roomId}`}

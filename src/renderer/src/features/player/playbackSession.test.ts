@@ -32,7 +32,7 @@ const mocks = vi.hoisted(() => {
   }
   const flv = {
     attachMediaElement: vi.fn(),
-    on: vi.fn(),
+    on: vi.fn<(event: string, handler: () => void) => void>(),
     load: vi.fn(),
     pause: vi.fn(),
     unload: vi.fn(),
@@ -43,13 +43,18 @@ const mocks = vi.hoisted(() => {
 });
 vi.mock('hls.js', () => ({ default: mocks.FakeHls }));
 vi.mock('mpegts.js', () => ({
-  default: { isSupported: () => true, createPlayer: mocks.createFlv, Events: { ERROR: 'error' } },
+  default: {
+    isSupported: () => true,
+    createPlayer: mocks.createFlv,
+    Events: { ERROR: 'error', LOADING_COMPLETE: 'complete' },
+  },
 }));
 
 class FakeVideo extends EventTarget {
   currentTime = 0;
   paused = true;
   seeking = false;
+  error: { code: number } | null = null;
   play = vi.fn(async () => {
     this.paused = false;
   });
@@ -85,6 +90,7 @@ afterEach(() => {
 async function start(paused = false, format = playback.format) {
   const video = new FakeVideo();
   const error = vi.fn();
+  const recovering = vi.fn();
   cleanup = attachPlayback(
     video as unknown as HTMLVideoElement,
     {
@@ -92,13 +98,73 @@ async function start(paused = false, format = playback.format) {
       format,
       url: format === 'hls' ? playback.url : 'https://cdn.example/live.flv',
     },
-    { isUserPaused: () => paused, onError: error },
+    { isUserPaused: () => paused, onError: error, onRecovering: recovering },
   );
   await vi.dynamicImportSettled();
-  return { video, error, hls: mocks.FakeHls.instances[0]! };
+  return { video, error, recovering, hls: mocks.FakeHls.instances[0]! };
 }
 
 describe('playback session recovery', () => {
+  it('prioritizes a native decode error over a pending HLS network retry', async () => {
+    const { video, hls, error, recovering } = await start();
+    hls.fail('network');
+    video.error = { code: 3 };
+    video.dispatchEvent(new Event('error'));
+    await vi.advanceTimersByTimeAsync(400);
+    expect(hls.recoverMediaError).toHaveBeenCalledOnce();
+    expect(hls.loadSource).toHaveBeenCalledTimes(1);
+    expect(recovering).toHaveBeenCalledOnce();
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it.each(['network', 'media'])('reports exceptions during HLS %s recovery', async (type) => {
+    const { hls, error } = await start();
+    const operation = type === 'media' ? hls.recoverMediaError : hls.loadSource;
+    operation.mockImplementationOnce(() => {
+      throw new Error('recovery failed');
+    });
+    hls.fail(type);
+    await vi.advanceTimersByTimeAsync(400);
+    expect(error).toHaveBeenCalledExactlyOnceWith('HLS 重连失败，请重新解析');
+    expect(hls.destroy).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('does not create a player if a native error fails the session during import', async () => {
+    const video = new FakeVideo();
+    const error = vi.fn();
+    cleanup = attachPlayback(video as unknown as HTMLVideoElement, playback, {
+      isUserPaused: () => false,
+      onError: error,
+    });
+    video.error = { code: 3 };
+    video.dispatchEvent(new Event('error'));
+    await vi.dynamicImportSettled();
+    expect(error).toHaveBeenCalledOnce();
+    expect(mocks.FakeHls.instances).toHaveLength(0);
+    expect(video.play).not.toHaveBeenCalled();
+  });
+
+  it('deduplicates native decode errors and HLS errors in the same recovery window', async () => {
+    const { video, hls, error, recovering } = await start();
+    video.error = { code: 3 };
+    video.dispatchEvent(new Event('error'));
+    hls.fail('media');
+    await vi.advanceTimersByTimeAsync(400);
+    expect(hls.recoverMediaError).toHaveBeenCalledTimes(1);
+    expect(recovering).toHaveBeenCalledTimes(1);
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it('recovers native FLV decode errors without requiring a second library event', async () => {
+    const { video, error } = await start(false, 'flv');
+    video.error = { code: 3 };
+    video.dispatchEvent(new Event('error'));
+    await vi.advanceTimersByTimeAsync(400);
+    expect(mocks.createFlv).toHaveBeenCalledTimes(2);
+    expect(error).not.toHaveBeenCalled();
+  });
+
   it('bounds repeated fatal media recovery as well as network recovery', async () => {
     const { hls, error } = await start();
     for (let attempt = 1; attempt <= 3; attempt += 1) {
@@ -167,6 +233,41 @@ describe('playback session recovery', () => {
     dispose();
     await vi.dynamicImportSettled();
     expect(mocks.FakeHls.instances).toHaveLength(0);
+    expect(video.play).not.toHaveBeenCalled();
+  });
+
+  it.each(['error', 'complete'])('reconnects FLV on %s and bounds retries', async (event) => {
+    const { error, recovering } = await start(false, 'flv');
+    const emit = (): void => {
+      const handler = [...mocks.flv.on.mock.calls].reverse().find(([name]) => name === event)?.[1];
+      handler?.();
+    };
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      emit();
+      emit(); // 重复事件不能同时创建多个连接。
+      await vi.advanceTimersByTimeAsync(400 * attempt);
+    }
+    expect(mocks.createFlv).toHaveBeenCalledTimes(4);
+    expect(recovering).toHaveBeenCalledTimes(3);
+    emit();
+    expect(error).toHaveBeenCalledExactlyOnceWith('FLV 播放失败，请尝试重新解析');
+  });
+
+  it('cancels pending FLV reconnect when the room closes', async () => {
+    await start(false, 'flv');
+    mocks.flv.on.mock.calls.find(([event]) => event === 'error')?.[1]();
+    cleanup?.();
+    cleanup = undefined;
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(mocks.createFlv).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('keeps a user pause across FLV reconnects', async () => {
+    const { video } = await start(true, 'flv');
+    mocks.flv.on.mock.calls.find(([event]) => event === 'error')?.[1]();
+    await vi.advanceTimersByTimeAsync(400);
+    expect(mocks.createFlv).toHaveBeenCalledTimes(2);
     expect(video.play).not.toHaveBeenCalled();
   });
 
