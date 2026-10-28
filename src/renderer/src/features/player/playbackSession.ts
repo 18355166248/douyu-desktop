@@ -119,20 +119,47 @@ export function attachPlayback(
         fail('当前环境不支持 FLV');
         return;
       }
-      flv = mpegts.createPlayer(
-        { type: 'flv', isLive: true, url: playback.url },
-        {
-          enableWorker: true,
-          enableStashBuffer: false,
-          stashInitialSize: 128,
-          lazyLoad: false,
-          autoCleanupSourceBuffer: true,
-        },
-      );
-      flv.attachMediaElement(video);
-      flv.on(mpegts.Events.ERROR, () => fail('FLV 播放失败，请尝试重新解析'));
-      flv.load();
-      play();
+      const connectFlv = (): void => {
+        if (disposed || failed) return;
+        // 重连时重建 MSE，避免把新连接的时间戳接到旧音视频缓冲上。
+        destroyPlayers();
+        const player = mpegts.createPlayer(
+          { type: 'flv', isLive: true, url: playback.url },
+          {
+            enableWorker: true,
+            // 直播稳定性优先：保留网络抖动缓冲，单位为字节。
+            enableStashBuffer: true,
+            stashInitialSize: 128 * 1024,
+            lazyLoad: false,
+            autoCleanupSourceBuffer: true,
+          },
+        );
+        flv = player;
+        const reconnect = (): void => {
+          if (disposed || failed || flv !== player || recoveryTimer !== null) return;
+          resetHealthyWindow();
+          if (recoveryAttempts >= 3) {
+            fail('FLV 播放失败，请尝试重新解析');
+            return;
+          }
+          recoveryAttempts += 1;
+          recoveryTimer = setTimeout(() => {
+            recoveryTimer = null;
+            try {
+              connectFlv();
+            } catch {
+              fail('FLV 重连失败，请重新解析');
+            }
+          }, 400 * recoveryAttempts);
+        };
+        player.attachMediaElement(video);
+        player.on(mpegts.Events.ERROR, reconnect);
+        // 直播连接正常 EOF 也意味着后续没有数据，不能只监听 ERROR。
+        player.on(mpegts.Events.LOADING_COMPLETE, reconnect);
+        player.load();
+        play();
+      };
+      connectFlv();
     }
   };
   void start().catch(() => fail('播放器初始化失败，请重新解析'));

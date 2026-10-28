@@ -17,9 +17,11 @@ export function useStreamStall(
   const [stalled, setStalled] = useState(false);
   const lastProgressAtRef = useRef(0);
   const lastTimeRef = useRef(0);
+  const lastFrameAtRef = useRef(0);
 
   const dismiss = useCallback((): void => {
     lastProgressAtRef.current = performance.now();
+    lastFrameAtRef.current = lastProgressAtRef.current;
     setStalled(false);
   }, []);
 
@@ -34,18 +36,31 @@ export function useStreamStall(
     lastTimeRef.current = video.currentTime;
     setStalled(false);
 
+    // currentTime 可能随音轨继续前进；以实际提交的视频帧检测“有声无画”。
+    lastFrameAtRef.current = performance.now();
+    let frameHandle: number | undefined;
+    const supportsFrames = typeof video.requestVideoFrameCallback === 'function';
+    const onFrame = (): void => {
+      lastFrameAtRef.current = performance.now();
+      frameHandle = video.requestVideoFrameCallback(onFrame);
+    };
+    if (supportsFrames) frameHandle = video.requestVideoFrameCallback(onFrame);
+
     const check = (): void => {
       const now = performance.now();
       const inactive =
-        video.paused ||
-        video.ended ||
-        video.seeking ||
-        document.visibilityState === 'hidden';
+        video.paused || video.ended || video.seeking || document.visibilityState === 'hidden';
 
       if (inactive) {
+        lastFrameAtRef.current = now;
         lastProgressAtRef.current = now;
         lastTimeRef.current = video.currentTime;
         setStalled(false);
+        return;
+      }
+
+      if (supportsFrames && hasStreamStalled(now, lastFrameAtRef.current)) {
+        setStalled(true);
         return;
       }
 
@@ -60,7 +75,10 @@ export function useStreamStall(
     };
 
     const timer = window.setInterval(check, CHECK_INTERVAL_MS);
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearInterval(timer);
+      if (frameHandle !== undefined) video.cancelVideoFrameCallback(frameHandle);
+    };
   }, [enabled, videoRef]);
 
   return { stalled, dismiss };

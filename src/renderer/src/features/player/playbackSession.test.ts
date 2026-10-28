@@ -32,7 +32,7 @@ const mocks = vi.hoisted(() => {
   }
   const flv = {
     attachMediaElement: vi.fn(),
-    on: vi.fn(),
+    on: vi.fn<(event: string, handler: () => void) => void>(),
     load: vi.fn(),
     pause: vi.fn(),
     unload: vi.fn(),
@@ -43,7 +43,11 @@ const mocks = vi.hoisted(() => {
 });
 vi.mock('hls.js', () => ({ default: mocks.FakeHls }));
 vi.mock('mpegts.js', () => ({
-  default: { isSupported: () => true, createPlayer: mocks.createFlv, Events: { ERROR: 'error' } },
+  default: {
+    isSupported: () => true,
+    createPlayer: mocks.createFlv,
+    Events: { ERROR: 'error', LOADING_COMPLETE: 'complete' },
+  },
 }));
 
 class FakeVideo extends EventTarget {
@@ -167,6 +171,40 @@ describe('playback session recovery', () => {
     dispose();
     await vi.dynamicImportSettled();
     expect(mocks.FakeHls.instances).toHaveLength(0);
+    expect(video.play).not.toHaveBeenCalled();
+  });
+
+  it.each(['error', 'complete'])('reconnects FLV on %s and bounds retries', async (event) => {
+    const { error } = await start(false, 'flv');
+    const emit = (): void => {
+      const handler = [...mocks.flv.on.mock.calls].reverse().find(([name]) => name === event)?.[1];
+      handler?.();
+    };
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      emit();
+      emit(); // 重复事件不能同时创建多个连接。
+      await vi.advanceTimersByTimeAsync(400 * attempt);
+    }
+    expect(mocks.createFlv).toHaveBeenCalledTimes(4);
+    emit();
+    expect(error).toHaveBeenCalledExactlyOnceWith('FLV 播放失败，请尝试重新解析');
+  });
+
+  it('cancels pending FLV reconnect when the room closes', async () => {
+    await start(false, 'flv');
+    mocks.flv.on.mock.calls.find(([event]) => event === 'error')?.[1]();
+    cleanup?.();
+    cleanup = undefined;
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(mocks.createFlv).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('keeps a user pause across FLV reconnects', async () => {
+    const { video } = await start(true, 'flv');
+    mocks.flv.on.mock.calls.find(([event]) => event === 'error')?.[1]();
+    await vi.advanceTimersByTimeAsync(400);
+    expect(mocks.createFlv).toHaveBeenCalledTimes(2);
     expect(video.play).not.toHaveBeenCalled();
   });
 

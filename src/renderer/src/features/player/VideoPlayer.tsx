@@ -121,7 +121,8 @@ export function VideoPlayer({
   // Run before paint so the manual "stalled" prompt never flashes when an
   // automatic recovery is about to start.
   useLayoutEffect(() => {
-    if (!streamStalled || isReloading) return;
+    // 播放器致命错误会关闭卡顿检测，必须同时进入有次数限制的重新解析。
+    if ((!streamStalled && !error) || isReloading || userPausedRef.current) return;
     if (autoRecoveredRef.current) {
       setAutoRecovering(false);
       return;
@@ -131,16 +132,16 @@ export function VideoPlayer({
     setAutoRecovering(true);
     dismissStall();
     onReloadRef.current();
-  }, [dismissStall, isReloading, streamStalled]);
+  }, [dismissStall, error, isReloading, streamStalled]);
 
   useEffect(() => {
-    if (!isReady || !isPlaying || isReloading || streamStalled) return undefined;
+    if (!isReady || !isPlaying || error || isReloading || streamStalled) return undefined;
     const timer = window.setTimeout(() => {
       autoRecoveredRef.current = false;
       setAutoRecovering(false);
     }, AUTO_RECOVERY_RESET_MS);
     return () => window.clearTimeout(timer);
-  }, [isPlaying, isReady, isReloading, streamStalled]);
+  }, [error, isPlaying, isReady, isReloading, streamStalled]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -431,9 +432,7 @@ export function VideoPlayer({
               aria-keyshortcuts="S"
               aria-pressed={isSolo}
               title={
-                isSolo
-                  ? '取消独奏，恢复其他直播间声音 (S)'
-                  : '静音其他直播间，只保留当前声音 (S)'
+                isSolo ? '取消独奏，恢复其他直播间声音 (S)' : '静音其他直播间，只保留当前声音 (S)'
               }
             >
               <Icon name="headphones" size={17} />
