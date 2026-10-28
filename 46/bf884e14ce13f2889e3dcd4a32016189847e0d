@@ -1,0 +1,49 @@
+src/renderer/src/features/player/VideoPlayer.tsx
+  s_6e70a7f27ae467::t_d031c1f73cd165 76,99-102,301-304,329
+src/renderer/src/App.tsx
+  s_6e70a7f27ae467::t_4b92c4d394a657 48,85,244-246,535
+src/renderer/src/features/danmaku/GiftFeed.tsx
+  s_6e70a7f27ae467::t_d031c1f73cd165 23,51
+src/renderer/src/features/player/playbackSession.ts
+  s_6e70a7f27ae467::t_d031c1f73cd165 8,99,135-138,151
+src/renderer/src/features/player/useStreamStall.ts
+  s_6e70a7f27ae467::t_d031c1f73cd165 16,53-54,64-66,78,86
+src/renderer/src/features/danmaku/douyuDanmakuClient.test.ts
+  s_6e70a7f27ae467::t_b0b31385f4272b 1-2,20-32,36-38,45-65
+  s_6e70a7f27ae467::t_66fed29250776c 33-35,39-44
+src/renderer/src/features/player/playbackSession.test.ts
+  s_6e70a7f27ae467::t_b0b31385f4272b 92,100,103,179,190
+src/renderer/src/features/player/useStreamStall.test.ts
+  s_6e70a7f27ae467::t_66fed29250776c 41-45
+  s_6e70a7f27ae467::t_b0b31385f4272b 27,31,51-63
+src/renderer/src/features/player/useStreamGrid.ts
+  s_6e70a7f27ae467::t_4b92c4d394a657 28,54,59,134-135,147-148,160,175,184-186,225-226,235-236,296
+src/renderer/src/features/danmaku/DanmakuOverlay.test.ts
+  s_6e70a7f27ae467::t_08fe5a8cfa73d7 1-25,27-29,31-35,37-72
+  s_6e70a7f27ae467::t_7de13f4322db55 26
+  s_6e70a7f27ae467::t_f1145682d755b2 30
+  s_6e70a7f27ae467::t_ddeabdb8565a9d 36
+src/renderer/src/features/player/StreamGrid.tsx
+  s_6e70a7f27ae467::t_4b92c4d394a657 16,38,59,97
+src/renderer/src/features/player/useStreamGrid.test.ts
+  s_6e70a7f27ae467::t_4b92c4d394a657 83-91,93-103,126,131
+  s_6e70a7f27ae467::t_64704b913d2736 92
+src/renderer/src/features/danmaku/DanmakuOverlay.tsx
+  s_6e70a7f27ae467::t_d031c1f73cd165 12,35,37,43,47,55-56,76-82,96
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.1",
+  "base_commit_sha": "46bf884e14ce13f2889e3dcd4a32016189847e0d",
+  "prompts": {},
+  "sessions": {
+    "s_6e70a7f27ae467": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1810b-4d98-7922-b5b5-7bb6107b1be6",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "lang.jiang <lang.jiang@ximalaya.com>"
+    }
+  }
+}
