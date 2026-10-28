@@ -1,4 +1,5 @@
 import { Icon } from '../../components/Icon';
+import { AppLogo } from '../../components/AppLogo';
 import { MAX_STREAMS } from './streamGridLayout';
 
 interface EmptyStageProps {
@@ -16,9 +17,7 @@ export function EmptyStage({ onPickExample }: EmptyStageProps): React.JSX.Elemen
         <span />
         <span />
       </div>
-      <div className="empty-icon">
-        <Icon name="live" size={30} />
-      </div>
+      <AppLogo className="empty-icon" size={88} />
       <span className="eyebrow">READY WHEN YOU ARE</span>
       <h2>把直播间放进来</h2>
       <p>

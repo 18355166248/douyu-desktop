@@ -37,16 +37,10 @@
 }
 
 .empty-icon {
-  display: grid;
-  width: 62px;
-  height: 62px;
+  display: block;
+  width: 88px;
+  height: 88px;
   margin-bottom: 18px;
-  place-items: center;
-  border: 1px solid rgb(255 107 53 / 24%);
-  border-radius: 18px;
-  background: linear-gradient(145deg, rgb(255 107 53 / 17%), rgb(255 107 53 / 4%));
-  color: var(--accent-strong);
-  box-shadow: 0 16px 40px rgb(255 107 53 / 8%);
 }
 
 .empty-stage h2 {

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { BrowserWindow, session, shell, type Session } from 'electron';
+import appIcon from '../../../build/icon.png?asset';
 import type { AccountHealth, AccountSummary } from '@shared/contracts/account';
 import { AppError } from '@core/errors';
 import type { DouyuAuthContext } from '@core/douyu/auth/DouyuAuthContext';
@@ -106,6 +107,7 @@ export class AccountSessionManager {
       minWidth: 420,
       minHeight: 620,
       title: '登录斗鱼',
+      icon: appIcon,
       show: false,
       autoHideMenuBar: true,
       backgroundColor: '#0b0d10',

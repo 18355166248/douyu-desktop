@@ -1,4 +1,5 @@
 import { BrowserWindow, session, shell, type Session } from 'electron';
+import appIcon from '../../../build/icon.png?asset';
 import type { GuidedPlatform, PlatformLoginStatus } from '@shared/contracts/platformLogin';
 import { AppError } from '@core/errors';
 import { CHROME_UA, isAllowedExternalUrl } from '../constants';
@@ -226,6 +227,7 @@ export class PlatformLoginManager {
         minWidth: platform === 'huya' ? 620 : 440,
         minHeight: 620,
         title: `登录${PLATFORM_LABELS[platform]}`,
+        icon: appIcon,
         autoHideMenuBar: true,
         backgroundColor: '#0b0f13',
         show: false,

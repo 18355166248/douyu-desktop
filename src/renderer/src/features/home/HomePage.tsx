@@ -5,6 +5,7 @@ import type { RoomHistoryEntry } from '@shared/contracts/history';
 import type { SpecialFollowEntry, SpecialFollowTarget } from '@shared/contracts/specialFollow';
 import type { StreamPlatform } from '@shared/contracts/stream';
 import { Icon } from '../../components/Icon';
+import { AppLogo } from '../../components/AppLogo';
 import { PLATFORM_ICON_URLS } from '../../lib/platformAssets';
 import { platformLabel, roomKey } from '../../lib/streamIdentity';
 import { RoomHistoryPanel } from '../history/RoomHistoryPanel';
@@ -335,7 +336,7 @@ export function HomePage({
           </div>
         ) : visibleFollowed.length === 0 ? (
           <div className="home-empty">
-            <Icon name="user" size={19} />
+            <AppLogo size={48} />
             <span>{sortedFollowed.length > 0 ? '关注的房间都在特别关注里' : '还没有关注'}</span>
             <small>
               {sortedFollowed.length > 0
