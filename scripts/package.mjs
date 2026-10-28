@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -37,23 +37,40 @@ delete env.ELECTRON_RUN_AS_NODE;
 console.log(`[package] 目标：${targetLabel}`);
 console.log(`[package] 输出目录：${outputDir}`);
 
-const child = spawn(
-  process.execPath,
-  [
-    builderCli,
-    '--win',
-    target,
-    '--publish',
-    'never',
-    `--config.directories.output=${outputDir}`,
-  ],
-  {
-    cwd: projectRoot,
-    stdio: 'inherit',
-    env,
-    windowsHide: false,
-  },
-);
+// electron-builder otherwise downloads Electron again, even when npm already installed it.
+// Reuse only the matching Windows x64 runtime; cross-platform builds keep the default source.
+const builderArgs = [
+  builderCli,
+  '--win',
+  target,
+  '--x64',
+  '--publish',
+  'never',
+  `--config.directories.output=${outputDir}`,
+];
+if (process.platform === 'win32' && process.arch === 'x64') {
+  const electronPackagePath = require.resolve('electron/package.json');
+  const electronPackage = JSON.parse(readFileSync(electronPackagePath, 'utf8'));
+  const electronDist = join(dirname(electronPackagePath), 'dist');
+  const versionFile = join(electronDist, 'version');
+  if (
+    existsSync(join(electronDist, 'electron.exe')) &&
+    existsSync(versionFile) &&
+    readFileSync(versionFile, 'utf8').trim() === electronPackage.version
+  ) {
+    builderArgs.push(`--config.electronDist=${electronDist}`);
+    console.log(`[package] 复用本地 Electron ${electronPackage.version}：${electronDist}`);
+  } else {
+    console.log('[package] 本地 Electron 不完整或版本不匹配，将由 electron-builder 下载运行时。');
+  }
+}
+
+const child = spawn(process.execPath, builderArgs, {
+  cwd: projectRoot,
+  stdio: 'inherit',
+  env,
+  windowsHide: false,
+});
 
 const result = await new Promise((resolveExit, reject) => {
   child.once('error', reject);
@@ -101,9 +118,7 @@ const installer = newestFile(
   listFiles(outputDir).filter((file) => /^douyu-desktop-.*-x64\.exe$/i.test(basename(file))),
 );
 const unpacked = largestFile(
-  listFiles(join(outputDir, 'win-unpacked')).filter((file) =>
-    file.toLowerCase().endsWith('.exe'),
-  ),
+  listFiles(join(outputDir, 'win-unpacked')).filter((file) => file.toLowerCase().endsWith('.exe')),
 );
 
 if (target === 'nsis' && !installer) {
