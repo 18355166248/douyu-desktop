@@ -1,0 +1,45 @@
+src/renderer/src/features/player/resumeLivePlayback.test.ts
+  s_6e70a7f27ae467::t_6cf11448d55180 23-30
+  s_6e70a7f27ae467::t_c2be64901cd22d 1-9,11-17,19-22,31-38
+  s_72a004a40f3bbc::t_3790d49ffe3d51 10,18
+src/renderer/src/features/player/VideoPlayer.tsx
+  s_6e70a7f27ae467::t_70b47e42dee7c7 101
+  s_6e70a7f27ae467::t_c2be64901cd22d 14,161-162
+src/renderer/src/features/player/playbackSession.ts
+  s_6e70a7f27ae467::t_70b47e42dee7c7 22,71-77,92-93,109,115-118,171,188
+  s_6e70a7f27ae467::t_6cf11448d55180 95
+src/renderer/src/features/player/resumeLivePlayback.ts
+  s_6e70a7f27ae467::t_c2be64901cd22d 1-11
+src/renderer/src/features/player/playbackSession.test.ts
+  s_6e70a7f27ae467::t_70b47e42dee7c7 57,108-127
+src/renderer/src/features/danmaku/DanmakuEngine.test.ts
+  s_6e70a7f27ae467::t_6cf11448d55180 1-107
+docs/uni-live-playback-review.md
+  s_6e70a7f27ae467::t_378740588cbae7 1-23
+src/renderer/src/features/danmaku/DanmakuEngine.ts
+  s_6e70a7f27ae467::t_c2be64901cd22d 9-11,19-23,37,60,62-66,73,172-174,185,367,411
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.1",
+  "base_commit_sha": "41cc1eb6787b18bebfb135d932e0927b1449b674",
+  "prompts": {},
+  "sessions": {
+    "s_6e70a7f27ae467": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1810b-4d98-7922-b5b5-7bb6107b1be6",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "lang.jiang <lang.jiang@ximalaya.com>"
+    },
+    "s_72a004a40f3bbc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18112-432c-71c3-aa96-8f673a69127a",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "lang.jiang <lang.jiang@ximalaya.com>"
+    }
+  }
+}
