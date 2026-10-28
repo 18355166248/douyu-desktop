@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Icon } from './Icon';
+import appIcon from '../../../../build/icon.png';
 
 interface TitleBarProps {
   children?: ReactNode;
@@ -52,9 +53,7 @@ export function TitleBar({ children }: TitleBarProps): React.JSX.Element {
       }}
     >
       <div className="titlebar-brand">
-        <span className="titlebar-mark">
-          <Icon name="live" size={13} />
-        </span>
+        <img className="titlebar-mark" src={appIcon} alt="" draggable={false} />
         <div className="titlebar-brand-text">
           <strong>斗鱼多屏</strong>
           <span>MULTIVIEW</span>

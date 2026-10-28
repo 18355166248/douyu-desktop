@@ -3,6 +3,7 @@ import { BrowserWindow, shell } from 'electron';
 import type { Rectangle } from 'electron';
 import { IPC } from '@shared/contracts/ipc';
 import { isAllowedExternalUrl } from './constants';
+import appIcon from '../../build/icon.png?asset';
 
 export interface CreateMainWindowOptions {
   bounds?: Rectangle;
@@ -22,6 +23,7 @@ export function createMainWindow(options: CreateMainWindowOptions = {}): Browser
     autoHideMenuBar: true,
     backgroundColor: '#0b0d10',
     title: options.title ?? '斗鱼多屏',
+    icon: appIcon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true,
