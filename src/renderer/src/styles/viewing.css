@@ -1,0 +1,233 @@
+.viewing-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(0 0 0 / 65%);
+}
+.viewing-panel {
+  width: min(640px, 100%);
+  max-height: 85vh;
+  overflow: auto;
+  padding: 24px;
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
+  background: #12171e;
+  box-shadow: 0 24px 90px #0009;
+}
+.viewing-panel header,
+.viewing-panel form,
+.viewing-scene {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.viewing-panel header {
+  justify-content: space-between;
+}
+.viewing-panel h2 {
+  margin: 0;
+  font-size: 19px;
+}
+.viewing-panel p,
+.viewing-panel small {
+  color: var(--dim);
+  line-height: 1.6;
+}
+.viewing-panel form {
+  margin: 18px 0;
+}
+.viewing-panel input:not([type='checkbox']),
+.home-filter-bar > input,
+.quiet-hours select {
+  border: 1px solid var(--line-soft);
+  border-radius: 7px;
+  padding: 9px 12px;
+  background: #090d12;
+  color: var(--text);
+  min-width: 0;
+}
+.viewing-panel form > input {
+  flex: 1;
+}
+.viewing-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0;
+  font-size: 12px;
+}
+.viewing-scene-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+.viewing-scene {
+  padding: 12px;
+  background: #ffffff05;
+  border: 1px solid var(--line-soft);
+  border-radius: 9px;
+}
+.viewing-scene > div {
+  flex: 1;
+  min-width: 0;
+}
+.viewing-scene strong,
+.viewing-scene small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-filter-bar {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 22px;
+  font-size: 12px;
+}
+.home-filter-bar > input {
+  width: 260px;
+}
+.home-filter-bar label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.home-filter-empty {
+  color: var(--dim);
+  grid-column: 1 / -1;
+  padding: 20px 0;
+}
+.reminder-controls {
+  margin-left: auto;
+}
+.reminder-controls summary {
+  cursor: pointer;
+  color: var(--accent-strong);
+  padding: 8px;
+}
+.reminder-options {
+  position: absolute;
+  z-index: 35;
+  right: 0;
+  width: min(360px, 90vw);
+  padding: 18px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: #161c24;
+  box-shadow: 0 12px 30px #0008;
+}
+.reminder-options label {
+  margin: 12px 0;
+}
+.reminder-options p,
+.reminder-options small {
+  color: var(--dim);
+  line-height: 1.6;
+}
+.quiet-hours {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0;
+}
+.room-drag-handle {
+  cursor: grab;
+  font-size: 20px;
+}
+.room-drag-handle:active {
+  cursor: grabbing;
+}
+.titlebar-button.is-active {
+  color: var(--accent-strong);
+  background: #ff8b4c18;
+}
+.titlebar-scenes {
+  height: 32px;
+  padding: 0 10px;
+  font-size: 11px;
+  flex: none;
+}
+.is-compact-window .titlebar {
+  height: 36px;
+}
+.is-compact-window .titlebar-brand,
+.is-compact-window .titlebar-form,
+.is-compact-window .titlebar-new-window,
+.is-compact-window .titlebar-immersive,
+.is-compact-window .account-area,
+.is-compact-window .titlebar-task,
+.is-compact-window .layout-switch,
+.is-compact-window .titlebar-count {
+  display: none;
+}
+.is-compact-window .titlebar-app {
+  gap: 3px;
+  padding: 0 4px;
+  overflow: hidden;
+}
+.is-compact-window .titlebar-tab {
+  padding: 0 7px;
+}
+.is-compact-window .player-head {
+  min-height: 30px;
+  padding: 4px 8px;
+}
+.is-compact-window .player-title p,
+.is-compact-window .player-head .tag,
+.is-compact-window .player-title > .live-pill,
+.is-compact-window .player-card > .room-audience {
+  display: none;
+}
+.is-compact-window .home-page {
+  padding: 12px;
+}
+.is-compact-window .home-stats {
+  gap: 8px;
+}
+.is-compact-window .home-special-grid,
+.is-compact-window .home-room-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.is-compact-window .home-filter-bar {
+  gap: 8px;
+}
+.is-compact-window .home-filter-bar > input {
+  width: 100%;
+}
+.is-compact-window .viewing-backdrop {
+  padding: 10px;
+}
+.is-compact-window .viewing-panel {
+  padding: 14px;
+}
+@media (max-width: 1250px) {
+  .titlebar-brand {
+    min-width: 42px;
+    padding: 0 9px;
+  }
+  .titlebar-brand-text {
+    display: none;
+  }
+  .titlebar-app {
+    gap: 3px;
+  }
+  .titlebar-button {
+    width: 34px;
+  }
+  .titlebar-immersive span,
+  .titlebar-form .history-anchor {
+    display: none;
+  }
+  .titlebar .account-area.is-compact .account-text {
+    display: none;
+  }
+  .titlebar-form .room-field {
+    min-width: 140px;
+  }
+}

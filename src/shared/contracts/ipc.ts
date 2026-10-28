@@ -7,6 +7,7 @@ import type { SpecialFollowEntry, SpecialFollowTarget } from './specialFollow';
 import type { GuidedPlatform, PlatformLoginStatus } from './platformLogin';
 import type { ResolveStreamInput, StreamPlayback } from './stream';
 import type { Result } from './result';
+import type { WindowMode, LiveReminderSettings } from './viewing';
 import type {
   RunTaskInput,
   TaskDescriptor,
@@ -37,6 +38,14 @@ export interface DesktopApi {
   };
   home: {
     followed(): Promise<Result<FollowedRoom[]>>;
+    reminderSettings(): Promise<Result<LiveReminderSettings & { supported: boolean }>>;
+    setReminders(
+      settings: LiveReminderSettings,
+    ): Promise<Result<LiveReminderSettings & { supported: boolean }>>;
+    onOpenRoom(listener: (roomId: string) => void): () => void;
+    onReminderChange(
+      listener: (settings: LiveReminderSettings & { supported: boolean }) => void,
+    ): () => void;
   };
   special: {
     load(): Promise<Result<SpecialFollowEntry[]>>;
@@ -70,6 +79,9 @@ export interface DesktopApi {
     close(): void;
     isMaximized(): Promise<boolean>;
     openNew(): void;
+    mode(): Promise<WindowMode>;
+    setMode(patch: Partial<WindowMode>): Promise<WindowMode>;
+    onModeChange(listener: (mode: WindowMode) => void): () => void;
     onMaximizedChange(listener: (maximized: boolean) => void): () => void;
   };
 }
@@ -89,6 +101,10 @@ export const IPC = {
   historyClear: 'history:clear',
   historyChanged: 'history:changed',
   homeFollowed: 'home:followed',
+  homeReminderSettings: 'home:reminder-settings',
+  homeSetReminders: 'home:set-reminders',
+  homeOpenRoom: 'home:open-room',
+  homeReminderChanged: 'home:reminder-changed',
   specialLoad: 'special:load',
   specialToggle: 'special:toggle',
   specialChanged: 'special:changed',
@@ -110,5 +126,8 @@ export const IPC = {
   windowClose: 'window:close',
   windowIsMaximized: 'window:is-maximized',
   windowOpenNew: 'window:open-new',
+  windowMode: 'window:mode',
+  windowSetMode: 'window:set-mode',
+  windowModeChanged: 'window:mode-changed',
   windowMaximizedChange: 'window:maximized-change',
 } as const;

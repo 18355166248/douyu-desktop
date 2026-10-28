@@ -21,7 +21,23 @@ import {
   saveStreamLayoutMode,
 } from './features/player/streamGridLayout';
 import type { StreamLayoutMode } from './features/player/streamGridLayout';
-import { defaultStreamOptions, useStreamGrid } from './features/player/useStreamGrid';
+import {
+  ADD_CANCELLED,
+  defaultStreamOptions,
+  useStreamGrid,
+} from './features/player/useStreamGrid';
+import { parseRoomInput } from './features/player/roomInput';
+import {
+  getRoomPreference,
+  clearLastViewing,
+  loadLastViewing,
+  readStored,
+  saveLastViewing,
+  writeStored,
+} from './features/player/viewingStorage';
+import type { ViewingScene } from './features/player/viewingStorage';
+import { ViewingScenesPanel } from './features/player/ViewingScenesPanel';
+import { ReplaceRoomPanel } from './features/player/ReplaceRoomPanel';
 import type { StreamResolveOptions } from './features/player/useStreamGrid';
 import { isEditableTarget } from './lib/keyboard';
 import { platformLabel, roomKey, streamKey } from './lib/streamIdentity';
@@ -57,6 +73,8 @@ export function App(): React.JSX.Element {
     toggleMute,
     toggleSolo,
     setVolume,
+    moveStream,
+    replaceStream,
   } = useStreamGrid();
   const [platform, setPlatform] = useState<StreamPlatform>('douyu');
   const [roomId, setRoomId] = useState('9999');
@@ -70,6 +88,15 @@ export function App(): React.JSX.Element {
   const [isHomeRefreshing, setHomeRefreshing] = useState(false);
   const [isImmersive, setImmersive] = useState(false);
   const [isImmersiveExitVisible, setImmersiveExitVisible] = useState(false);
+  const [scenesOpen, setScenesOpen] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [replaceKey, setReplaceKey] = useState<string | null>(null);
+  const [lastViewing, setLastViewing] = useState(loadLastViewing);
+  const [autoRestore, setAutoRestore] = useState(
+    () => readStored('douyu-desktop.auto-restore.v1') === true,
+  );
+  const restoreToken = useRef(0);
+  const attemptedRestore = useRef(false);
   const roomInputRef = useRef<HTMLInputElement>(null);
   const danmakuSettingsRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);
@@ -86,6 +113,16 @@ export function App(): React.JSX.Element {
   const special = useSpecialFollows();
   const reloadFollowed = followed.reload;
   const reloadSpecial = special.reload;
+  const homeUpdatedAt = useRef(0);
+  homeUpdatedAt.current = followed.updatedAt;
+  useEffect(() => {
+    if (
+      activeView === 'home' &&
+      homeUpdatedAt.current > 0 &&
+      Date.now() - homeUpdatedAt.current > 60_000
+    )
+      void reloadFollowed();
+  }, [activeView, reloadFollowed]);
   const refreshHome = useCallback(async (): Promise<void> => {
     if (homeRefreshRef.current) return;
     homeRefreshRef.current = true;
@@ -143,6 +180,7 @@ export function App(): React.JSX.Element {
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent): void {
+      if (scenesOpen || replaceKey || isTaskOpen || isHistoryOpen || isDanmakuSettingsOpen) return;
       if (
         (event.ctrlKey || event.metaKey) &&
         !event.altKey &&
@@ -182,7 +220,7 @@ export function App(): React.JSX.Element {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [streams.length]);
+  }, [streams.length, scenesOpen, replaceKey, isTaskOpen, isHistoryOpen, isDanmakuSettingsOpen]);
 
   useEffect(() => {
     if (isImmersive && streams.length === 0) setImmersive(false);
@@ -214,11 +252,21 @@ export function App(): React.JSX.Element {
 
   async function handleAdd(targetPlatform: StreamPlatform, targetRoomId: string): Promise<void> {
     setError(null);
+    if (restoring) return;
+    let target;
+    try {
+      target = parseRoomInput(targetRoomId, targetPlatform);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : '直播间链接不合法');
+      return;
+    }
+    setPlatform(target.platform);
+    const preference = getRoomPreference(target.platform, target.roomId);
     const message = await addStream(
       {
-        platform: targetPlatform,
-        roomId: targetRoomId,
-        ...defaultStreamOptions(targetPlatform),
+        ...defaultStreamOptions(target.platform),
+        ...(preference ?? {}),
+        ...target,
       },
       (playback) => {
         recordVisit({
@@ -231,6 +279,7 @@ export function App(): React.JSX.Element {
       },
     );
     if (message) {
+      if (message === ADD_CANCELLED) return;
       setError(message);
       return;
     }
@@ -249,8 +298,19 @@ export function App(): React.JSX.Element {
     }
     void handleAdd(targetPlatform, targetRoomId);
   }
+  const notificationOpenRef = useRef(handleRoomQuickOpen);
+  notificationOpenRef.current = handleRoomQuickOpen;
+  useEffect(
+    () => window.api.home.onOpenRoom((room) => notificationOpenRef.current('douyu', room)),
+    [],
+  );
 
   function handleClearStreams(): void {
+    clearLastViewing();
+    setLastViewing(null);
+    setReplaceKey(null);
+    restoreToken.current += 1;
+    setRestoring(false);
     clearStreams();
     setActiveView('home');
   }
@@ -258,7 +318,11 @@ export function App(): React.JSX.Element {
   function handleRemoveStream(key: string): void {
     const isLast = streams.length === 1;
     removeStream(key);
-    if (isLast) setActiveView('home');
+    if (isLast) {
+      clearLastViewing();
+      setLastViewing(null);
+      setActiveView('home');
+    }
   }
 
   function handleHistorySelect(entry: RoomHistoryEntry): void {
@@ -303,6 +367,7 @@ export function App(): React.JSX.Element {
   }
 
   function addButtonLabel(): string {
+    if (restoring) return '载入组合…';
     if (isAdding) return '解析中…';
     if (!canAdd) return `已满 ${MAX_STREAMS} 路`;
     return streams.length > 0 ? '添加' : '播放';
@@ -312,6 +377,73 @@ export function App(): React.JSX.Element {
     if (isAdding) return 'refresh';
     return streams.length > 0 ? 'plus' : 'play';
   }
+
+  const currentViewing: ViewingScene | null = streams.length
+    ? {
+        id: 'last',
+        name: '上次观看',
+        layout: layoutMode,
+        mainKey: effectiveMainKey,
+        rooms: streams.map((entry) => ({
+          platform: entry.playback.platform,
+          roomId: entry.playback.roomId,
+          ...entry.options,
+          volume: volumes[streamKey(entry.playback)] ?? 1,
+          muted: mutedRooms[streamKey(entry.playback)] === true,
+        })),
+      }
+    : null;
+  const viewingJson = JSON.stringify(currentViewing);
+  useEffect(() => {
+    if (restoring || viewingJson === 'null') return undefined;
+    const persist = (): void => {
+      const scene = JSON.parse(viewingJson) as ViewingScene;
+      saveLastViewing(scene);
+      setLastViewing(scene);
+    };
+    const timer = window.setTimeout(persist, 300);
+    window.addEventListener('beforeunload', persist);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('beforeunload', persist);
+    };
+  }, [restoring, viewingJson]);
+
+  async function restoreViewing(scene: ViewingScene): Promise<void> {
+    const token = ++restoreToken.current;
+    clearStreams();
+    setRestoring(true);
+    setScenesOpen(false);
+    setError(null);
+    setActiveView('live');
+    setLayoutMode(scene.layout);
+    setMainStreamKey(scene.mainKey);
+    const failures: string[] = [];
+    for (const room of scene.rooms) {
+      if (token !== restoreToken.current) return;
+      const message = await addStream(room, (playback) =>
+        recordVisit({
+          platform: playback.platform,
+          roomId: playback.roomId,
+          title: playback.title,
+          anchorName: playback.anchorName,
+          ...(playback.cover ? { cover: playback.cover } : {}),
+        }),
+      );
+      if (message === ADD_CANCELLED || token !== restoreToken.current) return;
+      if (message) failures.push(`${room.roomId}：${message}`);
+    }
+    setRestoring(false);
+    if (failures.length) setError(`部分房间未能打开：${failures.join('；')}`);
+  }
+  const restoreViewingRef = useRef(restoreViewing);
+  restoreViewingRef.current = restoreViewing;
+  useEffect(() => {
+    if (attemptedRestore.current) return;
+    attemptedRestore.current = true;
+    if (autoRestore && lastViewing && !isSecondaryWindow)
+      void restoreViewingRef.current(lastViewing);
+  }, [autoRestore, lastViewing]);
 
   return (
     <div
@@ -390,7 +522,7 @@ export function App(): React.JSX.Element {
               ref={roomInputRef}
               value={roomId}
               onChange={(event) => setRoomId(event.target.value)}
-              placeholder={roomPlaceholder(platform)}
+              placeholder={`${roomPlaceholder(platform)} / 直播间链接`}
               spellCheck={false}
               aria-label={`${platformLabel(platform)}房间号`}
             />
@@ -424,23 +556,26 @@ export function App(): React.JSX.Element {
           <button
             type="submit"
             className="btn primary titlebar-add"
-            disabled={isAdding || !canSubmit}
+            disabled={restoring || isAdding || !canSubmit}
           >
             <Icon name={addButtonIcon()} size={15} />
             {addButtonLabel()}
           </button>
 
-          {streams.length > 0 ? (
-            <button
-              type="button"
-              className="btn ghost titlebar-clear"
-              onClick={handleClearStreams}
-              disabled={isAdding}
-            >
+          {streams.length > 0 || isAdding || restoring ? (
+            <button type="button" className="btn ghost titlebar-clear" onClick={handleClearStreams}>
               清空
             </button>
           ) : null}
         </form>
+
+        <button
+          type="button"
+          className="btn ghost titlebar-scenes"
+          onClick={() => setScenesOpen(true)}
+        >
+          组合
+        </button>
 
         <button
           type="button"
@@ -531,7 +666,14 @@ export function App(): React.JSX.Element {
                     layoutMode={layoutMode}
                     mainKey={effectiveMainKey}
                     immersive={isImmersive}
-                    keyboardActive={activeView === 'live'}
+                    keyboardActive={
+                      activeView === 'live' &&
+                      !scenesOpen &&
+                      !replaceKey &&
+                      !isTaskOpen &&
+                      !isHistoryOpen &&
+                      !isDanmakuSettingsOpen
+                    }
                     reloadingKeys={reloadingKeys}
                     mutedRooms={mutedRooms}
                     volumes={volumes}
@@ -546,6 +688,8 @@ export function App(): React.JSX.Element {
                     onOpenDanmakuSettings={() => setDanmakuSettingsOpen(true)}
                     onToggleImmersive={toggleImmersive}
                     onRequestAdd={focusRoomInput}
+                    onMove={moveStream}
+                    onReplace={setReplaceKey}
                   />
                 )}
               </div>
@@ -583,6 +727,56 @@ export function App(): React.JSX.Element {
             onClose={() => setTaskOpen(false)}
           />
         </div>
+      ) : null}
+
+      {scenesOpen ? (
+        <ViewingScenesPanel
+          current={currentViewing}
+          last={lastViewing}
+          busy={restoring || isAdding}
+          autoRestore={autoRestore}
+          onAutoRestore={(value) => {
+            if (writeStored('douyu-desktop.auto-restore.v1', value)) setAutoRestore(value);
+            else setError('无法保存自动恢复设置');
+          }}
+          onRestore={(scene) => void restoreViewing(scene)}
+          onClose={() => setScenesOpen(false)}
+        />
+      ) : null}
+
+      {replaceKey ? (
+        <ReplaceRoomPanel
+          platform={
+            streams.find((entry) => streamKey(entry.playback) === replaceKey)?.playback.platform ??
+            platform
+          }
+          onClose={() => setReplaceKey(null)}
+          onReplace={async (input, selected) => {
+            try {
+              const target = parseRoomInput(input, selected);
+              const preference = getRoomPreference(target.platform, target.roomId);
+              const message = await replaceStream(
+                replaceKey,
+                { ...defaultStreamOptions(target.platform), ...(preference ?? {}), ...target },
+                (playback) => {
+                  recordVisit({
+                    platform: playback.platform,
+                    roomId: playback.roomId,
+                    title: playback.title,
+                    anchorName: playback.anchorName,
+                    ...(playback.cover ? { cover: playback.cover } : {}),
+                  });
+                  setMainStreamKey((current) =>
+                    current === replaceKey ? streamKey(playback) : current,
+                  );
+                },
+              );
+              return message === ADD_CANCELLED ? null : message;
+            } catch (reason) {
+              return reason instanceof Error ? reason.message : '替换失败';
+            }
+          }}
+        />
       ) : null}
 
       {isDanmakuSettingsOpen ? (

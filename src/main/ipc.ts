@@ -16,6 +16,8 @@ import type { HuyaDanmakuSession } from './services/HuyaDanmakuSession';
 import type { PlatformLoginManager } from './services/PlatformLoginManager';
 import type { StreamService } from './services/StreamService';
 import type { TaskService } from './services/TaskService';
+import type { LiveReminderService } from './services/LiveReminderService';
+import { getWindowMode, setWindowMode } from './windowMode';
 
 const resolveStreamSchema = z.object({
   roomId: z.string().trim().min(1).max(32),
@@ -106,6 +108,7 @@ export interface IpcServices {
   douyuDanmaku: DouyuDanmakuSession;
   huyaDanmaku: HuyaDanmakuSession;
   createWindow?: (source: BrowserWindow | null) => void;
+  reminders?: LiveReminderService;
 }
 
 export function registerIpcHandlers(services: IpcServices): void {
@@ -135,6 +138,32 @@ export function registerIpcHandlers(services: IpcServices): void {
   ipcMain.handle(IPC.windowIsMaximized, (event) => {
     return BrowserWindow.fromWebContents(event.sender)?.isMaximized() ?? false;
   });
+
+  ipcMain.handle(IPC.windowMode, (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    return window && !window.isDestroyed()
+      ? getWindowMode(window)
+      : { alwaysOnTop: false, compact: false };
+  });
+  ipcMain.handle(IPC.windowSetMode, (event, raw: unknown) => {
+    const patch = z
+      .object({ alwaysOnTop: z.boolean().optional(), compact: z.boolean().optional() })
+      .parse(raw);
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (!window || window.isDestroyed()) throw new Error('窗口已关闭');
+    return setWindowMode(window, {
+      ...(patch.alwaysOnTop !== undefined ? { alwaysOnTop: patch.alwaysOnTop } : {}),
+      ...(patch.compact !== undefined ? { compact: patch.compact } : {}),
+    });
+  });
+  ipcMain.handle(IPC.homeReminderSettings, () => respond(() => services.reminders!.getSettings()));
+  ipcMain.handle(IPC.homeSetReminders, (_event, raw: unknown) =>
+    respond(async () => {
+      const settings = await services.reminders!.configure(raw);
+      broadcast(IPC.homeReminderChanged, settings);
+      return settings;
+    }),
+  );
 
   ipcMain.handle(IPC.accountsList, () => respond(() => accounts.list()));
 

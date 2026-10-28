@@ -30,9 +30,26 @@ export type IconName =
   | 'star'
   | 'gift'
   | 'trash'
-  | 'expand';
+  | 'expand'
+  | 'pin'
+  | 'grip';
 
 const paths: Record<IconName, ReactNode> = {
+  pin: (
+    <>
+      <path d="m8 3 8 0-1 6 3 4H6l3-4-1-6ZM12 13v8" />
+    </>
+  ),
+  grip: (
+    <>
+      <circle cx="9" cy="5" r="1" />
+      <circle cx="15" cy="5" r="1" />
+      <circle cx="9" cy="12" r="1" />
+      <circle cx="15" cy="12" r="1" />
+      <circle cx="9" cy="19" r="1" />
+      <circle cx="15" cy="19" r="1" />
+    </>
+  ),
   live: (
     <>
       <circle cx="12" cy="12" r="8.5" />
@@ -162,9 +179,7 @@ const paths: Record<IconName, ReactNode> = {
       <path d="M9.7 20v-5.2h4.6V20" />
     </>
   ),
-  star: (
-    <path d="m12 3.6 2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z" />
-  ),
+  star: <path d="m12 3.6 2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z" />,
   gift: (
     <>
       <rect x="3.5" y="8.5" width="17" height="12" rx="2.5" />

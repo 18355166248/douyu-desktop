@@ -35,6 +35,7 @@ export interface RoomContextMenuProps {
   onReload: () => void;
   onToggleImmersive: () => void;
   onClosePlayer: () => void;
+  onReplace: () => void;
 }
 
 export function RoomContextMenu({
@@ -62,6 +63,7 @@ export function RoomContextMenu({
   onReload,
   onToggleImmersive,
   onClosePlayer,
+  onReplace,
 }: RoomContextMenuProps): React.JSX.Element | null {
   const menuRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ left: x, top: y });
@@ -270,6 +272,17 @@ export function RoomContextMenu({
           <Icon name="refresh" size={15} />
           <span>{isReloading ? '解析中…' : '重新解析'}</span>
           <kbd>R</kbd>
+        </button>
+
+        <button
+          type="button"
+          className="room-menu-item"
+          role="menuitem"
+          disabled={isReloading}
+          onClick={() => run(onReplace)}
+        >
+          <Icon name="grid" size={15} />
+          <span>替换这一路</span>
         </button>
 
         <button

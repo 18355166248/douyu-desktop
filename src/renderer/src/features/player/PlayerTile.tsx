@@ -32,6 +32,10 @@ interface PlayerTileProps {
   onVolumeChange: (volume: number) => void;
   onOpenDanmakuSettings: () => void;
   onToggleImmersive: () => void;
+  onDropRoom?: (key: string) => void;
+  onMoveBefore?: (() => void) | undefined;
+  onMoveAfter?: (() => void) | undefined;
+  onReplace: () => void;
 }
 
 export function PlayerTile({
@@ -59,6 +63,10 @@ export function PlayerTile({
   onVolumeChange,
   onOpenDanmakuSettings,
   onToggleImmersive,
+  onDropRoom,
+  onMoveBefore,
+  onMoveAfter,
+  onReplace,
 }: PlayerTileProps): React.JSX.Element {
   const queryClient = useQueryClient();
   const anchorName = playback.anchorName?.trim() || `${platformLabel(playback.platform)}主播`;
@@ -77,6 +85,19 @@ export function PlayerTile({
       }`}
       onPointerEnter={onActivate}
       onFocusCapture={onActivate}
+      onDragOver={(event) => {
+        if (event.dataTransfer.types.includes('application/x-douyu-room')) {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'move';
+        }
+      }}
+      onDrop={(event) => {
+        const from = event.dataTransfer.getData('application/x-douyu-room');
+        if (from) {
+          event.preventDefault();
+          onDropRoom?.(from);
+        }
+      }}
     >
       <header className="player-head">
         <div className="player-title">
@@ -97,6 +118,35 @@ export function PlayerTile({
         ) : null}
 
         <div className="player-actions">
+          {compact ? (
+            <button
+              type="button"
+              className="icon-btn room-drag-handle"
+              draggable
+              aria-label={`调整${anchorName}位置，方向键前后移动`}
+              title="拖动调整位置，聚焦后按方向键移动"
+              onDragStart={(event) => {
+                event.dataTransfer.setData(
+                  'application/x-douyu-room',
+                  `${playback.platform}:${playback.roomId}`,
+                );
+                event.dataTransfer.effectAllowed = 'move';
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onMoveBefore?.();
+                } else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onMoveAfter?.();
+                }
+              }}
+            >
+              <Icon name="grip" size={15} />
+            </button>
+          ) : null}
           <span className="tag">{platformLabel(playback.platform)}</span>
           <span className="tag">{playback.quality}</span>
           <span className="tag">{playback.format.toUpperCase()}</span>
@@ -169,6 +219,7 @@ export function PlayerTile({
         onOpenDanmakuSettings={onOpenDanmakuSettings}
         onToggleImmersive={onToggleImmersive}
         onStop={onStop}
+        onReplace={onReplace}
       />
 
       {immersive ? (

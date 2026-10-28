@@ -36,6 +36,7 @@ interface VideoPlayerProps {
   onOpenDanmakuSettings: () => void;
   onToggleImmersive: () => void;
   onStop: () => void;
+  onReplace: () => void;
 }
 
 export function VideoPlayer({
@@ -57,6 +58,7 @@ export function VideoPlayer({
   onOpenDanmakuSettings,
   onToggleImmersive,
   onStop,
+  onReplace,
 }: VideoPlayerProps): React.JSX.Element {
   const videoRef = useRef<HTMLVideoElement>(null);
   const userPausedRef = useRef(false);
@@ -549,6 +551,7 @@ export function VideoPlayer({
         onReload={onReload}
         onToggleImmersive={onToggleImmersive}
         onClosePlayer={onStop}
+        onReplace={onReplace}
       />
     </>
   );

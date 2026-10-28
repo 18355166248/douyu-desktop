@@ -27,6 +27,8 @@ interface StreamGridProps {
   onOpenDanmakuSettings: () => void;
   onToggleImmersive: () => void;
   onRequestAdd: () => void;
+  onMove: (from: string, to: string) => void;
+  onReplace: (key: string) => void;
 }
 
 export function StreamGrid({
@@ -49,6 +51,8 @@ export function StreamGrid({
   onOpenDanmakuSettings,
   onToggleImmersive,
   onRequestAdd,
+  onMove,
+  onReplace,
 }: StreamGridProps): React.JSX.Element {
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const layout = getStreamLayout(streams.length, layoutMode);
@@ -68,7 +72,7 @@ export function StreamGrid({
 
   return (
     <div className={`stream-grid is-${layout}`}>
-      {streams.map((entry) => {
+      {streams.map((entry, index) => {
         const key = streamKey(entry.playback);
         const isMain = layoutMode === 'focus' && streams.length > 1 && key === mainKey;
         const sideIndex = sideKeys.indexOf(key);
@@ -105,6 +109,16 @@ export function StreamGrid({
             onVolumeChange={(volume) => onVolumeChange(key, volume)}
             onOpenDanmakuSettings={onOpenDanmakuSettings}
             onToggleImmersive={onToggleImmersive}
+            onDropRoom={(from) => onMove(from, key)}
+            onReplace={() => onReplace(key)}
+            onMoveBefore={
+              index > 0 ? () => onMove(key, streamKey(streams[index - 1]!.playback)) : undefined
+            }
+            onMoveAfter={
+              index < streams.length - 1
+                ? () => onMove(key, streamKey(streams[index + 1]!.playback))
+                : undefined
+            }
           />
         );
       })}

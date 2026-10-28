@@ -52,6 +52,119 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('stream reload lifetimes', () => {
+  it('does not let a cancelled add unlock a newer add', async () => {
+    let finishOld!: (value: ReturnType<typeof ok<StreamPlayback>>) => void;
+    let finishNew!: (value: ReturnType<typeof ok<StreamPlayback>>) => void;
+    resolveStream.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishOld = resolve;
+      }),
+    );
+    const old = render().addStream(input);
+    render().clearStreams();
+    resolveStream.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishNew = resolve;
+      }),
+    );
+    const current = render().addStream({ ...input, roomId: '2' });
+    finishOld(ok(playback('stale')));
+    await old;
+    expect(render().isAdding).toBe(true);
+    expect(await render().addStream(input)).toContain('正在解析其他房间');
+    finishNew(ok(playback('new', '2')));
+    await current;
+    expect(render().isAdding).toBe(false);
+    expect(render().streams.map((entry) => entry.playback.roomId)).toEqual(['2']);
+  });
+
+  it('enforces the six-room limit even when one callback restores all rooms', async () => {
+    const grid = render();
+    for (let id = 1; id <= 6; id++) {
+      resolveStream.mockResolvedValueOnce(ok(playback('room', String(id))));
+      expect(await grid.addStream({ ...input, roomId: String(id) })).toBeNull();
+    }
+    expect(await grid.addStream({ ...input, roomId: '7' })).toContain('最多同时播放 6 路');
+    expect(render().streams).toHaveLength(6);
+    expect(resolveStream).toHaveBeenCalledTimes(6);
+  });
+  it('preserves the original room on replacement failure and replaces in place on success', async () => {
+    resolveStream
+      .mockResolvedValueOnce(ok(playback('one')))
+      .mockResolvedValueOnce(ok(playback('two', '2')));
+    await render().addStream(input);
+    await render().addStream({ ...input, roomId: '2' });
+    resolveStream.mockRejectedValueOnce(new Error('offline'));
+    expect(await render().replaceStream('douyu:1', { ...input, roomId: '3' })).toContain('offline');
+    expect(render().streams.map((entry) => entry.playback.roomId)).toEqual(['1', '2']);
+    resolveStream.mockResolvedValueOnce(ok(playback('new', '3')));
+    expect(
+      await render().replaceStream('douyu:1', { ...input, roomId: '3', volume: 0.4, muted: true }),
+    ).toBeNull();
+    expect(render().streams.map((entry) => entry.playback.roomId)).toEqual(['3', '2']);
+    expect(render().volumes['douyu:3']).toBe(0.4);
+    expect(render().mutedRooms['douyu:3']).toBe(true);
+    expect(render().reloadingKeys).toEqual([]);
+  });
+  it('rejects duplicate replacements and discards replacements after a clear', async () => {
+    resolveStream
+      .mockResolvedValueOnce(ok(playback('one')))
+      .mockResolvedValueOnce(ok(playback('two', '2')));
+    await render().addStream(input);
+    await render().addStream({ ...input, roomId: '2' });
+    resolveStream.mockResolvedValueOnce(ok(playback('two', '2')));
+    expect(await render().replaceStream('douyu:1', { ...input, roomId: '2' })).toContain(
+      '已在多屏中',
+    );
+    let finish!: (value: ReturnType<typeof ok<StreamPlayback>>) => void;
+    resolveStream.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const pending = render().replaceStream('douyu:1', { ...input, roomId: '3' });
+    render().clearStreams();
+    finish(ok(playback('stale', '3')));
+    expect(await pending).toBe('添加已取消');
+    expect(render().streams).toEqual([]);
+  });
+  it.each(['success', 'failure'])(
+    'discards an in-flight add %s after clearing',
+    async (outcome) => {
+      let finish!: (value: ReturnType<typeof ok<StreamPlayback>>) => void;
+      let reject!: (error: Error) => void;
+      resolveStream.mockReturnValueOnce(
+        new Promise((yes, no) => {
+          finish = yes;
+          reject = no;
+        }),
+      );
+      const visited = vi.fn();
+      const pending = render().addStream(input, visited);
+      render().clearStreams();
+      resolveStream.mockResolvedValueOnce(ok(playback('new', '2')));
+      await render().addStream({ ...input, roomId: '2' });
+      if (outcome === 'success') finish(ok(playback('old')));
+      else reject(new Error('old'));
+      expect(await pending).toBe('添加已取消');
+      expect(render().streams.map((entry) => entry.playback.roomId)).toEqual(['2']);
+      expect(visited).not.toHaveBeenCalled();
+      expect(render().isAdding).toBe(false);
+    },
+  );
+
+  it('uses the latest room list when sequentially restoring a combination', async () => {
+    const grid = render();
+    resolveStream
+      .mockResolvedValueOnce(ok(playback('one')))
+      .mockResolvedValueOnce(ok(playback('two', '2')));
+    await grid.addStream(input);
+    await grid.addStream({ ...input, roomId: '2' });
+    expect(render().streams).toHaveLength(2);
+    expect(await grid.addStream(input)).toContain('已在多屏中');
+    render().moveStream('douyu:2', 'douyu:1');
+    expect(render().streams.map((entry) => entry.playback.roomId)).toEqual(['2', '1']);
+  });
   it.each(['success', 'failure'] as const)(
     'ignores an old %s after closing and re-adding a room',
     async (outcome) => {

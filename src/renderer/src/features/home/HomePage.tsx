@@ -9,6 +9,9 @@ import { AppLogo } from '../../components/AppLogo';
 import { PLATFORM_ICON_URLS } from '../../lib/platformAssets';
 import { platformLabel, roomKey } from '../../lib/streamIdentity';
 import { RoomHistoryPanel } from '../history/RoomHistoryPanel';
+import { LiveReminderControls } from './LiveReminderControls';
+import { filterHomeRooms } from './homeFilter';
+import { readStored, writeStored } from '../player/viewingStorage';
 import {
   resolveSpecialRooms,
   sortFollowedRooms,
@@ -80,7 +83,13 @@ function HomeRoomRow({
       >
         <span className={`home-room-thumb home-room-thumb-${platform}`}>
           <span className="home-thumb-fallback" aria-hidden="true">
-            <img src={PLATFORM_ICON_URLS[platform]} width={24} height={24} alt="" draggable={false} />
+            <img
+              src={PLATFORM_ICON_URLS[platform]}
+              width={24}
+              height={24}
+              alt=""
+              draggable={false}
+            />
           </span>
           {thumbnail ? (
             <img
@@ -98,9 +107,7 @@ function HomeRoomRow({
               <strong>未开播</strong>
             </span>
           ) : null}
-          {showStatus && hasVideo ? (
-            <span className="home-thumb-loop">视频轮播</span>
-          ) : null}
+          {showStatus && hasVideo ? <span className="home-thumb-loop">视频轮播</span> : null}
           {isLive ? (
             <span className="home-thumb-live">
               <i />
@@ -111,9 +118,13 @@ function HomeRoomRow({
         <span className="home-room-copy">
           <span className="home-room-head">
             <strong title={name}>{name}</strong>
-            <span className="home-room-id" title={`房间号 ${roomId}`}>#{roomId}</span>
+            <span className="home-room-id" title={`房间号 ${roomId}`}>
+              #{roomId}
+            </span>
           </span>
-          <span className="home-room-subtitle" title={subtitle}>{subtitle}</span>
+          <span className="home-room-subtitle" title={subtitle}>
+            {subtitle}
+          </span>
         </span>
       </button>
       {official ? (
@@ -167,6 +178,13 @@ export function HomePage({
   onClearHistory,
 }: HomePageProps): React.JSX.Element {
   const [isHistoryOpen, setHistoryOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [onlyLive, setOnlyLive] = useState(
+    () => readStored('douyu-desktop.home-only-live.v1') === true,
+  );
+  const [liveFirst, setLiveFirst] = useState(
+    () => readStored('douyu-desktop.home-live-first.v1') !== false,
+  );
 
   useEffect(() => {
     if (!isHistoryOpen) return;
@@ -196,10 +214,11 @@ export function HomePage({
     ...specials.map((entry) => specialFollowKey(entry)),
   ]);
   const specialCount = specialCards.length;
-  const visibleFollowed = sortedFollowed.filter(
-    (room) => !specialKeys.has(specialFollowKey(room)),
-  );
+  const visibleFollowed = sortedFollowed.filter((room) => !specialKeys.has(specialFollowKey(room)));
   const liveCount = followed.filter((room) => room.isLive).length;
+  const filter = { query, onlyLive, liveFirst };
+  const filteredSpecials = filterHomeRooms(specialCards, filter);
+  const filteredFollowed = filterHomeRooms(visibleFollowed, filter);
   const accountIsActive = activeAccount?.status === 'active';
   const historyCovers = new Map<string, string>();
   for (const room of [...followed, ...specialCards]) {
@@ -252,6 +271,43 @@ export function HomePage({
         </button>
       </header>
 
+      <div className="home-filter-bar">
+        <input
+          aria-label="搜索主播、标题或房间号"
+          placeholder="搜索主播、标题或房间号"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+        {query ? (
+          <button type="button" className="btn ghost" onClick={() => setQuery('')}>
+            清除
+          </button>
+        ) : null}
+        <label>
+          <input
+            type="checkbox"
+            checked={onlyLive}
+            onChange={(event) => {
+              setOnlyLive(event.target.checked);
+              writeStored('douyu-desktop.home-only-live.v1', event.target.checked);
+            }}
+          />
+          只看直播中
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={liveFirst}
+            onChange={(event) => {
+              setLiveFirst(event.target.checked);
+              writeStored('douyu-desktop.home-live-first.v1', event.target.checked);
+            }}
+          />
+          开播优先
+        </label>
+        <LiveReminderControls />
+      </div>
+
       <section className="home-section home-special-section" aria-labelledby="home-special-title">
         <header className="home-section-head">
           <div>
@@ -270,7 +326,10 @@ export function HomePage({
           </div>
         ) : (
           <div className="home-special-grid">
-            {specialCards.map((room) => (
+            {filteredSpecials.length === 0 ? (
+              <p className="home-filter-empty">没有匹配的特别关注，试试其他关键词或取消筛选。</p>
+            ) : null}
+            {filteredSpecials.map((room) => (
               <HomeRoomRow
                 key={specialFollowKey(room)}
                 platform={room.platform}
@@ -346,7 +405,10 @@ export function HomePage({
           </div>
         ) : (
           <div className="home-room-list" role="list">
-            {visibleFollowed.map((room) => (
+            {filteredFollowed.length === 0 ? (
+              <p className="home-filter-empty">没有匹配的关注，试试其他关键词或取消筛选。</p>
+            ) : null}
+            {filteredFollowed.map((room) => (
               <div role="listitem" key={roomKey(room.platform, room.roomId)}>
                 <HomeRoomRow
                   platform={room.platform}

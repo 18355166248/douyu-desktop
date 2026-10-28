@@ -9,8 +9,8 @@ import type { AccountSessionManager } from './AccountSessionManager';
 export class HomeService {
   constructor(private readonly accounts: AccountSessionManager) {}
 
-  async followed(): Promise<FollowedRoom[]> {
-    const accountId = await this.accounts.getActiveId();
+  async followed(expectedAccountId?: string): Promise<FollowedRoom[]> {
+    const accountId = expectedAccountId ?? (await this.accounts.getActiveId());
     if (!accountId) throw new AppError('AUTH_REQUIRED', '请先登录斗鱼');
     const accountSession = await this.accounts.getSession(accountId);
     const http = new DouyuHttpClient(new SessionHttpClient(accountSession, CHROME_UA));

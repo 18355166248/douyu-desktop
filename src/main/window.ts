@@ -9,6 +9,7 @@ export interface CreateMainWindowOptions {
   bounds?: Rectangle;
   secondary?: boolean;
   title?: string;
+  workspaceId?: string;
 }
 
 export function createMainWindow(options: CreateMainWindowOptions = {}): BrowserWindow {
@@ -65,11 +66,15 @@ export function createMainWindow(options: CreateMainWindowOptions = {}): Browser
   if (devUrl) {
     const url = new URL(devUrl);
     if (options.secondary) url.searchParams.set('role', 'secondary');
+    if (options.workspaceId) url.searchParams.set('workspace', options.workspaceId);
     void window.loadURL(url.toString());
   } else {
     const file = join(__dirname, '../renderer/index.html');
-    if (options.secondary) void window.loadFile(file, { query: { role: 'secondary' } });
-    else void window.loadFile(file);
+    const query = {
+      ...(options.secondary ? { role: 'secondary' } : {}),
+      ...(options.workspaceId ? { workspace: options.workspaceId } : {}),
+    };
+    void window.loadFile(file, { query });
   }
 
   return window;

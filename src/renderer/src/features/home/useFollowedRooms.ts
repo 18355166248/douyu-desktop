@@ -6,6 +6,7 @@ export interface UseFollowedRoomsResult {
   rooms: FollowedRoom[];
   loading: boolean;
   error: string | null;
+  updatedAt: number;
   reload: () => Promise<void>;
 }
 
@@ -20,6 +21,7 @@ export function useFollowedRooms(
   const [rooms, setRooms] = useState<FollowedRoom[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [updatedAt, setUpdatedAt] = useState(0);
   const requestId = useRef(0);
   const loadedAccount = useRef<string | null>(null);
 
@@ -39,8 +41,10 @@ export function useFollowedRooms(
       .followed()
       .then((result) => {
         if (requestId.current !== currentRequest) return;
-        if (result.ok) setRooms(result.data);
-        else setError(errorMessage(result.error));
+        if (result.ok) {
+          setRooms(result.data);
+          setUpdatedAt(Date.now());
+        } else setError(errorMessage(result.error));
       })
       .catch((reason: unknown) => {
         if (requestId.current === currentRequest) setError(errorMessage(reason));
@@ -51,17 +55,22 @@ export function useFollowedRooms(
   }, [accountId, accountIsActive]);
 
   useEffect(() => {
+    requestId.current += 1;
     if (!accountId || !accountIsActive) {
       loadedAccount.current = null;
       setRooms([]);
       setError(null);
       setLoading(false);
+      setUpdatedAt(0);
       return;
     }
     if (loadedAccount.current === accountId) return;
     loadedAccount.current = accountId;
     void reload();
+    return () => {
+      requestId.current += 1;
+    };
   }, [accountId, accountIsActive, reload]);
 
-  return { rooms, loading, error, reload };
+  return { rooms, loading, error, reload, updatedAt };
 }

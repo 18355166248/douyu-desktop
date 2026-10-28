@@ -5,6 +5,7 @@ import type { HuyaDanmakuUpdate } from '@shared/contracts/danmaku';
 import type { RoomHistoryEntry } from '@shared/contracts/history';
 import type { SpecialFollowEntry } from '@shared/contracts/specialFollow';
 import type { TaskProgressEvent, TaskRunSnapshot } from '@shared/contracts/task';
+import type { WindowMode, LiveReminderSettings } from '@shared/contracts/viewing';
 
 const api: DesktopApi = {
   accounts: {
@@ -36,15 +37,31 @@ const api: DesktopApi = {
   },
   home: {
     followed: () => ipcRenderer.invoke(IPC.homeFollowed),
+    reminderSettings: () => ipcRenderer.invoke(IPC.homeReminderSettings),
+    setReminders: (settings) => ipcRenderer.invoke(IPC.homeSetReminders, settings),
+    onReminderChange: (listener) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        settings: LiveReminderSettings & { supported: boolean },
+      ): void => listener(settings);
+      ipcRenderer.on(IPC.homeReminderChanged, handler);
+      return () => {
+        ipcRenderer.removeListener(IPC.homeReminderChanged, handler);
+      };
+    },
+    onOpenRoom: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, roomId: string): void => listener(roomId);
+      ipcRenderer.on(IPC.homeOpenRoom, handler);
+      return () => {
+        ipcRenderer.removeListener(IPC.homeOpenRoom, handler);
+      };
+    },
   },
   special: {
     load: () => ipcRenderer.invoke(IPC.specialLoad),
     toggle: (target) => ipcRenderer.invoke(IPC.specialToggle, target),
     onChange: (listener) => {
-      const handler = (
-        _event: Electron.IpcRendererEvent,
-        entries: SpecialFollowEntry[],
-      ): void => {
+      const handler = (_event: Electron.IpcRendererEvent, entries: SpecialFollowEntry[]): void => {
         listener(entries);
       };
       ipcRenderer.on(IPC.specialChanged, handler);
@@ -99,6 +116,15 @@ const api: DesktopApi = {
     openExternal: (url) => ipcRenderer.invoke(IPC.appOpenExternal, url),
   },
   window: {
+    mode: () => ipcRenderer.invoke(IPC.windowMode),
+    setMode: (patch) => ipcRenderer.invoke(IPC.windowSetMode, patch),
+    onModeChange: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, mode: WindowMode): void => listener(mode);
+      ipcRenderer.on(IPC.windowModeChanged, handler);
+      return () => {
+        ipcRenderer.removeListener(IPC.windowModeChanged, handler);
+      };
+    },
     minimize: () => ipcRenderer.send(IPC.windowMinimize),
     toggleMaximize: () => ipcRenderer.invoke(IPC.windowToggleMaximize),
     close: () => ipcRenderer.send(IPC.windowClose),
