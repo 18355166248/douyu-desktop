@@ -13,6 +13,7 @@ export interface StreamStallState {
 export function useStreamStall(
   videoRef: RefObject<HTMLVideoElement | null>,
   enabled: boolean,
+  userPausedRef?: RefObject<boolean>,
 ): StreamStallState {
   const [stalled, setStalled] = useState(false);
   const lastProgressAtRef = useRef(0);
@@ -49,7 +50,8 @@ export function useStreamStall(
     const check = (): void => {
       const now = performance.now();
       const inactive =
-        video.paused || video.ended || video.seeking || document.visibilityState === 'hidden';
+        (userPausedRef ? userPausedRef.current : video.paused) ||
+        document.visibilityState === 'hidden';
 
       if (inactive) {
         lastFrameAtRef.current = now;
@@ -59,7 +61,9 @@ export function useStreamStall(
         return;
       }
 
-      if (supportsFrames && hasStreamStalled(now, lastFrameAtRef.current)) {
+      // 首帧需要更多连接时间，但不能因 paused/未加载元数据而永远跳过恢复。
+      const timeout = video.readyState === 0 ? 20_000 : undefined;
+      if (supportsFrames && hasStreamStalled(now, lastFrameAtRef.current, timeout)) {
         setStalled(true);
         return;
       }
@@ -71,7 +75,7 @@ export function useStreamStall(
         return;
       }
 
-      if (hasStreamStalled(now, lastProgressAtRef.current)) setStalled(true);
+      if (hasStreamStalled(now, lastProgressAtRef.current, timeout)) setStalled(true);
     };
 
     const timer = window.setInterval(check, CHECK_INTERVAL_MS);
@@ -79,7 +83,7 @@ export function useStreamStall(
       window.clearInterval(timer);
       if (frameHandle !== undefined) video.cancelVideoFrameCallback(frameHandle);
     };
-  }, [enabled, videoRef]);
+  }, [enabled, videoRef, userPausedRef]);
 
   return { stalled, dismiss };
 }

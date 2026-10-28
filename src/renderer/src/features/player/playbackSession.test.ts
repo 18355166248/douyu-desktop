@@ -89,6 +89,7 @@ afterEach(() => {
 async function start(paused = false, format = playback.format) {
   const video = new FakeVideo();
   const error = vi.fn();
+  const recovering = vi.fn();
   cleanup = attachPlayback(
     video as unknown as HTMLVideoElement,
     {
@@ -96,10 +97,10 @@ async function start(paused = false, format = playback.format) {
       format,
       url: format === 'hls' ? playback.url : 'https://cdn.example/live.flv',
     },
-    { isUserPaused: () => paused, onError: error },
+    { isUserPaused: () => paused, onError: error, onRecovering: recovering },
   );
   await vi.dynamicImportSettled();
-  return { video, error, hls: mocks.FakeHls.instances[0]! };
+  return { video, error, recovering, hls: mocks.FakeHls.instances[0]! };
 }
 
 describe('playback session recovery', () => {
@@ -175,7 +176,7 @@ describe('playback session recovery', () => {
   });
 
   it.each(['error', 'complete'])('reconnects FLV on %s and bounds retries', async (event) => {
-    const { error } = await start(false, 'flv');
+    const { error, recovering } = await start(false, 'flv');
     const emit = (): void => {
       const handler = [...mocks.flv.on.mock.calls].reverse().find(([name]) => name === event)?.[1];
       handler?.();
@@ -186,6 +187,7 @@ describe('playback session recovery', () => {
       await vi.advanceTimersByTimeAsync(400 * attempt);
     }
     expect(mocks.createFlv).toHaveBeenCalledTimes(4);
+    expect(recovering).toHaveBeenCalledTimes(3);
     emit();
     expect(error).toHaveBeenCalledExactlyOnceWith('FLV 播放失败，请尝试重新解析');
   });

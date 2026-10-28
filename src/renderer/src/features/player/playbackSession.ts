@@ -5,6 +5,7 @@ import type { StreamPlayback } from '@shared/contracts/stream';
 interface PlaybackSessionOptions {
   isUserPaused: () => boolean;
   onError: (message: string) => void;
+  onRecovering?: () => void;
 }
 
 /** Owns one media element attachment, including deferred imports and all retries. */
@@ -95,6 +96,7 @@ export function attachPlayback(
             fail('HLS 播放失败，请重新解析');
             return;
           }
+          options.onRecovering?.();
           recoveryAttempts += 1;
           recoveryTimer = setTimeout(() => {
             recoveryTimer = null;
@@ -130,6 +132,10 @@ export function attachPlayback(
             // 直播稳定性优先：保留网络抖动缓冲，单位为字节。
             enableStashBuffer: true,
             stashInitialSize: 128 * 1024,
+            // 暂停或卡顿后限制本地积压，避免视频一直落后于实时弹幕；不在暂停时追帧。
+            liveBufferLatencyChasing: true,
+            liveBufferLatencyMaxLatency: 8,
+            liveBufferLatencyMinRemain: 2,
             lazyLoad: false,
             autoCleanupSourceBuffer: true,
           },
@@ -142,6 +148,7 @@ export function attachPlayback(
             fail('FLV 播放失败，请尝试重新解析');
             return;
           }
+          options.onRecovering?.();
           recoveryAttempts += 1;
           recoveryTimer = setTimeout(() => {
             recoveryTimer = null;

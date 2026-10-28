@@ -24,10 +24,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
-function StallHarness() {
+function StallHarness(userPausedRef?: { current: boolean }) {
   let frame: (() => void) | undefined;
   const video = {
     currentTime: 0,
+    readyState: 4,
     paused: false,
     ended: false,
     seeking: false,
@@ -37,12 +38,29 @@ function StallHarness() {
     }),
     cancelVideoFrameCallback: vi.fn(),
   };
-  const state = useStreamStall({ current: video as unknown as HTMLVideoElement }, true);
+  const state = useStreamStall(
+    { current: video as unknown as HTMLVideoElement },
+    true,
+    userPausedRef,
+  );
   cleanup = hooks.effects[0]?.();
   return { video, state, frame: () => frame?.() };
 }
 
 describe('video frame stall detection', () => {
+  it('recovers an initial load that never becomes ready, but respects explicit pause', () => {
+    const userPaused = { current: false };
+    const { video } = StallHarness(userPaused);
+    video.readyState = 0;
+    video.paused = true;
+    vi.advanceTimersByTime(19_000);
+    expect(hooks.setStalled).not.toHaveBeenCalledWith(true);
+    vi.advanceTimersByTime(1_000);
+    expect(hooks.setStalled).toHaveBeenLastCalledWith(true);
+    userPaused.current = true;
+    vi.advanceTimersByTime(1_000);
+    expect(hooks.setStalled).toHaveBeenLastCalledWith(false);
+  });
   it('detects frozen video while the audio clock continues advancing', () => {
     const { video } = StallHarness();
     for (let i = 1; i <= 8; i++) {

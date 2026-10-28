@@ -51,7 +51,8 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-describe('stream reload lifetimes', () => {  it.each(['success', 'failure'] as const)(
+describe('stream reload lifetimes', () => {
+  it.each(['success', 'failure'] as const)(
     'ignores an old %s after closing and re-adding a room',
     async (outcome) => {
       resolveStream.mockResolvedValueOnce(ok(playback('initial')));
@@ -79,6 +80,27 @@ describe('stream reload lifetimes', () => {  it.each(['success', 'failure'] as c
     },
   );
 
+  it('reloads different rooms concurrently without dropping either recovery', async () => {
+    resolveStream.mockResolvedValueOnce(ok(playback('one')));
+    await render().addStream(input);
+    resolveStream.mockResolvedValueOnce(ok(playback('two', '2')));
+    await render().addStream({ ...input, roomId: '2' });
+    let finish!: (value: ReturnType<typeof ok<StreamPlayback>>) => void;
+    resolveStream.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const first = render().reloadStream('douyu:1');
+    resolveStream.mockResolvedValueOnce(ok(playback('two-new', '2')));
+    await render().reloadStream('douyu:2');
+    expect(render().streams[1]?.playback.url).toBe('two-new');
+    expect(render().reloadingKeys).toEqual(['douyu:1']);
+    finish(ok(playback('one-new')));
+    await first;
+    expect(render().reloadingKeys).toEqual([]);
+  });
+
   it('does not let an old finally unlock a newer reload', async () => {
     resolveStream.mockResolvedValueOnce(ok(playback('initial')));
     await render().addStream(input);
@@ -101,12 +123,12 @@ describe('stream reload lifetimes', () => {  it.each(['success', 'failure'] as c
     const current = render().reloadStream('douyu:1');
     finishOld(ok(playback('stale')));
     await old;
-    expect(render().reloadingKey).toBe('douyu:1');
+    expect(render().reloadingKeys).toEqual(['douyu:1']);
     expect(await render().reloadStream('douyu:1')).toContain('正在重新解析');
     finishNew(ok(playback('latest')));
     await current;
     expect(render().streams[0]?.playback.url).toBe('latest');
-    expect(render().reloadingKey).toBeNull();
+    expect(render().reloadingKeys).toEqual([]);
   });
 });
 

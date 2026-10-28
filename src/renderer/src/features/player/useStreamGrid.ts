@@ -25,7 +25,7 @@ export interface AddStreamOptions extends StreamResolveOptions {
 export interface UseStreamGridResult {
   streams: StreamGridEntry[];
   isAdding: boolean;
-  reloadingKey: string | null;
+  reloadingKeys: string[];
   mutedRooms: Record<string, boolean>;
   volumes: Record<string, number>;
   soloKey: string | null;
@@ -51,12 +51,12 @@ export function defaultStreamOptions(platform: StreamPlatform): StreamResolveOpt
 export function useStreamGrid(): UseStreamGridResult {
   const [streams, setStreams] = useState<StreamGridEntry[]>([]);
   const [isAdding, setIsAdding] = useState(false);
-  const [reloadingKey, setReloadingKey] = useState<string | null>(null);
+  const [reloadingKeys, setReloadingKeys] = useState<string[]>([]);
   const [mutedRooms, setMutedRooms] = useState<Record<string, boolean>>({});
   const [volumes, setVolumes] = useState<Record<string, number>>({});
   const [soloKey, setSoloKey] = useState<string | null>(null);
   const addingRef = useRef(false);
-  const reloadingRef = useRef<{ key: string } | null>(null);
+  const reloadingRef = useRef(new Map<string, object>());
   const nextInstanceId = useRef(0);
   const mutedBeforeSoloRef = useRef<Record<string, boolean> | null>(null);
 
@@ -131,7 +131,8 @@ export function useStreamGrid(): UseStreamGridResult {
   async function reloadStream(key: string, options?: StreamResolveOptions): Promise<string | null> {
     const entry = streams.find((item) => streamKey(item.playback) === key);
     if (!entry) return null;
-    if (reloadingRef.current !== null) return '正在重新解析其他房间，请稍候';
+    // 各房间独立恢复，避免多路同时断流时消耗了重试机会却没有发起请求。
+    if (reloadingRef.current.has(key)) return '正在重新解析该房间，请稍候';
 
     const effectiveOptions = options ?? entry.options;
     setStreams((current) =>
@@ -143,8 +144,8 @@ export function useStreamGrid(): UseStreamGridResult {
     );
 
     const request = { key };
-    reloadingRef.current = request;
-    setReloadingKey(key);
+    reloadingRef.current.set(key, request);
+    setReloadingKeys((current) => [...current, key]);
     try {
       const playback = unwrap(
         await window.api.streams.resolve({
@@ -156,7 +157,7 @@ export function useStreamGrid(): UseStreamGridResult {
       );
       const actualQuality =
         qualityFromLabel(playback.platform, playback.quality) ?? effectiveOptions.quality;
-      if (reloadingRef.current !== request) return null;
+      if (reloadingRef.current.get(key) !== request) return null;
       setStreams((current) =>
         current.map((item) =>
           item.instanceId === entry.instanceId
@@ -171,7 +172,7 @@ export function useStreamGrid(): UseStreamGridResult {
       );
       return null;
     } catch (error) {
-      if (reloadingRef.current !== request) return null;
+      if (reloadingRef.current.get(key) !== request) return null;
       const message = errorMessage(error);
       setStreams((current) =>
         current.map((item) =>
@@ -180,9 +181,9 @@ export function useStreamGrid(): UseStreamGridResult {
       );
       return null;
     } finally {
-      if (reloadingRef.current === request) {
-        reloadingRef.current = null;
-        setReloadingKey(null);
+      if (reloadingRef.current.get(key) === request) {
+        reloadingRef.current.delete(key);
+        setReloadingKeys((current) => current.filter((item) => item !== key));
       }
     }
   }
@@ -221,10 +222,8 @@ export function useStreamGrid(): UseStreamGridResult {
       delete next[key];
       return next;
     });
-    if (reloadingRef.current?.key === key) {
-      reloadingRef.current = null;
-      setReloadingKey(null);
-    }
+    reloadingRef.current.delete(key);
+    setReloadingKeys((current) => current.filter((item) => item !== key));
   }
 
   function clearStreams(): void {
@@ -233,8 +232,8 @@ export function useStreamGrid(): UseStreamGridResult {
     setVolumes({});
     setSoloKey(null);
     mutedBeforeSoloRef.current = null;
-    reloadingRef.current = null;
-    setReloadingKey(null);
+    reloadingRef.current.clear();
+    setReloadingKeys([]);
   }
 
   function toggleMute(key: string): void {
@@ -294,7 +293,7 @@ export function useStreamGrid(): UseStreamGridResult {
   return {
     streams,
     isAdding,
-    reloadingKey,
+    reloadingKeys,
     mutedRooms,
     volumes,
     soloKey,

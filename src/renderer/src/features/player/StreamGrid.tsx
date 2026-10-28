@@ -13,7 +13,7 @@ interface StreamGridProps {
   mainKey: string | null;
   immersive: boolean;
   keyboardActive?: boolean;
-  reloadingKey: string | null;
+  reloadingKeys: string[];
   mutedRooms: Record<string, boolean>;
   volumes: Record<string, number>;
   soloKey: string | null;
@@ -35,7 +35,7 @@ export function StreamGrid({
   mainKey,
   immersive,
   keyboardActive = true,
-  reloadingKey,
+  reloadingKeys,
   mutedRooms,
   volumes,
   soloKey,
@@ -56,9 +56,7 @@ export function StreamGrid({
     streams.length === MAX_STREAMS - 1 && (layoutMode === 'even' || layout === 'focus-5');
   const focusSlotLayout = layout === 'focus-5' || layout === 'focus-6';
   const focusKeys = streams.map((entry) => streamKey(entry.playback));
-  const nonMainKeys = focusSlotLayout
-    ? focusKeys.filter((entryKey) => entryKey !== mainKey)
-    : [];
+  const nonMainKeys = focusSlotLayout ? focusKeys.filter((entryKey) => entryKey !== mainKey) : [];
   const sideKeys = nonMainKeys.slice(0, 3);
   const underKeys = nonMainKeys.slice(3, 5);
   const firstEntry = streams[0];
@@ -96,14 +94,12 @@ export function StreamGrid({
             volume={volumes[key] ?? DEFAULT_VOLUME}
             quality={entry.options.quality}
             preferHls={entry.options.preferHls}
-            isReloading={reloadingKey === key}
+            isReloading={reloadingKeys.includes(key)}
             onActivate={() => setActiveKey(key)}
             onReload={() => onReload(key)}
             onOptionsChange={(patch) => onOptionsChange(key, patch)}
             onStop={() => onRemove(key)}
-            {...(layoutMode === 'focus' && !isMain
-              ? { onSetMain: () => onSetMain(key) }
-              : {})}
+            {...(layoutMode === 'focus' && !isMain ? { onSetMain: () => onSetMain(key) } : {})}
             onToggleMute={() => onToggleMute(key)}
             onToggleSolo={() => onToggleSolo(key)}
             onVolumeChange={(volume) => onVolumeChange(key, volume)}

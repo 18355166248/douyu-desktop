@@ -73,7 +73,7 @@ export function VideoPlayer({
   const showControls = controls.show;
   const queryClient = useQueryClient();
   const { settings, update } = useDanmakuSettings();
-  const stall = useStreamStall(videoRef, isReady && !error && !isReloading);
+  const stall = useStreamStall(videoRef, !error && !isReloading, userPausedRef);
   const { stalled: streamStalled, dismiss: dismissStall } = stall;
   const qualityOptions = qualityOptionsFor(playback.platform);
   const qualityLabel = qualityOptions.find((option) => option.value === quality)?.label ?? quality;
@@ -96,6 +96,10 @@ export function VideoPlayer({
     return attachPlayback(video, playback, {
       isUserPaused: () => userPausedRef.current,
       onError: setError,
+      onRecovering: () => {
+        setIsPlaying(false);
+        setDanmakuRevision((revision) => revision + 1);
+      },
     });
   }, [playback]);
 
@@ -294,7 +298,10 @@ export function VideoPlayer({
           controls={false}
           onLoadedMetadata={() => setIsReady(true)}
           onCanPlay={() => setIsReady(true)}
-          onPlay={() => setIsPlaying(true)}
+          onPlaying={() => setIsPlaying(true)}
+          onWaiting={() => setIsPlaying(false)}
+          onSeeking={() => setIsPlaying(false)}
+          onEnded={() => setIsPlaying(false)}
           onPause={() => setIsPlaying(false)}
           onError={() => setError('视频加载失败，请重新解析')}
         />
@@ -319,6 +326,7 @@ export function VideoPlayer({
           key={`${playback.platform}:${playback.roomId}:${danmakuRevision}`}
           roomId={playback.roomId}
           platform={playback.platform}
+          suspended={!isPlaying || isReloading || streamStalled || Boolean(error)}
         />
 
         {autoRecovering && isReloading ? (

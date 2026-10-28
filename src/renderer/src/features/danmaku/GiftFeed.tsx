@@ -20,6 +20,7 @@ interface GiftToast {
 
 export interface GiftFeedHandle {
   push: (event: DanmakuEvent) => void;
+  clear: () => void;
 }
 
 const MAX_GIFTS = 4;
@@ -47,7 +48,7 @@ export const GiftFeed = forwardRef<GiftFeedHandle, GiftFeedProps>(function GiftF
     [platform, roomId, settings],
   );
 
-  useImperativeHandle(ref, () => ({ push }), [push]);
+  useImperativeHandle(ref, () => ({ push, clear: () => setItems([]) }), [push]);
 
   useEffect(() => {
     setItems((current) => {

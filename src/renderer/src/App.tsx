@@ -45,7 +45,7 @@ export function App(): React.JSX.Element {
   const {
     streams,
     isAdding,
-    reloadingKey,
+    reloadingKeys,
     mutedRooms,
     volumes,
     soloKey,
@@ -82,10 +82,7 @@ export function App(): React.JSX.Element {
     removeHistory,
     clearHistory,
   } = useRoomHistory();
-  const followed = useFollowedRooms(
-    activeAccount?.id ?? null,
-    activeAccount?.status === 'active',
-  );
+  const followed = useFollowedRooms(activeAccount?.id ?? null, activeAccount?.status === 'active');
   const special = useSpecialFollows();
   const reloadFollowed = followed.reload;
   const reloadSpecial = special.reload;
@@ -244,7 +241,9 @@ export function App(): React.JSX.Element {
 
   function handleRoomQuickOpen(targetPlatform: StreamPlatform, targetRoomId: string): void {
     setError(null);
-    if (streams.some((entry) => streamKey(entry.playback) === roomKey(targetPlatform, targetRoomId))) {
+    if (
+      streams.some((entry) => streamKey(entry.playback) === roomKey(targetPlatform, targetRoomId))
+    ) {
       setActiveView('live');
       return;
     }
@@ -533,7 +532,7 @@ export function App(): React.JSX.Element {
                     mainKey={effectiveMainKey}
                     immersive={isImmersive}
                     keyboardActive={activeView === 'live'}
-                    reloadingKey={reloadingKey}
+                    reloadingKeys={reloadingKeys}
                     mutedRooms={mutedRooms}
                     volumes={volumes}
                     soloKey={soloKey}
