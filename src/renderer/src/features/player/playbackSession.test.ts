@@ -54,6 +54,7 @@ class FakeVideo extends EventTarget {
   currentTime = 0;
   paused = true;
   seeking = false;
+  error: { code: number } | null = null;
   play = vi.fn(async () => {
     this.paused = false;
   });
@@ -104,6 +105,26 @@ async function start(paused = false, format = playback.format) {
 }
 
 describe('playback session recovery', () => {
+  it('deduplicates native decode errors and HLS errors in the same recovery window', async () => {
+    const { video, hls, error, recovering } = await start();
+    video.error = { code: 3 };
+    video.dispatchEvent(new Event('error'));
+    hls.fail('media');
+    await vi.advanceTimersByTimeAsync(400);
+    expect(hls.recoverMediaError).toHaveBeenCalledTimes(1);
+    expect(recovering).toHaveBeenCalledTimes(1);
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it('recovers native FLV decode errors without requiring a second library event', async () => {
+    const { video, error } = await start(false, 'flv');
+    video.error = { code: 3 };
+    video.dispatchEvent(new Event('error'));
+    await vi.advanceTimersByTimeAsync(400);
+    expect(mocks.createFlv).toHaveBeenCalledTimes(2);
+    expect(error).not.toHaveBeenCalled();
+  });
+
   it('bounds repeated fatal media recovery as well as network recovery', async () => {
     const { hls, error } = await start();
     for (let attempt = 1; attempt <= 3; attempt += 1) {

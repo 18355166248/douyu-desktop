@@ -19,6 +19,7 @@ export function attachPlayback(
   let hls: Hls | null = null;
   let flv: ReturnType<typeof mpegts.createPlayer> | null = null;
   let recoveryAttempts = 0;
+  let recoverNativeError: (() => void) | null = null;
   let healthySince: number | null = null;
   let recoveryTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -67,6 +68,13 @@ export function attachPlayback(
     options.onError(message);
   };
 
+  // 原生解码错误与播放器错误共用同一恢复预算，避免 UI 抢先重新解析打断内部恢复。
+  const onNativeError = (): void => {
+    if (disposed || failed || !video.error) return;
+    if (recoverNativeError) recoverNativeError();
+    else fail('视频加载失败，请重新解析');
+  };
+  video.addEventListener('error', onNativeError);
   video.addEventListener('canplay', resumeWhenReady);
   video.addEventListener('loadeddata', resumeWhenReady);
   video.addEventListener('timeupdate', trackPlayback);
@@ -81,13 +89,10 @@ export function attachPlayback(
       if (Hls.isSupported()) {
         hls = new Hls({ enableWorker: true, lowLatencyMode: true, backBufferLength: 30 });
         hls.on(Hls.Events.MANIFEST_PARSED, play);
-        hls.on(Hls.Events.ERROR, (_event, data) => {
-          if (disposed || !data.fatal || !hls) return;
+        const recoverHls = (type: string): void => {
+          if (disposed || failed || !hls) return;
           resetHealthyWindow();
-          if (
-            data.type !== Hls.ErrorTypes.NETWORK_ERROR &&
-            data.type !== Hls.ErrorTypes.MEDIA_ERROR
-          ) {
+          if (type !== Hls.ErrorTypes.NETWORK_ERROR && type !== Hls.ErrorTypes.MEDIA_ERROR) {
             fail('HLS 播放失败，请尝试重新解析');
             return;
           }
@@ -101,12 +106,16 @@ export function attachPlayback(
           recoveryTimer = setTimeout(() => {
             recoveryTimer = null;
             if (disposed || !hls) return;
-            if (data.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
+            if (type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
             else {
               hls.loadSource(playback.url);
               hls.startLoad();
             }
           }, 400 * recoveryAttempts);
+        };
+        recoverNativeError = () => recoverHls(Hls.ErrorTypes.MEDIA_ERROR);
+        hls.on(Hls.Events.ERROR, (_event, data) => {
+          if (data.fatal) recoverHls(data.type);
         });
         hls.loadSource(playback.url);
         hls.attachMedia(video);
@@ -159,6 +168,7 @@ export function attachPlayback(
             }
           }, 400 * recoveryAttempts);
         };
+        recoverNativeError = reconnect;
         player.attachMediaElement(video);
         player.on(mpegts.Events.ERROR, reconnect);
         // 直播连接正常 EOF 也意味着后续没有数据，不能只监听 ERROR。
@@ -175,6 +185,7 @@ export function attachPlayback(
     disposed = true;
     for (const timer of retryTimers) clearTimeout(timer);
     if (recoveryTimer !== null) clearTimeout(recoveryTimer);
+    video.removeEventListener('error', onNativeError);
     video.removeEventListener('canplay', resumeWhenReady);
     video.removeEventListener('loadeddata', resumeWhenReady);
     video.removeEventListener('timeupdate', trackPlayback);

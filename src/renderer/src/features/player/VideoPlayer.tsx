@@ -11,6 +11,7 @@ import { RoomContextMenu } from './RoomContextMenu';
 import { qualityOptionsFor } from './streamQuality';
 import { STALL_TIMEOUT_MS, AUTO_RECOVERY_RESET_MS } from './streamStall';
 import { attachPlayback } from './playbackSession';
+import { resumeLivePlayback } from './resumeLivePlayback';
 import { useAutoHideControls } from './useAutoHideControls';
 import { roomAudienceKey } from './useRoomAudience';
 import { useStreamStall } from './useStreamStall';
@@ -97,8 +98,8 @@ export function VideoPlayer({
       isUserPaused: () => userPausedRef.current,
       onError: setError,
       onRecovering: () => {
+        // 内部重连只清空展示队列，保持健康的弹幕连接，避免短时间反复握手。
         setIsPlaying(false);
-        setDanmakuRevision((revision) => revision + 1);
       },
     });
   }, [playback]);
@@ -157,6 +158,8 @@ export function VideoPlayer({
     if (!video) return;
     if (video.paused) {
       userPausedRef.current = false;
+      // 继续直播时丢开暂停期间积压的位置，弹幕恢复后与较新的画面一起显示。
+      resumeLivePlayback(video);
       void video.play().catch(() => {
         // Autoplay rejection is surfaced by the loading/error state.
       });
@@ -303,7 +306,6 @@ export function VideoPlayer({
           onSeeking={() => setIsPlaying(false)}
           onEnded={() => setIsPlaying(false)}
           onPause={() => setIsPlaying(false)}
-          onError={() => setError('视频加载失败，请重新解析')}
         />
 
         <div

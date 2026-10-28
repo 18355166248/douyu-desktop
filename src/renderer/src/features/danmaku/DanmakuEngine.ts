@@ -6,13 +6,20 @@ import type { DanmakuSettings } from './danmakuSettings';
 
 const BASE_SPEED_PX_PER_SECOND = 100;
 const ENTRY_GAP_PX = 18;
-const MAX_QUEUE = 120;
+const MAX_ACTIVE = 60;
+const QUEUE_SHED_THRESHOLD = 40;
+const QUEUE_RETAIN = 24;
 // Do not replay a backlog that is already several seconds behind live chat.
 const MAX_QUEUE_AGE_MS = 2_500;
 // 24ms allows roughly 40 spawns per second; lane availability remains the
 // real limiter, so busy rooms no longer build a stale queue as quickly.
 const SPAWN_INTERVAL_MS = 24;
 const GEOMETRY_RESYNC_MS = 200;
+
+interface QueuedItem {
+  event: DanmakuEvent;
+  enqueuedAt: number;
+}
 
 interface ActiveItem {
   element: HTMLElement;
@@ -27,7 +34,7 @@ export class DanmakuEngine {
   private readonly container: HTMLElement;
   private settings: DanmakuSettings;
   private readonly active: ActiveItem[] = [];
-  private queue: DanmakuEvent[] = [];
+  private queue: QueuedItem[] = [];
   private readonly laneBusyUntil: number[] = [];
   private laneCursor = 0;
   private lastSpawnAt = Number.NEGATIVE_INFINITY;
@@ -50,19 +57,20 @@ export class DanmakuEngine {
 
   push(event: DanmakuEvent): void {
     // Gifts have their own bottom-left feed; never mix them into the flying layer.
-    if (event.kind === 'gift') return;
+    if (this.destroyed || event.kind === 'gift') return;
     if (!this.settings.visible || !shouldRenderDanmaku(event, this.settings)) return;
-    this.pruneStaleQueue(Date.now());
-    this.queue.push(event);
-    if (this.queue.length > MAX_QUEUE) {
-      this.queue.splice(0, this.queue.length - MAX_QUEUE);
+    this.pruneStaleQueue(performance.now());
+    this.queue.push({ event, enqueuedAt: performance.now() });
+    // 热门房间优先展示最近消息，保留批次内部顺序，避免旧消息拖住新消息。
+    if (this.queue.length > QUEUE_SHED_THRESHOLD) {
+      this.queue.splice(0, this.queue.length - QUEUE_RETAIN);
     }
   }
 
   private pruneStaleQueue(now: number): void {
     while (this.queue.length > 0) {
       const oldest = this.queue[0];
-      if (!oldest || now - oldest.timestamp <= MAX_QUEUE_AGE_MS) return;
+      if (!oldest || now - oldest.enqueuedAt <= MAX_QUEUE_AGE_MS) return;
       this.queue.shift();
     }
   }
@@ -161,8 +169,9 @@ export class DanmakuEngine {
   }
 
   private drainQueue(): void {
-    this.pruneStaleQueue(Date.now());
-    if (this.queue.length === 0) return;
+    this.pruneStaleQueue(performance.now());
+    // 给多屏场景限定 DOM/动画开销；等待期间队列仍会过期，不积攒旧弹幕。
+    if (this.queue.length === 0 || this.active.length >= MAX_ACTIVE) return;
     const now = performance.now();
     if (now - this.lastSpawnAt < SPAWN_INTERVAL_MS) return;
 
@@ -173,7 +182,7 @@ export class DanmakuEngine {
     const lane = this.pickLane(now);
     if (lane < 0) return;
 
-    const event = this.queue[0];
+    const event = this.queue[0]?.event;
     if (!event) return;
 
     const element = this.createElement(event, geometry.fontSize);
@@ -355,10 +364,7 @@ export class DanmakuEngine {
       item.element.style.transform = `translateX(${currentX}px)`;
 
       const animation = item.element.animate(
-        [
-          { transform: `translateX(${currentX}px)` },
-          { transform: `translateX(${endX}px)` },
-        ],
+        [{ transform: `translateX(${currentX}px)` }, { transform: `translateX(${endX}px)` }],
         { duration, easing: 'linear', fill: 'forwards' },
       );
       item.animation = animation;
@@ -402,7 +408,7 @@ export class DanmakuEngine {
 
   private filterQueue(): void {
     if (this.queue.length === 0) return;
-    this.queue = this.queue.filter((event) => shouldRenderDanmaku(event, this.settings));
+    this.queue = this.queue.filter((item) => shouldRenderDanmaku(item.event, this.settings));
   }
 
   private syncPlaybackRates(): void {
