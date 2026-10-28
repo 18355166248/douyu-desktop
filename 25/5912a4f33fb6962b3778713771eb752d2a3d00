@@ -1,0 +1,36 @@
+src/renderer/src/features/player/useStreamStall.test.ts
+  s_6e70a7f27ae467::t_168c425fc1ab33 30-37
+  s_6e70a7f27ae467::t_80d266f71aeb66 1-26,28-29,38-46,48-54,56-66,68-76
+  s_6e70a7f27ae467::t_b824e5f01e9f2f 27,47,55,67
+src/renderer/src/features/player/VideoPlayer.tsx
+  s_6e70a7f27ae467::t_6790de4d6f8012 435
+  s_6e70a7f27ae467::t_bbe7799485062f 124-125,135,138,144
+src/renderer/src/features/player/playbackSession.test.ts
+  s_6e70a7f27ae467::t_168c425fc1ab33 46-50
+  s_6e70a7f27ae467::t_0f6a3c35b8a273 35,177-179,181-207,209
+  s_6e70a7f27ae467::t_9f23a2496fe2ca 180
+  s_6e70a7f27ae467::t_c9132300ebcca7 208
+  s_6e70a7f27ae467::t_e94c668ecf3aa8 210
+src/renderer/src/features/player/playbackSession.ts
+  s_6e70a7f27ae467::t_bbe7799485062f 122-162
+src/renderer/src/features/player/useStreamStall.ts
+  s_6e70a7f27ae467::t_168c425fc1ab33 52
+  s_6e70a7f27ae467::t_bbe7799485062f 39,41-43,45-48,63-66,78-81
+  s_6e70a7f27ae467::t_0f6a3c35b8a273 20,24,40,44,55,62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.1",
+  "base_commit_sha": "255912a4f33fb6962b3778713771eb752d2a3d00",
+  "prompts": {},
+  "sessions": {
+    "s_6e70a7f27ae467": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1810b-4d98-7922-b5b5-7bb6107b1be6",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "lang.jiang <lang.jiang@ximalaya.com>"
+    }
+  }
+}
