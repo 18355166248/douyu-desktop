@@ -712,6 +712,7 @@ export function App(): React.JSX.Element {
                 ) : (
                   <StreamGrid
                     streams={streams}
+                    playbackVisible={activeView === 'live'}
                     layoutMode={layoutMode}
                     mainKey={effectiveMainKey}
                     immersive={isImmersive}

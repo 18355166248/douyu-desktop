@@ -151,6 +151,7 @@ export function useStreamGrid(): UseStreamGridResult {
       const initialMuted = options.muted ?? saved?.muted ?? false;
       const initialVolume =
         options.volume ?? saved?.volume ?? options.defaultVolume ?? DEFAULT_VOLUME;
+      if (mutedBeforeSoloRef.current) mutedBeforeSoloRef.current[key] = initialMuted;
       setMutedRooms((current) => ({
         ...current,
         [key]: mutedBeforeSoloRef.current !== null || initialMuted,

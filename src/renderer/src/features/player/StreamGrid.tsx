@@ -13,6 +13,7 @@ interface StreamGridProps {
   mainKey: string | null;
   immersive: boolean;
   keyboardActive?: boolean;
+  playbackVisible?: boolean;
   reloadingKeys: string[];
   mutedRooms: Record<string, boolean>;
   volumes: Record<string, number>;
@@ -37,6 +38,7 @@ export function StreamGrid({
   mainKey,
   immersive,
   keyboardActive = true,
+  playbackVisible = true,
   reloadingKeys,
   mutedRooms,
   volumes,
@@ -86,6 +88,7 @@ export function StreamGrid({
           <PlayerTile
             key={key}
             playback={entry.playback}
+            playbackVisible={playbackVisible}
             error={entry.error}
             compact={streams.length > 1}
             immersive={immersive}

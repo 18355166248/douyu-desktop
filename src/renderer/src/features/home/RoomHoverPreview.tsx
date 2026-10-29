@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { StreamPlatform } from '@shared/contracts/stream';
-import { startRoomPreview, type PreviewStatus } from './roomPreviewSession';
+import { observeRoomPreview, type PreviewStatus } from './roomPreviewSession';
 
 interface RoomHoverPreviewProps {
   platform: StreamPlatform;
@@ -13,27 +13,8 @@ export function RoomHoverPreview({ platform, roomId }: RoomHoverPreviewProps): R
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || document.hidden || !document.hasFocus()) return;
-    const stop = startRoomPreview(video, platform, roomId, setStatus);
-    const suspend = (): void => {
-      stop();
-      setStatus('waiting');
-    };
-    const onVisibility = (): void => {
-      if (document.hidden) suspend();
-    };
-    const observer = new IntersectionObserver(([entry]) => {
-      if (!entry?.isIntersecting) suspend();
-    });
-    observer.observe(video);
-    document.addEventListener('visibilitychange', onVisibility);
-    window.addEventListener('blur', suspend);
-    return () => {
-      stop();
-      observer.disconnect();
-      document.removeEventListener('visibilitychange', onVisibility);
-      window.removeEventListener('blur', suspend);
-    };
+    if (!video) return;
+    return observeRoomPreview(video, platform, roomId, setStatus);
   }, [platform, roomId]);
 
   return (

@@ -19,6 +19,7 @@ import type { StreamResolveOptions } from './useStreamGrid';
 
 interface VideoPlayerProps {
   playback: StreamPlayback;
+  playbackVisible: boolean;
   muted: boolean;
   volume: number;
   quality: StreamQuality;
@@ -41,6 +42,7 @@ interface VideoPlayerProps {
 
 export function VideoPlayer({
   playback,
+  playbackVisible,
   muted,
   volume,
   quality,
@@ -79,6 +81,7 @@ export function VideoPlayer({
     videoRef,
     !error && !isReloading && !playbackState.playBlocked,
     userPausedRef,
+    playbackVisible,
   );
   const { stalled: streamStalled, dismiss: dismissStall } = stall;
   const qualityOptions = qualityOptionsFor(playback.platform);
@@ -322,7 +325,9 @@ export function VideoPlayer({
           key={`${playback.platform}:${playback.roomId}:${danmakuRevision}`}
           roomId={playback.roomId}
           platform={playback.platform}
-          suspended={!isPlaying || isReloading || streamStalled || Boolean(error)}
+          suspended={
+            !playbackVisible || !isPlaying || isReloading || streamStalled || Boolean(error)
+          }
         />
 
         {autoRecovering && isReloading ? (
@@ -552,6 +557,8 @@ export function VideoPlayer({
         onClosePlayer={onStop}
         onReplace={onReplace}
         onOpenDiagnostics={() => setDiagnosticsOpen(true)}
+        onReconnectDanmaku={() => setDanmakuRevision((revision) => revision + 1)}
+        onReturnToLive={playbackState.returnToLive}
       />
       {diagnosticsOpen ? (
         <PlaybackDiagnostics

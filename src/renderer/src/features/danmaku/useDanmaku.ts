@@ -19,63 +19,85 @@ export function useDanmaku(
 
   useEffect(() => {
     let active = true;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    const stopRetries = (): void => {
+      active = false;
+      clearTimeout(retryTimer);
+    };
     let bilibili: BilibiliDanmakuClient | null = null;
     const emit = (event: DanmakuStatusEvent): void => {
       if (active) setStatus(event);
     };
     setStatus({ roomId, platform, status: 'connecting' });
 
-    if (platform === 'bilibili') {
-      void window.api.danmaku
-        .bilibiliConfig(roomId)
-        .then((result) => unwrap(result))
-        .then((config) => {
-          if (!active) return;
-          bilibili = new BilibiliDanmakuClient({
-            roomId,
-            host: config.host,
-            token: config.token,
-            refreshConfig: async () => unwrap(await window.api.danmaku.bilibiliConfig(roomId)),
-            onEvent: (event) => {
-              if (active) onEventRef.current(event);
-            },
-            onStatus: emit,
-          });
-          bilibili.connect();
-        })
-        .catch((error: unknown) => {
+    const startWithRetry = (start: () => Promise<void>, attempt = 0): void => {
+      if (!active) return;
+      void start().catch((error: unknown) => {
+        if (!active) return;
+        const delay = [1_000, 3_000, 8_000][attempt];
+        if (delay === undefined) {
           emit({ roomId, platform, status: 'error', message: errorMessage(error) });
+          return;
+        }
+        emit({
+          roomId,
+          platform,
+          status: 'reconnecting',
+          message: `弹幕连接失败，正在重试（${attempt + 1}/3）`,
         });
+        retryTimer = setTimeout(() => startWithRetry(start, attempt + 1), delay);
+      });
+    };
+
+    if (platform === 'bilibili') {
+      startWithRetry(() =>
+        window.api.danmaku
+          .bilibiliConfig(roomId)
+          .then((result) => unwrap(result))
+          .then((config) => {
+            if (!active) return;
+            bilibili = new BilibiliDanmakuClient({
+              roomId,
+              host: config.host,
+              token: config.token,
+              refreshConfig: async () => unwrap(await window.api.danmaku.bilibiliConfig(roomId)),
+              onEvent: (event) => {
+                if (active) onEventRef.current(event);
+              },
+              onStatus: emit,
+            });
+            bilibili.connect();
+          }),
+      );
 
       return () => {
-        active = false;
+        stopRetries();
         bilibili?.close();
       };
     }
 
     if (platform === 'douyu') {
       let douyu: DouyuDanmakuClient | null = null;
-      void window.api.danmaku
-        .douyuConfig()
-        .then((result) => unwrap(result))
-        .then((config) => {
-          if (!active) return;
-          douyu = new DouyuDanmakuClient({
-            roomId,
-            host: config.host,
-            onEvent: (event) => {
-              if (active) onEventRef.current(event);
-            },
-            onStatus: emit,
-          });
-          douyu.connect();
-        })
-        .catch((error: unknown) => {
-          emit({ roomId, platform, status: 'error', message: errorMessage(error) });
-        });
+      startWithRetry(() =>
+        window.api.danmaku
+          .douyuConfig()
+          .then((result) => unwrap(result))
+          .then((config) => {
+            if (!active) return;
+            douyu = new DouyuDanmakuClient({
+              roomId,
+              host: config.host,
+              onEvent: (event) => {
+                if (active) onEventRef.current(event);
+              },
+              onStatus: emit,
+            });
+            douyu.connect();
+          }),
+      );
 
       return () => {
-        active = false;
+        stopRetries();
         douyu?.close();
       };
     }
@@ -89,22 +111,21 @@ export function useDanmaku(
         if (update.event) onEventRef.current(update.event);
       });
 
-      void window.api.danmaku
-        .huyaStart(roomId)
-        .then((result) => unwrap(result))
-        .then((id) => {
-          if (disposed) {
-            void window.api.danmaku.huyaStop(id);
-            return;
-          }
-          subscriptionId = id;
-        })
-        .catch((error: unknown) => {
-          emit({ roomId, platform, status: 'error', message: errorMessage(error) });
-        });
+      startWithRetry(() =>
+        window.api.danmaku
+          .huyaStart(roomId)
+          .then((result) => unwrap(result))
+          .then((id) => {
+            if (disposed) {
+              void window.api.danmaku.huyaStop(id);
+              return;
+            }
+            subscriptionId = id;
+          }),
+      );
 
       return () => {
-        active = false;
+        stopRetries();
         disposed = true;
         unsubscribe();
         if (subscriptionId) void window.api.danmaku.huyaStop(subscriptionId);

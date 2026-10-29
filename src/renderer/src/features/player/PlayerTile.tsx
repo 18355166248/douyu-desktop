@@ -10,6 +10,7 @@ import { VideoPlayer } from './VideoPlayer';
 
 interface PlayerTileProps {
   playback: StreamPlayback;
+  playbackVisible?: boolean;
   isReloading: boolean;
   compact?: boolean;
   error?: string | null;
@@ -41,6 +42,7 @@ interface PlayerTileProps {
 
 export function PlayerTile({
   playback,
+  playbackVisible = true,
   isReloading,
   compact = false,
   error = null,
@@ -207,6 +209,7 @@ export function PlayerTile({
 
       <VideoPlayer
         playback={playback}
+        playbackVisible={playbackVisible}
         muted={muted}
         volume={volume}
         quality={quality}

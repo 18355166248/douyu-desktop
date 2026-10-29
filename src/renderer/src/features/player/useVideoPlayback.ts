@@ -126,12 +126,23 @@ export function useVideoPlayback(
     const session = sessionRef.current;
     setState((previous) => ({ ...previous, userPaused: false, playBlocked: false }));
     resumeLivePlayback(video);
-    void video.play().catch(() => {
-      if (sessionRef.current === session && videoRef.current === video && !userPausedRef.current) {
+    void video.play().catch((error: unknown) => {
+      if (
+        sessionRef.current === session &&
+        videoRef.current === video &&
+        !userPausedRef.current &&
+        error instanceof Error &&
+        error.name === 'NotAllowedError'
+      ) {
         setState((previous) => ({ ...previous, playBlocked: true, isPlaying: false }));
       }
     });
   }, [state.playBlocked, videoRef]);
 
-  return { ...state, userPausedRef, togglePlayback };
+  const returnToLive = useCallback((): void => {
+    const video = videoRef.current;
+    if (video) resumeLivePlayback(video);
+  }, [videoRef]);
+
+  return { ...state, userPausedRef, togglePlayback, returnToLive };
 }

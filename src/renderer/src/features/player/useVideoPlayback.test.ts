@@ -91,6 +91,18 @@ beforeEach(() => {
 });
 
 describe('playback intent and media state', () => {
+  it.each([true, false])(
+    'returns to the newest buffered picture without changing user pause: %s',
+    (paused) => {
+      render();
+      if (paused) render().togglePlayback();
+      render().returnToLive();
+      expect(video.currentTime).toBe(18);
+      expect(render().userPaused).toBe(paused);
+      expect(session().isUserPaused()).toBe(paused);
+      expect(video.play).not.toHaveBeenCalled();
+    },
+  );
   it('preserves user pause across a source refresh or quality switch', () => {
     render().togglePlayback();
     expect(render().userPaused).toBe(true);
@@ -150,7 +162,7 @@ describe('playback intent and media state', () => {
     render();
     session().onPlayRejected?.();
     expect(render()).toMatchObject({ playBlocked: true, userPaused: false });
-    video.play.mockRejectedValueOnce(new Error('not allowed'));
+    video.play.mockRejectedValueOnce(new DOMException('not allowed', 'NotAllowedError'));
     render().togglePlayback();
     await Promise.resolve();
     expect(render().playBlocked).toBe(true);
@@ -170,8 +182,17 @@ describe('playback intent and media state', () => {
     render().togglePlayback();
     render().togglePlayback();
     render({ ...playback });
-    reject(new Error('old source'));
+    reject(new DOMException('old source', 'NotAllowedError'));
     await Promise.resolve();
     expect(render().playBlocked).toBe(false);
+  });
+
+  it('does not disable stall recovery when a manual resume is interrupted by media recovery', async () => {
+    video.play.mockRejectedValueOnce(new DOMException('source changed', 'AbortError'));
+    render().togglePlayback();
+    render().togglePlayback();
+    session().onRecovering?.('HLS 解码异常');
+    await Promise.resolve();
+    expect(render()).toMatchObject({ userPaused: false, playBlocked: false, recovering: true });
   });
 });

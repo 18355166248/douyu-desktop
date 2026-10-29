@@ -38,6 +38,8 @@ export interface RoomContextMenuProps {
   onClosePlayer: () => void;
   onReplace: () => void;
   onOpenDiagnostics: () => void;
+  onReconnectDanmaku: () => void;
+  onReturnToLive: () => void;
 }
 
 export function RoomContextMenu({
@@ -67,6 +69,8 @@ export function RoomContextMenu({
   onClosePlayer,
   onReplace,
   onOpenDiagnostics,
+  onReconnectDanmaku,
+  onReturnToLive,
 }: RoomContextMenuProps): React.JSX.Element | null {
   const menuRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ left: x, top: y });
@@ -203,6 +207,17 @@ export function RoomContextMenu({
           type="button"
           className="room-menu-item"
           role="menuitem"
+          disabled={isReloading}
+          title="跳到最新已缓存画面，保留当前暂停状态"
+          onClick={() => run(onReturnToLive)}
+        >
+          <Icon name="live" size={15} />
+          <span>回到最新画面</span>
+        </button>
+        <button
+          type="button"
+          className="room-menu-item"
+          role="menuitem"
           autoFocus
           aria-keyshortcuts="Space K"
           onClick={() => run(onTogglePlayback)}
@@ -263,6 +278,17 @@ export function RoomContextMenu({
         </button>
 
         <div className="room-menu-separator" role="separator" />
+
+        <button
+          type="button"
+          className="room-menu-item"
+          role="menuitem"
+          title="仅重建弹幕连接，保留视频播放"
+          onClick={() => run(onReconnectDanmaku)}
+        >
+          <Icon name="refresh" size={15} />
+          <span>重连弹幕</span>
+        </button>
 
         <button
           type="button"

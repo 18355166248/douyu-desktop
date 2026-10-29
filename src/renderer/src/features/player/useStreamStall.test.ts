@@ -15,18 +15,19 @@ let cleanup: (() => void) | undefined;
 beforeEach(() => {
   vi.useFakeTimers();
   vi.stubGlobal('window', globalThis);
-  vi.stubGlobal('document', { visibilityState: 'visible' });
+  vi.stubGlobal('document', Object.assign(new EventTarget(), { visibilityState: 'visible' }));
   hooks.effects = [];
   hooks.setStalled.mockClear();
 });
 afterEach(() => {
   cleanup?.();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
-function StallHarness(userPausedRef?: { current: boolean }) {
+function StallHarness(userPausedRef?: { current: boolean }, observeFrames = true) {
   let frame: (() => void) | undefined;
-  const video = {
+  const video = Object.assign(new EventTarget(), {
     currentTime: 0,
     readyState: 4,
     paused: false,
@@ -37,17 +38,57 @@ function StallHarness(userPausedRef?: { current: boolean }) {
       return 1;
     }),
     cancelVideoFrameCallback: vi.fn(),
-  };
+  });
   const state = useStreamStall(
     { current: video as unknown as HTMLVideoElement },
     true,
     userPausedRef,
+    observeFrames,
   );
   cleanup = hooks.effects[0]?.();
   return { video, state, frame: () => frame?.() };
 }
 
 describe('video frame stall detection', () => {
+  it('uses media progress for a hidden workspace and still detects a genuinely stopped stream', () => {
+    const { video } = StallHarness({ current: false }, false);
+    expect(video.requestVideoFrameCallback).not.toHaveBeenCalled();
+    for (let i = 1; i <= 10; i += 1) {
+      video.currentTime = i;
+      vi.advanceTimersByTime(1_000);
+    }
+    expect(hooks.setStalled).not.toHaveBeenCalledWith(true);
+    vi.advanceTimersByTime(8_000);
+    expect(hooks.setStalled).toHaveBeenLastCalledWith(true);
+  });
+  it('gives a restored window a fresh observation period when background timers were suspended', () => {
+    let now = 0;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+    StallHarness({ current: false });
+    Object.assign(document, { visibilityState: 'hidden' });
+    document.dispatchEvent(new Event('visibilitychange'));
+    // Simulate elapsed wall time without delivering any background interval callbacks.
+    now = 60_000;
+    Object.assign(document, { visibilityState: 'visible' });
+    document.dispatchEvent(new Event('visibilitychange'));
+    vi.advanceTimersByTime(1_000);
+    expect(hooks.setStalled).not.toHaveBeenCalledWith(true);
+    now += 8_000;
+    vi.advanceTimersByTime(1_000);
+    expect(hooks.setStalled).toHaveBeenLastCalledWith(true);
+  });
+
+  it('restarts observation immediately after resuming a user pause', () => {
+    let now = 0;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+    const userPaused = { current: true };
+    const { video } = StallHarness(userPaused);
+    now = 30_000;
+    userPaused.current = false;
+    video.dispatchEvent(new Event('play'));
+    vi.advanceTimersByTime(1_000);
+    expect(hooks.setStalled).not.toHaveBeenCalledWith(true);
+  });
   it('recovers an initial load that never becomes ready, but respects explicit pause', () => {
     const userPaused = { current: false };
     const { video } = StallHarness(userPaused);

@@ -306,6 +306,17 @@ describe('stream reload lifetimes', () => {
 });
 
 describe('audio solo', () => {
+  it('restores the initial mute preference of a room added during solo', async () => {
+    for (const roomId of ['1', '2']) {
+      resolveStream.mockResolvedValueOnce(ok(playback('room', roomId)));
+      await render().addStream({ ...input, roomId });
+    }
+    render().toggleSolo('douyu:1');
+    resolveStream.mockResolvedValueOnce(ok(playback('three', '3')));
+    await render().addStream({ ...input, roomId: '3', muted: true });
+    render().toggleSolo('douyu:1');
+    expect(render().mutedRooms).toEqual({ 'douyu:1': false, 'douyu:2': false, 'douyu:3': true });
+  });
   it('mutes the other rooms and restores their previous state', async () => {
     resolveStream.mockResolvedValueOnce(ok(playback('one', '1')));
     await render().addStream({ ...input, roomId: '1' });

@@ -14,6 +14,7 @@ export function useStreamStall(
   videoRef: RefObject<HTMLVideoElement | null>,
   enabled: boolean,
   userPausedRef?: RefObject<boolean>,
+  observeFrames = true,
 ): StreamStallState {
   const [stalled, setStalled] = useState(false);
   const lastProgressAtRef = useRef(0);
@@ -40,12 +41,21 @@ export function useStreamStall(
     // currentTime 可能随音轨继续前进；以实际提交的视频帧检测“有声无画”。
     lastFrameAtRef.current = performance.now();
     let frameHandle: number | undefined;
-    const supportsFrames = typeof video.requestVideoFrameCallback === 'function';
+    const supportsFrames = observeFrames && typeof video.requestVideoFrameCallback === 'function';
     const onFrame = (): void => {
       lastFrameAtRef.current = performance.now();
       frameHandle = video.requestVideoFrameCallback(onFrame);
     };
     if (supportsFrames) frameHandle = video.requestVideoFrameCallback(onFrame);
+
+    // 后台的定时器可能完全不执行，不能依赖 check() 在不可见期间重置时钟。
+    const resetObservation = (): void => {
+      lastTimeRef.current = video.currentTime;
+      dismiss();
+    };
+    document.addEventListener('visibilitychange', resetObservation);
+    video.addEventListener('play', resetObservation);
+    video.addEventListener('emptied', resetObservation);
 
     const check = (): void => {
       const now = performance.now();
@@ -81,9 +91,12 @@ export function useStreamStall(
     const timer = window.setInterval(check, CHECK_INTERVAL_MS);
     return () => {
       window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', resetObservation);
+      video.removeEventListener('play', resetObservation);
+      video.removeEventListener('emptied', resetObservation);
       if (frameHandle !== undefined) video.cancelVideoFrameCallback(frameHandle);
     };
-  }, [enabled, videoRef, userPausedRef]);
+  }, [dismiss, enabled, observeFrames, videoRef, userPausedRef]);
 
   return { stalled, dismiss };
 }

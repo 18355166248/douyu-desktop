@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StreamPlayback } from '@shared/contracts/stream';
 import { attachPlayback } from '../player/playbackSession';
-import { PREVIEW_DELAY_MS, PREVIEW_TIMEOUT_MS, startRoomPreview } from './roomPreviewSession';
+import {
+  observeRoomPreview,
+  PREVIEW_DELAY_MS,
+  PREVIEW_TIMEOUT_MS,
+  startRoomPreview,
+} from './roomPreviewSession';
 
 vi.mock('../player/playbackSession', () => ({ attachPlayback: vi.fn() }));
 
@@ -43,6 +48,59 @@ describe('hover preview lifecycle', () => {
     vi.stubGlobal('window', { api: { streams: { resolve } } });
     resolve.mockResolvedValue({ ok: true, data: playback });
     vi.mocked(attachPlayback).mockReturnValue(detach);
+  });
+
+  it('resumes a requested preview after focus, visibility and intersection changes without duplicate starts', async () => {
+    const surface = Object.assign(new EventTarget(), { api: window.api });
+    const doc = Object.assign(new EventTarget(), { hidden: false, hasFocus: () => false });
+    vi.stubGlobal('window', surface);
+    vi.stubGlobal('document', doc);
+    let intersection!: (entries: Array<{ isIntersecting: boolean }>) => void;
+    const disconnect = vi.fn();
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(callback: typeof intersection) {
+          intersection = callback;
+        }
+        observe = vi.fn();
+        disconnect = disconnect;
+      },
+    );
+    const stop = observeRoomPreview(makeVideo(), 'douyu', '123', vi.fn());
+    stops.push(stop);
+    intersection([{ isIntersecting: true }]);
+    await vi.advanceTimersByTimeAsync(PREVIEW_DELAY_MS);
+    expect(resolve).not.toHaveBeenCalled();
+    surface.dispatchEvent(new Event('focus'));
+    await vi.advanceTimersByTimeAsync(PREVIEW_DELAY_MS);
+    expect(attachPlayback).toHaveBeenCalledTimes(1);
+    surface.dispatchEvent(new Event('focus'));
+    intersection([{ isIntersecting: true }]);
+    await vi.advanceTimersByTimeAsync(PREVIEW_DELAY_MS);
+    expect(attachPlayback).toHaveBeenCalledTimes(1);
+    surface.dispatchEvent(new Event('blur'));
+    expect(detach).toHaveBeenCalledTimes(1);
+    surface.dispatchEvent(new Event('focus'));
+    await vi.advanceTimersByTimeAsync(PREVIEW_DELAY_MS);
+    expect(attachPlayback).toHaveBeenCalledTimes(2);
+    doc.hidden = true;
+    doc.dispatchEvent(new Event('visibilitychange'));
+    doc.hidden = false;
+    doc.dispatchEvent(new Event('visibilitychange'));
+    await vi.advanceTimersByTimeAsync(PREVIEW_DELAY_MS);
+    expect(attachPlayback).toHaveBeenCalledTimes(3);
+    intersection([{ isIntersecting: false }]);
+    intersection([{ isIntersecting: true }]);
+    await vi.advanceTimersByTimeAsync(PREVIEW_DELAY_MS);
+    expect(attachPlayback).toHaveBeenCalledTimes(4);
+    stop();
+    expect(disconnect).toHaveBeenCalledOnce();
+    intersection([{ isIntersecting: true }]);
+    surface.dispatchEvent(new Event('focus'));
+    doc.dispatchEvent(new Event('visibilitychange'));
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(attachPlayback).toHaveBeenCalledTimes(4);
   });
   afterEach(() => {
     stops.splice(0).forEach((stop) => stop());
