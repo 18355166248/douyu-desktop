@@ -179,11 +179,7 @@ export function useStreamGrid(): UseStreamGridResult {
 
     const effectiveOptions = options ?? entry.options;
     updateStreams((current) =>
-      current.map((item) =>
-        streamKey(item.playback) === key
-          ? { ...item, options: effectiveOptions, error: null }
-          : item,
-      ),
+      current.map((item) => (streamKey(item.playback) === key ? { ...item, error: null } : item)),
     );
 
     const request = { key };

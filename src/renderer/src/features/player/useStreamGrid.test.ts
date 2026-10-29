@@ -1,4 +1,4 @@
-import { saveRoomPreference } from './viewingStorage';
+import { getRoomPreference, saveRoomPreference } from './viewingStorage';
 import { newRoomOptions, savePlaybackPreferences } from './playbackPreferences';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useStreamGrid } from './useStreamGrid';
@@ -54,6 +54,64 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('stream reload lifetimes', () => {
+  it('preserves active playback settings during a failed quality/protocol change and retry', async () => {
+    resolveStream.mockResolvedValueOnce(ok(playback('initial')));
+    await render().addStream(input);
+    const previous = render().streams[0]!;
+    let reject!: (error: Error) => void;
+    resolveStream.mockReturnValueOnce(
+      new Promise((_resolve, no) => {
+        reject = no;
+      }),
+    );
+    const pending = render().setStreamOptions('douyu:1', { quality: '0', preferHls: true });
+    expect(render().streams[0]).toMatchObject({
+      playback: previous.playback,
+      options: previous.options,
+    });
+    expect(render().reloadingKeys).toEqual(['douyu:1']);
+    expect(resolveStream).toHaveBeenLastCalledWith({ ...input, quality: '0', preferHls: true });
+    reject(new Error('quality unavailable'));
+    await pending;
+    expect(render().streams[0]).toMatchObject({
+      playback: previous.playback,
+      options: previous.options,
+      error: 'quality unavailable',
+    });
+    resolveStream.mockResolvedValueOnce(ok(playback('retry')));
+    await render().reloadStream('douyu:1');
+    expect(resolveStream).toHaveBeenLastCalledWith(input);
+    expect(render().streams[0]?.error).toBeNull();
+  });
+
+  it('commits settings with the resolved stream and remembers the actual returned quality', async () => {
+    const storage = new Map<string, string>();
+    Object.assign(window, {
+      localStorage: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => storage.set(key, value),
+      },
+    });
+    resolveStream.mockResolvedValueOnce(ok(playback('initial')));
+    await render().addStream(input);
+    let finish!: (value: ReturnType<typeof ok<StreamPlayback>>) => void;
+    resolveStream.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const pending = render().setStreamOptions('douyu:1', { quality: '0', preferHls: true });
+    expect(render().streams[0]?.options).toEqual({ quality: '3', preferHls: false });
+    finish(ok({ ...playback('new.m3u8'), quality: '超清', format: 'hls' }));
+    await pending;
+    expect(render().streams[0]).toMatchObject({
+      playback: { url: 'new.m3u8', quality: '超清', format: 'hls' },
+      options: { quality: '4', preferHls: true },
+      error: null,
+    });
+    expect(getRoomPreference('douyu', '1')).toMatchObject({ quality: '4', preferHls: true });
+  });
+
   it('does not let a cancelled add unlock a newer add', async () => {
     let finishOld!: (value: ReturnType<typeof ok<StreamPlayback>>) => void;
     let finishNew!: (value: ReturnType<typeof ok<StreamPlayback>>) => void;

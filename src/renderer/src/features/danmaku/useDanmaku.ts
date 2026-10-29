@@ -35,6 +35,7 @@ export function useDanmaku(
             roomId,
             host: config.host,
             token: config.token,
+            refreshConfig: async () => unwrap(await window.api.danmaku.bilibiliConfig(roomId)),
             onEvent: (event) => {
               if (active) onEventRef.current(event);
             },
