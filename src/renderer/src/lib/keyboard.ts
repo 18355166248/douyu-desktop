@@ -1,3 +1,10 @@
+import { workspaceShortcut } from '@shared/shortcuts';
+
+export const isMac = /Mac/i.test(navigator.platform);
+export const primaryKey = isMac ? 'Cmd' : 'Ctrl';
+export const primaryAria = isMac ? 'Meta' : 'Control';
+export const getWorkspaceShortcut = (event: KeyboardEvent) => workspaceShortcut(event, isMac);
+
 const EDITABLE_INPUT_TYPES = new Set([
   'email',
   'number',

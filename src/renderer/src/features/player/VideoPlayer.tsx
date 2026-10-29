@@ -3,7 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import type { RoomAudienceSnapshot } from '@shared/contracts/audience';
 import type { StreamPlayback, StreamQuality } from '@shared/contracts/stream';
 import { Icon } from '../../components/Icon';
-import { isEditableTarget, isInteractiveTarget } from '../../lib/keyboard';
+import { getWorkspaceShortcut, isEditableTarget, isInteractiveTarget } from '../../lib/keyboard';
 import { usePlatformLoginStatus } from '../accounts/usePlatformLogin';
 import { DanmakuOverlay } from '../danmaku/DanmakuOverlay';
 import { useDanmakuSettings } from '../danmaku/DanmakuSettingsContext';
@@ -190,12 +190,28 @@ export function VideoPlayer({
     if (!shortcutsEnabled) return undefined;
 
     function handleKeyDown(event: KeyboardEvent): void {
+      const command = getWorkspaceShortcut(event);
+      if (command === 'refresh' || command === 'close-room') {
+        event.preventDefault();
+        if (
+          event.repeat ||
+          event.isComposing ||
+          isEditableTarget(event.target) ||
+          document.querySelector('[role="dialog"]')
+        )
+          return;
+        if (command === 'close-room') onStop();
+        else if (!isReloading) onReload();
+        return;
+      }
       if (
+        document.querySelector('[role="dialog"]') ||
         event.defaultPrevented ||
         event.repeat ||
         event.ctrlKey ||
         event.metaKey ||
         event.altKey ||
+        event.shiftKey ||
         event.isComposing ||
         isEditableTarget(event.target)
       ) {
@@ -205,8 +221,8 @@ export function VideoPlayer({
       const target = event.target;
       const key = event.key;
 
-      if (key === ' ' || key === 'Spacebar' || key === 'Space') {
-        if (isInteractiveTarget(target)) return;
+      if (key.toLowerCase() === 'k' || key === ' ' || key === 'Spacebar' || key === 'Space') {
+        if (key.toLowerCase() !== 'k' && isInteractiveTarget(target)) return;
         event.preventDefault();
         togglePlayback();
         showControls();
@@ -258,8 +274,9 @@ export function VideoPlayer({
       }
     }
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    // 当前房间先于 App 的兜底处理保留键；只有激活的一路会注册。
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [
     canSolo,
     isReloading,
@@ -403,8 +420,8 @@ export function VideoPlayer({
             className="icon-btn video-playback-toggle"
             onClick={togglePlayback}
             aria-label={isPlaying ? '暂停播放' : '继续播放'}
-            aria-keyshortcuts="Space"
-            title={isPlaying ? '暂停播放 (Space)' : '继续播放 (Space)'}
+            aria-keyshortcuts="Space K"
+            title={isPlaying ? '暂停播放 (Space / K)' : '继续播放 (Space / K)'}
           >
             <Icon name={isPlaying ? 'pause' : 'play'} size={17} />
           </button>

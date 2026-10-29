@@ -266,3 +266,310 @@ svg[data-icon] {
 .reminder-controls summary svg {
   vertical-align: -2px;
 }
+
+.keyboard-help {
+  display: grid;
+  gap: 10px;
+}
+.keyboard-help > div {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 16px;
+}
+.keyboard-help dd {
+  margin: 0;
+}
+.keyboard-help kbd {
+  color: var(--text);
+  font: inherit;
+}
+
+/* 弹窗尺寸不依赖当前分类内容；每个分类独立滚动并保留滚动位置。 */
+.viewing-panel.app-settings {
+  width: min(940px, 100%);
+  height: min(680px, calc(100dvh - 48px));
+  max-height: none;
+  padding: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: #12171e;
+  border-radius: 18px;
+  box-shadow: 0 28px 100px rgb(0 0 0 / 55%);
+}
+.app-settings .settings-header {
+  margin: 0;
+  padding: 22px 26px;
+  border-bottom: 1px solid var(--line-soft);
+  justify-content: space-between;
+}
+.settings-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 19px;
+}
+.app-settings .settings-header p {
+  margin: 6px 0 0;
+  font-size: 12px;
+}
+.settings-close {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.settings-close:hover {
+  background: rgb(255 255 255 / 7%);
+  color: var(--text);
+}
+.settings-layout {
+  display: grid;
+  grid-template-columns: 184px minmax(0, 1fr);
+  min-height: 0;
+}
+.settings-layout nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px 12px;
+  border-right: 1px solid var(--line-soft);
+  background: rgb(0 0 0 / 12%);
+  overflow-y: auto;
+}
+.settings-layout nav .btn {
+  justify-content: flex-start;
+  gap: 10px;
+  min-height: 42px;
+  padding: 10px 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--muted);
+  background: transparent;
+}
+.settings-layout nav .btn:hover {
+  background: rgb(255 255 255 / 4%);
+  color: var(--text);
+}
+.settings-layout nav .btn.is-active {
+  background: rgb(255 133 31 / 12%);
+  border-color: rgb(255 133 31 / 15%);
+  color: #ffa455;
+}
+.settings-content {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.settings-content > section {
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 24px 28px;
+}
+.settings-content > section[hidden] {
+  display: none;
+}
+.settings-content h3 {
+  margin: 0 0 10px;
+  font-size: 17px;
+}
+.app-settings p {
+  line-height: 1.7;
+}
+.app-settings .settings-intro {
+  margin: 0 0 22px;
+  font-size: 13px;
+}
+.settings-card,
+.app-settings .playback-preferences {
+  margin: 0;
+  padding: 20px;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  background: rgb(255 255 255 / 2%);
+}
+.settings-card h4 {
+  margin: 0 0 18px;
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.app-settings .viewing-check {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0;
+  padding: 16px 0;
+  line-height: 1.5;
+  font-size: 13px;
+}
+.app-settings .viewing-check + .viewing-check {
+  border-top: 1px solid var(--line-soft);
+}
+.app-settings .viewing-check input[type='checkbox'] {
+  appearance: none;
+  order: 1;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 20px;
+  margin: 0;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 12px;
+  background: #313942;
+  cursor: pointer;
+  transition: background 120ms;
+}
+.app-settings .viewing-check input[type='checkbox']::before {
+  content: '';
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #c5cbd2;
+  margin: 2px;
+  transition: transform 120ms;
+}
+.app-settings .viewing-check input[type='checkbox']:checked {
+  background: #e87622;
+  border-color: #e87622;
+}
+.app-settings .viewing-check input[type='checkbox']:checked::before {
+  transform: translateX(14px);
+  background: #fff;
+}
+.app-settings input:focus-visible,
+.settings-close:focus-visible {
+  outline: 2px solid #ffa455;
+  outline-offset: 3px;
+}
+.app-settings input:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.app-settings .viewing-check input[type='range'] {
+  width: 48%;
+  accent-color: #f28b3c;
+}
+.app-settings .playback-preferences legend {
+  padding: 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.app-settings .playback-preferences p {
+  font-size: 12px;
+}
+.app-settings .playback-preferences .btn {
+  margin-top: 10px;
+}
+.settings-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 24px;
+  border-top: 1px solid var(--line-soft);
+  color: var(--muted);
+  font-size: 11px;
+  background: rgb(0 0 0 / 10%);
+}
+.settings-footer span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.app-settings .danmaku-settings-panel.is-embedded {
+  position: static;
+  width: 100%;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  animation: none;
+  backdrop-filter: none;
+  overflow: visible;
+}
+.app-settings .ds-header {
+  padding: 0 0 18px;
+}
+.app-settings .ds-body {
+  padding: 18px 0;
+  overflow: visible;
+}
+.app-settings .ds-footer {
+  padding: 14px 0 0;
+}
+.app-settings .ds-section,
+.app-settings .ds-toggle-group {
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  padding: 16px;
+  background: rgb(255 255 255 / 2%);
+}
+.app-settings .keyboard-help {
+  gap: 0;
+  margin: 12px 0 24px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgb(255 255 255 / 2%);
+}
+.app-settings .keyboard-help > div {
+  grid-template-columns: 150px minmax(0, 1fr);
+  align-items: center;
+  padding: 12px 14px;
+  gap: 12px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.app-settings .keyboard-help > div + div {
+  border-top: 1px solid var(--line-soft);
+}
+.app-settings .keyboard-help kbd {
+  display: inline-block;
+  padding: 2px 7px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: #1e2630;
+  font-size: 11px;
+}
+.app-settings .keyboard-help dd {
+  color: #b8c1ce;
+}
+@media (max-width: 700px) {
+  .settings-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .settings-layout nav {
+    flex-direction: row;
+    padding: 10px 12px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .settings-layout nav .btn {
+    flex: 1;
+    justify-content: center;
+    padding: 8px;
+    font-size: 12px;
+  }
+  .settings-content > section {
+    padding: 18px;
+  }
+  .settings-footer {
+    padding: 12px 16px;
+  }
+  .app-settings .keyboard-help > div {
+    grid-template-columns: 130px minmax(0, 1fr);
+  }
+}

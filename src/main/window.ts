@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { BrowserWindow, shell } from 'electron';
 import type { Rectangle } from 'electron';
+import { workspaceShortcut } from '@shared/shortcuts';
 import { IPC } from '@shared/contracts/ipc';
 import { isAllowedExternalUrl } from './constants';
 import appIcon from '../../build/icon.png?asset';
@@ -39,6 +40,23 @@ export function createMainWindow(options: CreateMainWindowOptions = {}): Browser
   });
 
   window.setMenu(null);
+  window.webContents.on('before-input-event', (_event, input) => {
+    // 只屏蔽由页面接管的菜单快捷键，保留复制、粘贴、退出等系统操作；不能 preventDefault，否则页面也收不到按键。
+    window.webContents.setIgnoreMenuShortcuts(
+      Boolean(
+        workspaceShortcut(
+          {
+            key: input.key,
+            ctrlKey: input.control,
+            metaKey: input.meta,
+            altKey: input.alt,
+            shiftKey: input.shift,
+          },
+          process.platform === 'darwin',
+        ),
+      ),
+    );
+  });
 
   const notifyMaximized = (): void => {
     if (window.isDestroyed() || window.webContents.isDestroyed()) return;

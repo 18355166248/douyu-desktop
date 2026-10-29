@@ -8,7 +8,7 @@ export function useDialogFocus() {
     const controls = (): HTMLElement[] =>
       Array.from(
         ref.current?.querySelectorAll<HTMLElement>(
-          'button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex="0"]',
+          'button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [tabindex="0"]',
         ) ?? [],
       ).filter((element) => element.getClientRects().length > 0);
     if (!ref.current?.contains(document.activeElement)) controls()[0]?.focus();

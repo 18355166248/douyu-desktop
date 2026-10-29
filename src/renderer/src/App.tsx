@@ -35,7 +35,9 @@ import { ViewingScenesPanel } from './features/player/ViewingScenesPanel';
 import { newRoomOptions, preferredQuality } from './features/player/playbackPreferences';
 import { ReplaceRoomPanel } from './features/player/ReplaceRoomPanel';
 import type { StreamResolveOptions } from './features/player/useStreamGrid';
-import { isEditableTarget } from './lib/keyboard';
+import { getWorkspaceShortcut, isEditableTarget, primaryKey, primaryAria } from './lib/keyboard';
+import { SettingsPanel } from './features/settings/SettingsPanel';
+import type { SettingsSection } from './features/settings/SettingsPanel';
 import { platformLabel, roomKey, streamKey } from './lib/streamIdentity';
 import { useDismissableLayer } from './lib/useDismissableLayer';
 import { AutoSignRunner } from './features/tasks/AutoSignRunner';
@@ -86,6 +88,7 @@ export function App(): React.JSX.Element {
   const [isHomeRefreshing, setHomeRefreshing] = useState(false);
   const [isImmersive, setImmersive] = useState(false);
   const [isImmersiveExitVisible, setImmersiveExitVisible] = useState(false);
+  const [settingsSection, setSettingsSection] = useState<SettingsSection | null>(null);
   const [scenesOpen, setScenesOpen] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [applyingQuality, setApplyingQuality] = useState(false);
@@ -179,16 +182,43 @@ export function App(): React.JSX.Element {
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent): void {
-      if (scenesOpen || replaceKey || isTaskOpen || isHistoryOpen || isDanmakuSettingsOpen) return;
+      if (event.defaultPrevented) return;
+      const command = getWorkspaceShortcut(event);
+      // 即使弹层/输入框阻止业务动作，也消费保留键，避免退回 Chromium 默认刷新/关窗。
+      if (command) event.preventDefault();
       if (
-        (event.ctrlKey || event.metaKey) &&
+        document.querySelector('[role="dialog"]') ||
+        settingsSection ||
+        scenesOpen ||
+        replaceKey ||
+        isTaskOpen ||
+        isHistoryOpen ||
+        isDanmakuSettingsOpen
+      )
+        return;
+      if (event.repeat || event.isComposing) return;
+      if (command) {
+        if (command === 'refresh' && activeView === 'home') void refreshHome();
+        if (command === 'new-window') window.api.window.openNew();
+        if (command === 'room-input') {
+          setImmersive(false);
+          // 退出沉浸后等待输入框重新可见，再转移焦点。
+          window.requestAnimationFrame(() => {
+            roomInputRef.current?.focus();
+            roomInputRef.current?.select();
+          });
+        }
+        return;
+      }
+      if (
+        !event.ctrlKey &&
+        !event.metaKey &&
         !event.altKey &&
-        !event.shiftKey &&
-        !event.repeat &&
-        event.key.toLowerCase() === 'n'
+        !isEditableTarget(event.target) &&
+        (event.key === '?' || event.key === 'F1')
       ) {
         event.preventDefault();
-        window.api.window.openNew();
+        setSettingsSection('shortcuts');
         return;
       }
       if (event.key === 'Escape') {
@@ -207,7 +237,13 @@ export function App(): React.JSX.Element {
       ) {
         return;
       }
-      if (event.key.toLowerCase() !== 'f' || streams.length === 0) return;
+      if (
+        event.shiftKey ||
+        activeView !== 'live' ||
+        event.key.toLowerCase() !== 'f' ||
+        streams.length === 0
+      )
+        return;
 
       event.preventDefault();
       setHistoryOpen(false);
@@ -219,7 +255,17 @@ export function App(): React.JSX.Element {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [streams.length, scenesOpen, replaceKey, isTaskOpen, isHistoryOpen, isDanmakuSettingsOpen]);
+  }, [
+    streams.length,
+    settingsSection,
+    scenesOpen,
+    replaceKey,
+    isTaskOpen,
+    isHistoryOpen,
+    isDanmakuSettingsOpen,
+    activeView,
+    refreshHome,
+  ]);
 
   useEffect(() => {
     if (isImmersive && streams.length === 0) setImmersive(false);
@@ -576,9 +622,9 @@ export function App(): React.JSX.Element {
           type="button"
           className="titlebar-new-window"
           onClick={() => window.api.window.openNew()}
-          title="新建副屏窗口（Ctrl+N）"
+          title={`新建副屏窗口（${primaryKey}+N）`}
           aria-label="新建副屏窗口"
-          aria-keyshortcuts="Control+N"
+          aria-keyshortcuts={`${primaryAria}+N`}
         >
           <Icon name="newWindow" size={17} />
         </button>
@@ -597,6 +643,15 @@ export function App(): React.JSX.Element {
           </button>
         ) : null}
 
+        <button
+          type="button"
+          className="titlebar-new-window"
+          title="设置"
+          aria-label="设置"
+          onClick={() => setSettingsSection('general')}
+        >
+          <Icon name="settings" size={17} />
+        </button>
         <TaskButton open={isTaskOpen} onToggle={() => setTaskOpen((open) => !open)} />
 
         <AccountBar compact />
@@ -665,6 +720,7 @@ export function App(): React.JSX.Element {
                     immersive={isImmersive}
                     keyboardActive={
                       activeView === 'live' &&
+                      !settingsSection &&
                       !scenesOpen &&
                       !replaceKey &&
                       !isTaskOpen &&
@@ -726,10 +782,12 @@ export function App(): React.JSX.Element {
         </div>
       ) : null}
 
-      {scenesOpen ? (
-        <ViewingScenesPanel
-          current={currentViewing}
-          last={lastViewing}
+      {settingsSection ? (
+        <SettingsPanel
+          section={settingsSection}
+          onSectionChange={setSettingsSection}
+          onClose={() => setSettingsSection(null)}
+          hasRooms={streams.length > 0}
           busy={restoring || isAdding || applyingQuality || reloadingKeys.length > 0}
           onApplyQuality={async (balanced) => {
             setApplyingQuality(true);
@@ -757,9 +815,17 @@ export function App(): React.JSX.Element {
           }}
           autoRestore={autoRestore}
           onAutoRestore={(value) => {
-            if (writeStored('douyu-desktop.auto-restore.v1', value)) setAutoRestore(value);
-            else setError('无法保存自动恢复设置');
+            if (!writeStored('douyu-desktop.auto-restore.v1', value)) return false;
+            setAutoRestore(value);
+            return true;
           }}
+        />
+      ) : null}
+      {scenesOpen ? (
+        <ViewingScenesPanel
+          current={currentViewing}
+          last={lastViewing}
+          busy={restoring || isAdding || applyingQuality || reloadingKeys.length > 0}
           onRestore={(scene) => void restoreViewing(scene)}
           onClose={() => setScenesOpen(false)}
         />

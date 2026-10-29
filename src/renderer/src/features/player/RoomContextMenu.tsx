@@ -1,3 +1,4 @@
+import { primaryKey, primaryAria } from '../../lib/keyboard';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
@@ -201,12 +202,12 @@ export function RoomContextMenu({
           className="room-menu-item"
           role="menuitem"
           autoFocus
-          aria-keyshortcuts="Space"
+          aria-keyshortcuts="Space K"
           onClick={() => run(onTogglePlayback)}
         >
           <Icon name={isPlaying ? 'pause' : 'play'} size={15} />
           <span>{isPlaying ? '暂停播放' : '继续播放'}</span>
-          <kbd>Space</kbd>
+          <kbd>Space / K</kbd>
         </button>
 
         <button
@@ -265,7 +266,7 @@ export function RoomContextMenu({
           type="button"
           className="room-menu-item"
           role="menuitem"
-          aria-keyshortcuts="R"
+          aria-keyshortcuts={`R ${primaryAria}+R F5`}
           disabled={isReloading}
           onClick={() => run(onReload)}
         >
@@ -303,12 +304,12 @@ export function RoomContextMenu({
           type="button"
           className="room-menu-item is-danger"
           role="menuitem"
-          aria-keyshortcuts="X"
+          aria-keyshortcuts={`X ${primaryAria}+W`}
           onClick={() => run(onClosePlayer)}
         >
           <Icon name="close" size={15} />
           <span>关闭播放</span>
-          <kbd>X</kbd>
+          <kbd>{primaryKey}+W / X</kbd>
         </button>
       </div>
     </div>,

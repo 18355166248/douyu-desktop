@@ -1,4 +1,5 @@
 import {
+  Keyboard,
   CalendarCheck,
   CalendarCheck2,
   Settings,
@@ -52,6 +53,7 @@ import type { SVGProps } from 'react';
 // 按操作语义命名，避免副屏、小窗、替换房间再次共用一个“网格”图标。
 // 显式导入使用到的组件，构建时可移除图标库中未使用的资源。
 const icons = {
+  keyboard: Keyboard,
   live: MonitorPlay,
   tasks: CalendarCheck,
   taskDone: CalendarCheck2,

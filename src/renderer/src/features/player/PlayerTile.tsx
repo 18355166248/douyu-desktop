@@ -1,3 +1,4 @@
+import { primaryKey, primaryAria } from '../../lib/keyboard';
 import { useQueryClient } from '@tanstack/react-query';
 import type { StreamPlayback, StreamQuality } from '@shared/contracts/stream';
 import { Icon } from '../../components/Icon';
@@ -168,8 +169,12 @@ export function PlayerTile({
             onClick={reloadPlaybackAndAudience}
             disabled={isReloading}
             aria-label="重新解析并刷新房间统计"
-            aria-keyshortcuts="R"
-            title={isReloading ? '正在重新解析并刷新统计' : '重新解析播放并刷新房间统计 (R)'}
+            aria-keyshortcuts={`R ${primaryAria}+R F5`}
+            title={
+              isReloading
+                ? '正在重新解析并刷新统计'
+                : `重新解析播放并刷新房间统计（R / ${primaryKey}+R / F5）`
+            }
           >
             <Icon name="refresh" size={compact ? 15 : 17} />
           </button>
@@ -178,8 +183,8 @@ export function PlayerTile({
             className="icon-btn"
             onClick={onStop}
             aria-label="关闭播放"
-            aria-keyshortcuts="X"
-            title="关闭播放 (X)"
+            aria-keyshortcuts={`X ${primaryAria}+W`}
+            title={`关闭播放（X / ${primaryKey}+W）`}
           >
             <Icon name="close" size={compact ? 15 : 17} />
           </button>

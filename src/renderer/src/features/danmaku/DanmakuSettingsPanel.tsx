@@ -6,6 +6,7 @@ import type { DanmakuArea } from './danmakuSettings';
 
 interface DanmakuSettingsPanelProps {
   onClose: () => void;
+  embedded?: boolean;
 }
 
 interface SliderRowProps {
@@ -94,13 +95,20 @@ const BLOCK_OPTIONS: Array<{
   { key: 'blockRole', label: '角色' },
 ];
 
-export function DanmakuSettingsPanel({ onClose }: DanmakuSettingsPanelProps): React.JSX.Element {
+export function DanmakuSettingsPanel({
+  onClose,
+  embedded = false,
+}: DanmakuSettingsPanelProps): React.JSX.Element {
   const { settings, update, reset, clearAll } = useDanmakuSettings();
 
   const [keywords, setKeywords] = useState(() => settings.blockedKeywords.join('\n'));
 
   return (
-    <section className="danmaku-settings-panel" role="dialog" aria-label="弹幕设置">
+    <section
+      className={`danmaku-settings-panel${embedded ? ' is-embedded' : ''}`}
+      role={embedded ? undefined : 'dialog'}
+      aria-label="弹幕设置"
+    >
       <header className="ds-header">
         <div>
           <strong>弹幕设置</strong>
@@ -117,9 +125,11 @@ export function DanmakuSettingsPanel({ onClose }: DanmakuSettingsPanelProps): Re
           >
             恢复默认
           </button>
-          <button type="button" className="ds-close" onClick={onClose} aria-label="关闭弹幕设置">
-            <Icon name="close" size={14} />
-          </button>
+          {!embedded ? (
+            <button type="button" className="ds-close" onClick={onClose} aria-label="关闭弹幕设置">
+              <Icon name="close" size={14} />
+            </button>
+          ) : null}
         </div>
       </header>
 

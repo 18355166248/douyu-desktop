@@ -1,3 +1,4 @@
+import { primaryKey, primaryAria } from '../../lib/keyboard';
 import { useEffect, useState } from 'react';
 import type { AccountSummary } from '@shared/contracts/account';
 import type { FollowedRoom } from '@shared/contracts/follow';
@@ -281,7 +282,8 @@ export function HomePage({
           onClick={onRefreshHome}
           disabled={refreshing}
           aria-label="刷新首页"
-          title="刷新关注、特别关注和历史记录"
+          title={`刷新关注、特别关注和历史记录（${primaryKey}+R / F5）`}
+          aria-keyshortcuts={`${primaryAria}+R F5`}
         >
           <Icon name="refresh" size={14} />
           {refreshing ? '刷新中' : '刷新'}
