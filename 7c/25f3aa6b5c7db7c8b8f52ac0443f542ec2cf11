@@ -1,0 +1,46 @@
+src/renderer/src/App.tsx
+  s_b16fc6363ce496::t_453f474a11dc75 85,151,766,859-862
+src/renderer/src/lib/useDismissableLayer.ts
+  s_b16fc6363ce496::t_453f474a11dc75 3-7,36-37,45-51,82-86,96-97,100-103
+  s_b16fc6363ce496::t_d6806ce2399dd8 64-66
+  s_b16fc6363ce496::t_86f3120723e24e 11,27,53-61,63,69,72-79,98,104,106
+src/renderer/src/features/player/ViewingScenesPanel.tsx
+  s_b16fc6363ce496::t_d6806ce2399dd8 33,36,40,75-78
+  s_b16fc6363ce496::t_453f474a11dc75 1,42,44-45,48,50
+  s_b16fc6363ce496::t_c47def6a69d4a1 43
+  s_b16fc6363ce496::t_b332c53c443fe6 46-47,65
+src/renderer/src/features/tasks/TaskPanel.tsx
+  s_b16fc6363ce496::t_453f474a11dc75 1-2,24,35
+  s_b16fc6363ce496::t_c47def6a69d4a1 25
+src/renderer/src/features/danmaku/DanmakuSettingsPanel.tsx
+  s_b16fc6363ce496::t_453f474a11dc75 1,10,102,107-113,323
+src/renderer/src/features/accounts/AccountBar.tsx
+  s_b16fc6363ce496::t_453f474a11dc75 1-2,213-217,220-224,378,382,424,427
+src/renderer/src/features/settings/SettingsPanel.tsx
+  s_b16fc6363ce496::t_453f474a11dc75 1,39,48,119,132-134
+  s_b16fc6363ce496::t_c47def6a69d4a1 40-46
+src/renderer/src/features/player/ReplaceRoomPanel.tsx
+  s_b16fc6363ce496::t_c47def6a69d4a1 22
+  s_b16fc6363ce496::t_453f474a11dc75 1,21,23-28,30
+src/renderer/src/lib/dismissableLayers.ts
+  s_b16fc6363ce496::t_453f474a11dc75 1,3-14
+  s_b16fc6363ce496::t_37155ed852e275 2
+src/renderer/src/lib/dismissableLayers.test.ts
+  s_b16fc6363ce496::t_bfcd70eb9fc1d3 1-31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.1",
+  "base_commit_sha": "7c25f3aa6b5c7db7c8b8f52ac0443f542ec2cf11",
+  "prompts": {},
+  "sessions": {
+    "s_b16fc6363ce496": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18735-7112-7292-b0a5-32b7a528f09d",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "lang.jiang <lang.jiang@ximalaya.com>"
+    }
+  }
+}
