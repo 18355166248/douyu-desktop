@@ -77,6 +77,10 @@ export class StreamService {
     return new DouyuAudienceResolver(this.http).resolve(input.roomId);
   }
 
+  async pk(roomId: string) {
+    return (await new DouyuAudienceResolver(this.http).resolve(roomId, undefined, true)).pk ?? null;
+  }
+
   async resolve(input: ResolveStreamInput): Promise<StreamPlayback> {
     const platform = input.platform ?? 'douyu';
     if (platform === 'bilibili') {

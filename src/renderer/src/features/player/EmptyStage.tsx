@@ -21,9 +21,8 @@ export function EmptyStage({ onPickExample }: EmptyStageProps): React.JSX.Elemen
       <span className="eyebrow">READY WHEN YOU ARE</span>
       <h2>把直播间放进来</h2>
       <p>
-        输入斗鱼、B 站或虎牙真实房间号，最多 {MAX_STREAMS}{' '}
-        路同屏。每路独立解析 FLV/HLS、独立处理错误，并接入实时弹幕；
-        每路可独立静音，也可一键独奏，Cookie 只留在主进程。
+        输入斗鱼、B 站或虎牙真实房间号，最多 {MAX_STREAMS} 路同屏。每路独立解析
+        FLV/HLS、独立处理错误，并接入实时弹幕； 每路可独立静音，也可一键独奏，Cookie 只留在主进程。
       </p>
       <button type="button" className="btn subtle" onClick={onPickExample}>
         <Icon name="play" size={16} />

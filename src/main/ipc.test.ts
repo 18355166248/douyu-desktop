@@ -56,3 +56,15 @@ describe('room audience IPC', () => {
     });
   });
 });
+
+describe('room PK IPC', () => {
+  it('validates the room ID before accessing the gateway', async () => {
+    const pk = vi.fn().mockResolvedValue(null);
+    registerIpcHandlers({ streams: { pk } } as unknown as IpcServices);
+    const invoke = (value: unknown) => electron.handlers.get(IPC.streamsPk)!(null, value);
+    expect(await invoke('../1')).toMatchObject({ ok: false, error: { code: 'INVALID_INPUT' } });
+    expect(pk).not.toHaveBeenCalled();
+    expect(await invoke(' 4452132 ')).toEqual({ ok: true, data: null });
+    expect(pk).toHaveBeenCalledWith('4452132');
+  });
+});

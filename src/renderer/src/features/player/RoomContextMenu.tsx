@@ -40,6 +40,7 @@ export interface RoomContextMenuProps {
   onOpenDiagnostics: () => void;
   onReconnectDanmaku: () => void;
   onReturnToLive: () => void;
+  onOpenLivePk: () => void;
 }
 
 export function RoomContextMenu({
@@ -71,6 +72,7 @@ export function RoomContextMenu({
   onOpenDiagnostics,
   onReconnectDanmaku,
   onReturnToLive,
+  onOpenLivePk,
 }: RoomContextMenuProps): React.JSX.Element | null {
   const menuRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ left: x, top: y });
@@ -203,6 +205,17 @@ export function RoomContextMenu({
       </div>
 
       <div className="room-menu-actions">
+        {playback.platform === 'douyu' ? (
+          <button
+            type="button"
+            className="room-menu-item"
+            role="menuitem"
+            onClick={() => run(onOpenLivePk)}
+          >
+            <Icon name="live" size={15} />
+            <span>查看当前 PK</span>
+          </button>
+        ) : null}
         <button
           type="button"
           className="room-menu-item"

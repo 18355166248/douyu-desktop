@@ -12,6 +12,7 @@ import { qualityOptionsFor } from './streamQuality';
 import { STALL_TIMEOUT_MS, AUTO_RECOVERY_RESET_MS } from './streamStall';
 import { useVideoPlayback } from './useVideoPlayback';
 import { PlaybackDiagnostics } from './PlaybackDiagnosticsPanel';
+import { LivePkPanel } from './LivePkPanel';
 import { useAutoHideControls } from './useAutoHideControls';
 import { roomAudienceKey } from './useRoomAudience';
 import { useStreamStall } from './useStreamStall';
@@ -72,6 +73,7 @@ export function VideoPlayer({
   const [autoRecovering, setAutoRecovering] = useState(false);
   const [danmakuRevision, setDanmakuRevision] = useState(0);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  const [livePkOpen, setLivePkOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const controls = useAutoHideControls();
   const showControls = controls.show;
@@ -282,6 +284,14 @@ export function VideoPlayer({
 
   return (
     <>
+      {livePkOpen && playback.platform === 'douyu' ? (
+        <LivePkPanel
+          key={playback.roomId}
+          roomId={playback.roomId}
+          visible={playbackVisible}
+          onClose={() => setLivePkOpen(false)}
+        />
+      ) : null}
       <div
         className="video-shell"
         onContextMenu={openContextMenu}
@@ -559,6 +569,7 @@ export function VideoPlayer({
         onOpenDiagnostics={() => setDiagnosticsOpen(true)}
         onReconnectDanmaku={() => setDanmakuRevision((revision) => revision + 1)}
         onReturnToLive={playbackState.returnToLive}
+        onOpenLivePk={() => setLivePkOpen(true)}
       />
       {diagnosticsOpen ? (
         <PlaybackDiagnostics

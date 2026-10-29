@@ -31,6 +31,11 @@ const roomAudienceSchema = z.object({
   platform: z.enum(['douyu', 'bilibili', 'huya']),
 });
 
+const pkRoomIdSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{1,32}$/);
+
 const runTaskSchema = z.object({
   taskId: z.string().min(1),
   options: z.record(z.string(), z.unknown()).optional(),
@@ -260,6 +265,9 @@ export function registerIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle(IPC.streamsAudience, (_event, rawInput: unknown) =>
     respond(() => streams.audience(roomAudienceSchema.parse(rawInput))),
+  );
+  ipcMain.handle(IPC.streamsPk, (_event, rawRoomId: unknown) =>
+    respond(() => streams.pk(pkRoomIdSchema.parse(rawRoomId))),
   );
 
   ipcMain.handle(IPC.danmakuBilibiliConfig, (_event, rawRoomId: unknown) =>

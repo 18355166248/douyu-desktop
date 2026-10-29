@@ -75,6 +75,39 @@ describe('DouyuAudienceResolver', () => {
     vi.useRealTimers();
   });
 
+  it('reads a PK snapshot without requiring audience statistics and closes its socket', async () => {
+    const stt = (value: Record<string, string | number>) =>
+      Object.entries(value)
+        .map(([key, entry]) => `${key}@=${String(entry).replace(/@/g, '@A').replace(/\//g, '@S')}/`)
+        .join('');
+    const { resolver, socket } = setup();
+    const pending = resolver.resolve('24422', undefined, true);
+    await vi.advanceTimersByTimeAsync(0);
+    socket.open();
+    socket.message(
+      stt({
+        type: 'pkjt',
+        drid: '24422',
+        pkid: 7,
+        state: 2,
+        time: stt({ pk_end_time: 1793288473 }),
+        participants: stt({
+          a: stt({ rid: '24422', pk_data: stt({ team_score: '12.5' }) }),
+          b: stt({ rid: '52', pk_data: stt({ team_score: 0 }) }),
+        }),
+      }),
+    );
+    expect((await pending).pk).toMatchObject({
+      source: 'live',
+      pkId: '7',
+      participants: [
+        { roomId: '24422', score: 12.5, rank: 1 },
+        { roomId: '52', score: 0, rank: 2 },
+      ],
+    });
+    expectClean(socket);
+  });
+
   it('logs in anonymously, requests gateway snapshots and closes after all five updates', async () => {
     const { resolver, request, socket, factory } = setup();
     const controller = new AbortController();

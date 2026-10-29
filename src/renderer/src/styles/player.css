@@ -473,6 +473,88 @@
   background: #000;
 }
 
+.pk-stats {
+  flex: none;
+  padding: 7px 14px 9px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.pk-stats-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.pk-stats-header > strong {
+  color: var(--accent);
+}
+.pk-stats-header > span {
+  font-variant-numeric: tabular-nums;
+}
+.pk-stats-header > small {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+}
+.pk-stats-header > .icon-btn {
+  width: 22px;
+  height: 22px;
+  margin-left: auto;
+}
+.pk-stats-header > .icon-btn + .icon-btn {
+  margin-left: 0;
+}
+.pk-stats-rooms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 4px 0 0;
+}
+.pk-stats-rooms > div {
+  flex: 1 1 110px;
+  min-width: 0;
+}
+.pk-stats-rooms dt {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pk-stats-rooms dt > span {
+  flex: none;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+.pk-stats-rooms dd {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin: 3px 0 0;
+}
+.pk-stats-rooms dd > strong {
+  color: var(--text);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.pk-stats-rooms dd > span {
+  color: var(--dim);
+  font-size: 9px;
+}
+.pk-stats-rooms .is-current dd > strong {
+  color: var(--accent);
+}
+
 .video {
   display: block;
   width: 100%;

@@ -1,4 +1,6 @@
 import md5 from 'blueimp-md5';
+import { parseDouyuPk } from '@shared/douyu/pkProtocol';
+import type { RoomPkSnapshot } from '@shared/contracts/pk';
 import type {
   RoomAudienceMetric,
   RoomAudienceRanking,
@@ -88,7 +90,11 @@ export class DouyuAudienceResolver {
     private readonly socketFactory: SocketFactory = (url) => new WebSocket(url),
   ) {}
 
-  async resolve(roomId: string, signal?: AbortSignal): Promise<RoomAudienceSnapshot> {
+  async resolve(
+    roomId: string,
+    signal?: AbortSignal,
+    includePk = false,
+  ): Promise<RoomAudienceSnapshot> {
     const normalizedRoomId = roomId.trim();
     if (!normalizedRoomId) throw new AppError('INVALID_INPUT', '请输入斗鱼房间号');
     signal?.throwIfAborted();
@@ -117,6 +123,7 @@ export class DouyuAudienceResolver {
         normalizedRoomId,
         controller.signal,
         signal,
+        includePk,
       );
     } catch (error) {
       if (signal?.aborted) throw signal.reason;
@@ -133,6 +140,7 @@ export class DouyuAudienceResolver {
     roomId: string,
     signal: AbortSignal,
     callerSignal?: AbortSignal,
+    includePk = false,
   ): Promise<RoomAudienceSnapshot> {
     return new Promise((resolve, reject) => {
       const metrics = new Map<string, RoomAudienceMetric>();
@@ -140,6 +148,7 @@ export class DouyuAudienceResolver {
       let socket: WebSocket | undefined;
       let settled = false;
       let requested = false;
+      let pk: RoomPkSnapshot | null = null;
       let settleTimer: ReturnType<typeof setTimeout> | undefined;
 
       const clearSettleTimer = () => {
@@ -166,7 +175,7 @@ export class DouyuAudienceResolver {
         }
         if (callerSignal?.aborted) {
           reject(callerSignal.reason);
-        } else if (metrics.size || rankings.size) {
+        } else if (metrics.size || rankings.size || pk) {
           resolve({
             platform: 'douyu',
             roomId,
@@ -179,6 +188,7 @@ export class DouyuAudienceResolver {
               return ranking ? [ranking] : [];
             }),
             fetchedAt: Date.now(),
+            ...(pk ? { pk } : {}),
           });
         } else {
           reject(error ?? new AppError('UPSTREAM', '斗鱼暂未返回房间数据', { retryable: true }));
@@ -227,9 +237,16 @@ export class DouyuAudienceResolver {
               break;
             }
             const update = parseDouyuAudience(packet, roomId);
+            if (includePk) {
+              pk = parseDouyuPk(packet, roomId) ?? pk;
+              if (pk) {
+                finish();
+                break;
+              }
+            }
             for (const metric of update?.metrics ?? []) metrics.set(metric.key, metric);
             if (update?.ranking) rankings.set(update.ranking.key, update.ranking);
-            if (metrics.size === 2 && rankings.size === 3) {
+            if (!includePk && metrics.size === 2 && rankings.size === 3) {
               finish();
               break;
             }

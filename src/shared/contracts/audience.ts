@@ -1,4 +1,5 @@
 import type { StreamPlatform } from './stream';
+import type { RoomPkSnapshot } from './pk';
 
 export interface RoomAudienceInput {
   platform: StreamPlatform;
@@ -17,6 +18,7 @@ export interface RoomAudienceMetric {
 }
 
 export interface RoomAudienceSnapshot {
+  pk?: RoomPkSnapshot;
   platform: StreamPlatform;
   roomId: string;
   metrics: RoomAudienceMetric[];

@@ -1,5 +1,6 @@
 import type { AccountHealth, AccountSummary } from './account';
 import type { RoomAudienceInput, RoomAudienceSnapshot } from './audience';
+import type { RoomPkSnapshot } from './pk';
 import type { BilibiliDanmakuConfig, DouyuDanmakuConfig, HuyaDanmakuUpdate } from './danmaku';
 import type { RoomHistoryEntry } from './history';
 import type { FollowedRoom } from './follow';
@@ -55,6 +56,7 @@ export interface DesktopApi {
   streams: {
     resolve(input: ResolveStreamInput): Promise<Result<StreamPlayback>>;
     audience(input: RoomAudienceInput): Promise<Result<RoomAudienceSnapshot>>;
+    pk(roomId: string): Promise<Result<RoomPkSnapshot | null>>;
   };
   danmaku: {
     bilibiliConfig(roomId: string): Promise<Result<BilibiliDanmakuConfig>>;
@@ -110,6 +112,7 @@ export const IPC = {
   specialChanged: 'special:changed',
   streamsResolve: 'streams:resolve',
   streamsAudience: 'streams:audience',
+  streamsPk: 'streams:pk',
   danmakuBilibiliConfig: 'danmaku:bilibili-config',
   danmakuDouyuConfig: 'danmaku:douyu-config',
   danmakuHuyaStart: 'danmaku:huya-start',
