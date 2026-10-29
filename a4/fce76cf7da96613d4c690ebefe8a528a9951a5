@@ -1,0 +1,79 @@
+src/renderer/src/features/danmaku/danmakuFilter.test.ts
+  s_b16fc6363ce496::t_840952aef28032 64-69,72-75,78-81,83-84
+  s_b16fc6363ce496::t_e222338c7d03fe 70-71
+  s_b16fc6363ce496::t_feef5ba2bbbc97 76-77
+  s_b16fc6363ce496::t_780ccca5149cf9 82
+src/renderer/src/features/danmaku/danmakuFilter.ts
+  s_b16fc6363ce496::t_9c02d5b8b8aa92 14-17
+src/renderer/src/features/home/HomePage.tsx
+  s_b16fc6363ce496::t_9c02d5b8b8aa92 33,54,71,168,201,363,445
+src/renderer/src/App.tsx
+  s_b16fc6363ce496::t_d3efe0f3e7d667 24,35,91,264,633,732-737,741-743,747,752-756,779
+  s_b16fc6363ce496::t_840952aef28032 744-746
+  s_b16fc6363ce496::t_82f39b3f0362b4 75-76,738-740,748-751
+src/renderer/src/features/danmaku/danmakuSettings.test.ts
+  s_b16fc6363ce496::t_840952aef28032 90-92,94-96,98-100,102-103
+  s_b16fc6363ce496::t_c167d7e1050647 93
+  s_b16fc6363ce496::t_740fbe116484e2 97
+  s_b16fc6363ce496::t_19e5ddaf75d251 101
+src/renderer/src/features/player/useStreamGrid.ts
+  s_b16fc6363ce496::t_a160241cb333b8 28,152-153,274-275
+src/renderer/src/features/home/useSpecialFollows.ts
+  s_b16fc6363ce496::t_9c02d5b8b8aa92 1,3,9,29-38,41,45-47,52,57,61,65-66,70,72-86,88-99,103,105
+  s_b16fc6363ce496::t_7e1530dee3ac47 100-102
+src/renderer/src/features/player/ViewingScenesPanel.tsx
+  s_b16fc6363ce496::t_d3efe0f3e7d667 2-3,13,25,30,35-38,50-58,126-168
+src/renderer/src/features/danmaku/DanmakuEngine.test.ts
+  s_b16fc6363ce496::t_840952aef28032 108-117,119-120
+  s_b16fc6363ce496::t_3a3abdb87c0479 118
+src/renderer/src/features/danmaku/danmakuSettings.ts
+  s_b16fc6363ce496::t_9c02d5b8b8aa92 15,38,86,138-146,149
+  s_b16fc6363ce496::t_b89a77047b2d22 147-148
+  s_b16fc6363ce496::t_20b2709a48b68d 150
+src/renderer/src/features/player/playbackPreferences.ts
+  s_b16fc6363ce496::t_d3efe0f3e7d667 1-39,42-44,46-47
+  s_b16fc6363ce496::t_a160241cb333b8 40-41,45
+src/renderer/src/features/player/playbackPreferences.test.ts
+  s_b16fc6363ce496::t_b7ac6c64ff8b77 23,37,58
+  s_b16fc6363ce496::t_840952aef28032 1-5,7-15,17-22,24-28,30-36,38-50,52-57,59-61,63-69,71-73
+  s_b16fc6363ce496::t_5d3eea1dee9327 6
+  s_b16fc6363ce496::t_7aa74b7af1496c 16
+  s_b16fc6363ce496::t_72eac7449c7668 29
+  s_b16fc6363ce496::t_30c8f151f8f9c2 51
+  s_b16fc6363ce496::t_78cc4dd57bf773 62
+  s_b16fc6363ce496::t_350ec55fecc596 70
+src/renderer/src/features/player/useStreamGrid.test.ts
+  s_b16fc6363ce496::t_b7ac6c64ff8b77 1-2,307-336
+  s_b16fc6363ce496::t_c55ba97cfe5bc4 337
+src/renderer/src/features/danmaku/DanmakuSettingsPanel.tsx
+  s_b16fc6363ce496::t_9c02d5b8b8aa92 1-2,100-101,110-117,232-256
+  s_b16fc6363ce496::t_f05325ba57b29a 257-258
+src/renderer/src/styles/viewing.css
+  s_b16fc6363ce496::t_d3efe0f3e7d667 234-252
+src/renderer/src/features/danmaku/DanmakuEngine.ts
+  s_b16fc6363ce496::t_840952aef28032 92
+src/renderer/src/features/home/useSpecialFollows.test.ts
+  s_b16fc6363ce496::t_840952aef28032 1-7,9-20,22-42,44-70,74-99,101-116,118-124
+  s_b16fc6363ce496::t_f11c35ce6fed40 8
+  s_b16fc6363ce496::t_4ccb8738c12c70 21
+  s_b16fc6363ce496::t_690ad399af618f 43
+  s_b16fc6363ce496::t_fb036d925b2fa9 71-73
+  s_b16fc6363ce496::t_e75797831d5afc 100
+  s_b16fc6363ce496::t_137c508ea5063b 117
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.1",
+  "base_commit_sha": "a4fce76cf7da96613d4c690ebefe8a528a9951a5",
+  "prompts": {},
+  "sessions": {
+    "s_b16fc6363ce496": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18735-7112-7292-b0a5-32b7a528f09d",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "lang.jiang <lang.jiang@ximalaya.com>"
+    }
+  }
+}
