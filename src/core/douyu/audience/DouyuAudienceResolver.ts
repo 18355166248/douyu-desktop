@@ -103,7 +103,7 @@ export class DouyuAudienceResolver {
     const onAbort = () => controller.abort(signal?.reason);
     signal?.addEventListener('abort', onAbort, { once: true });
     const timeout = setTimeout(
-      () => controller.abort(new AppError('UPSTREAM', '斗鱼房间数据获取超时', { retryable: true })),
+      () => controller.abort(new AppError('UPSTREAM', includePk ? 'PK 数据获取超时' : '斗鱼房间数据获取超时', { retryable: true })),
       SNAPSHOT_TIMEOUT_MS,
     );
     try {
@@ -228,22 +228,26 @@ export class DouyuAudienceResolver {
               requested = true;
               // Initial data belongs on the gateway. Periodic polling uses a
               // fresh short-lived connection, so barrage subscriptions aren't needed.
-              for (const request of DOUYU_AUDIENCE_SUBSCRIPTIONS) {
-                if (request.startsWith('type@=get/')) send(request);
+              if (!includePk) {
+                for (const request of DOUYU_AUDIENCE_SUBSCRIPTIONS) {
+                  if (request.startsWith('type@=get/')) send(request);
+                }
               }
               send(stt({ type: 'keeplive', tick: Math.floor(Date.now() / 1000) }));
             } else if (packet.startsWith('type@=error/')) {
               onError();
               break;
             }
-            const update = parseDouyuAudience(packet, roomId);
             if (includePk) {
               pk = parseDouyuPk(packet, roomId) ?? pk;
               if (pk) {
                 finish();
                 break;
               }
+              // PK 的首包可能晚于房间统计；不能被统计数据的 settle timer 提前结束。
+              continue;
             }
+            const update = parseDouyuAudience(packet, roomId);
             for (const metric of update?.metrics ?? []) metrics.set(metric.key, metric);
             if (update?.ranking) rankings.set(update.ranking.key, update.ranking);
             if (!includePk && metrics.size === 2 && rankings.size === 3) {

@@ -3,6 +3,8 @@ export interface RoomPkParticipant {
   name: string;
   score: number;
   rank: number;
+  /** Distinguish a team's score from a participant's own contribution. */
+  scoreKind: 'team' | 'participant';
 }
 
 export interface RoomPkSnapshot {

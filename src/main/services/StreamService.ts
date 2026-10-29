@@ -1,5 +1,6 @@
 import { session } from 'electron';
 import type { RoomAudienceInput, RoomAudienceSnapshot } from '@shared/contracts/audience';
+import type { RoomPkSnapshot } from '@shared/contracts/pk';
 import type { DouyuQuality, ResolveStreamInput, StreamPlayback } from '@shared/contracts/stream';
 import { BilibiliAudienceResolver } from '@core/bilibili/audience/BilibiliAudienceResolver';
 import { DouyuAudienceResolver } from '@core/douyu/audience/DouyuAudienceResolver';
@@ -22,6 +23,7 @@ export class StreamService {
   private readonly http: DouyuHttpClient;
   private readonly douyu: DouyuStreamResolver;
   private readonly huyaProxy: HuyaHlsProxy;
+  private readonly pkRequests = new Map<string, Promise<RoomPkSnapshot | null>>();
 
   constructor(private readonly platforms: PlatformLoginManager) {
     this.http = new DouyuHttpClient(new SessionHttpClient(session.defaultSession, CHROME_UA), {
@@ -77,8 +79,15 @@ export class StreamService {
     return new DouyuAudienceResolver(this.http).resolve(input.roomId);
   }
 
-  async pk(roomId: string) {
-    return (await new DouyuAudienceResolver(this.http).resolve(roomId, undefined, true)).pk ?? null;
+  pk(roomId: string): Promise<RoomPkSnapshot | null> {
+    const key = roomId.trim();
+    const pending = this.pkRequests.get(key);
+    if (pending) return pending;
+    const request = new DouyuAudienceResolver(this.http).resolve(key, undefined, true)
+      .then((snapshot) => snapshot.pk ?? null)
+      .finally(() => this.pkRequests.delete(key));
+    this.pkRequests.set(key, request);
+    return request;
   }
 
   async resolve(input: ResolveStreamInput): Promise<StreamPlayback> {
