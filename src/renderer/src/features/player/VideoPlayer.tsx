@@ -10,8 +10,8 @@ import { useDanmakuSettings } from '../danmaku/DanmakuSettingsContext';
 import { RoomContextMenu } from './RoomContextMenu';
 import { qualityOptionsFor } from './streamQuality';
 import { STALL_TIMEOUT_MS, AUTO_RECOVERY_RESET_MS } from './streamStall';
-import { attachPlayback } from './playbackSession';
-import { resumeLivePlayback } from './resumeLivePlayback';
+import { useVideoPlayback } from './useVideoPlayback';
+import { PlaybackDiagnostics } from './PlaybackDiagnosticsPanel';
 import { useAutoHideControls } from './useAutoHideControls';
 import { roomAudienceKey } from './useRoomAudience';
 import { useStreamStall } from './useStreamStall';
@@ -61,50 +61,48 @@ export function VideoPlayer({
   onReplace,
 }: VideoPlayerProps): React.JSX.Element {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const userPausedRef = useRef(false);
+  const playbackState = useVideoPlayback(videoRef, playback);
+  const { isReady, isPlaying, userPaused, userPausedRef, error, togglePlayback } = playbackState;
   const wasReloadingRef = useRef(false);
   const autoRecoveredRef = useRef(false);
   const onReloadRef = useRef(onReload);
   onReloadRef.current = onReload;
   const [autoRecovering, setAutoRecovering] = useState(false);
   const [danmakuRevision, setDanmakuRevision] = useState(0);
-  const [isReady, setIsReady] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const controls = useAutoHideControls();
   const showControls = controls.show;
   const queryClient = useQueryClient();
   const { settings, update } = useDanmakuSettings();
-  const stall = useStreamStall(videoRef, !error && !isReloading, userPausedRef);
+  const stall = useStreamStall(
+    videoRef,
+    !error && !isReloading && !playbackState.playBlocked,
+    userPausedRef,
+  );
   const { stalled: streamStalled, dismiss: dismissStall } = stall;
   const qualityOptions = qualityOptionsFor(playback.platform);
   const qualityLabel = qualityOptions.find((option) => option.value === quality)?.label ?? quality;
   const audience = queryClient.getQueryData<RoomAudienceSnapshot>(
     roomAudienceKey(playback.platform, playback.roomId),
   );
-  const playbackStatus = error ? '播放异常' : !isReady ? '加载中' : isPlaying ? '播放中' : '已暂停';
+  const playbackStatus = error
+    ? '播放异常'
+    : userPaused
+      ? '已暂停'
+      : isReloading || playbackState.recovering
+        ? '恢复中'
+        : playbackState.playBlocked
+          ? '等待播放'
+          : !isReady
+            ? '连接中'
+            : isPlaying
+              ? '播放中'
+              : '缓冲中';
+  const canResume = userPaused || playbackState.playBlocked;
   const bilibiliLogin = usePlatformLoginStatus('bilibili', playback.platform === 'bilibili');
   const needsBilibiliLogin =
     playback.platform === 'bilibili' && bilibiliLogin.data?.loggedIn === false;
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return undefined;
-
-    setError(null);
-    setIsReady(false);
-    setIsPlaying(false);
-    userPausedRef.current = false;
-    return attachPlayback(video, playback, {
-      isUserPaused: () => userPausedRef.current,
-      onError: setError,
-      onRecovering: () => {
-        // 内部重连只清空展示队列，保持健康的弹幕连接，避免短时间反复握手。
-        setIsPlaying(false);
-      },
-    });
-  }, [playback]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -123,7 +121,7 @@ export function VideoPlayer({
   useEffect(() => {
     autoRecoveredRef.current = false;
     setAutoRecovering(false);
-  }, [playback.roomId]);
+  }, [playback.platform, playback.roomId]);
 
   // Run before paint so the manual "stalled" prompt never flashes when an
   // automatic recovery is about to start.
@@ -139,7 +137,7 @@ export function VideoPlayer({
     setAutoRecovering(true);
     dismissStall();
     onReloadRef.current();
-  }, [dismissStall, error, isReloading, streamStalled]);
+  }, [dismissStall, error, isReloading, streamStalled, userPaused, userPausedRef]);
 
   useEffect(() => {
     if (!isReady || !isPlaying || error || isReloading || streamStalled) return undefined;
@@ -154,22 +152,6 @@ export function VideoPlayer({
     const video = videoRef.current;
     if (video) video.volume = Math.min(1, Math.max(0, volume));
   }, [volume]);
-
-  const togglePlayback = useCallback((): void => {
-    const video = videoRef.current;
-    if (!video) return;
-    if (video.paused) {
-      userPausedRef.current = false;
-      // 继续直播时丢开暂停期间积压的位置，弹幕恢复后与较新的画面一起显示。
-      resumeLivePlayback(video);
-      void video.play().catch(() => {
-        // Autoplay rejection is surfaced by the loading/error state.
-      });
-    } else {
-      userPausedRef.current = true;
-      video.pause();
-    }
-  }, []);
 
   const closeContextMenu = useCallback((): void => {
     setContextMenu(null);
@@ -313,18 +295,10 @@ export function VideoPlayer({
         <video
           ref={videoRef}
           className="video"
-          autoPlay
           muted={muted}
           playsInline
           preload="auto"
           controls={false}
-          onLoadedMetadata={() => setIsReady(true)}
-          onCanPlay={() => setIsReady(true)}
-          onPlaying={() => setIsPlaying(true)}
-          onWaiting={() => setIsPlaying(false)}
-          onSeeking={() => setIsPlaying(false)}
-          onEnded={() => setIsPlaying(false)}
-          onPause={() => setIsPlaying(false)}
         />
 
         <div
@@ -336,6 +310,7 @@ export function VideoPlayer({
             LIVE
           </span>
           <span className="video-room">ROOM {playback.roomId}</span>
+          <span className="video-status">{playbackStatus}</span>
         </div>
 
         <div
@@ -396,10 +371,10 @@ export function VideoPlayer({
           </div>
         ) : null}
 
-        {!isReady && !error ? (
+        {!isReady && !error && !userPaused && !playbackState.playBlocked ? (
           <div className="video-loading">
             <span className="spinner" />
-            正在连接直播流…
+            {playbackState.recovering ? '正在恢复直播流…' : '正在连接直播流…'}
           </div>
         ) : null}
 
@@ -411,6 +386,13 @@ export function VideoPlayer({
           </div>
         ) : null}
 
+        {playbackState.playBlocked && !error && !userPaused ? (
+          <button type="button" className="video-loading" onClick={togglePlayback}>
+            <Icon name="play" size={18} />
+            点击继续播放
+          </button>
+        ) : null}
+
         <div
           className={`video-bottomline${controls.visible ? ' is-visible' : ''}`}
           onClick={(event) => event.stopPropagation()}
@@ -419,11 +401,11 @@ export function VideoPlayer({
             type="button"
             className="icon-btn video-playback-toggle"
             onClick={togglePlayback}
-            aria-label={isPlaying ? '暂停播放' : '继续播放'}
+            aria-label={canResume ? '继续播放' : '暂停播放'}
             aria-keyshortcuts="Space K"
-            title={isPlaying ? '暂停播放 (Space / K)' : '继续播放 (Space / K)'}
+            title={canResume ? '继续播放 (Space / K)' : '暂停播放 (Space / K)'}
           >
-            <Icon name={isPlaying ? 'pause' : 'play'} size={17} />
+            <Icon name={canResume ? 'play' : 'pause'} size={17} />
           </button>
           <div className="video-volume">
             <button
@@ -550,7 +532,7 @@ export function VideoPlayer({
         playback={playback}
         qualityLabel={qualityLabel}
         status={playbackStatus}
-        isPlaying={isPlaying}
+        canResume={canResume}
         muted={muted}
         danmakuVisible={settings.visible}
         danmakuPaused={settings.paused}
@@ -569,7 +551,19 @@ export function VideoPlayer({
         onToggleImmersive={onToggleImmersive}
         onClosePlayer={onStop}
         onReplace={onReplace}
+        onOpenDiagnostics={() => setDiagnosticsOpen(true)}
       />
+      {diagnosticsOpen ? (
+        <PlaybackDiagnostics
+          videoRef={videoRef}
+          playback={playback}
+          status={playbackStatus}
+          reconnects={playbackState.reconnects}
+          reparses={playbackState.reparses}
+          lastError={playbackState.lastError}
+          onClose={() => setDiagnosticsOpen(false)}
+        />
+      ) : null}
     </>
   );
 }

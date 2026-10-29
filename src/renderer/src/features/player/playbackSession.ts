@@ -5,7 +5,8 @@ import type { StreamPlayback } from '@shared/contracts/stream';
 interface PlaybackSessionOptions {
   isUserPaused: () => boolean;
   onError: (message: string) => void;
-  onRecovering?: () => void;
+  onRecovering?: (message: string) => void;
+  onPlayRejected?: () => void;
 }
 
 /** Owns one media element attachment, including deferred imports and all retries. */
@@ -25,8 +26,17 @@ export function attachPlayback(
 
   const play = (): void => {
     if (disposed || failed || options.isUserPaused()) return;
-    void video.play().catch(() => {
-      // canplay/loadeddata will retry without overriding a user pause.
+    void video.play().catch((error: unknown) => {
+      // 重建媒体源导致的 AbortError 仍交给 canplay/loadeddata 重试，不能关闭卡顿恢复。
+      if (
+        !disposed &&
+        !failed &&
+        !options.isUserPaused() &&
+        error instanceof Error &&
+        error.name === 'NotAllowedError'
+      ) {
+        options.onPlayRejected?.();
+      }
     });
   };
   const resumeWhenReady = (): void => {
@@ -106,7 +116,9 @@ export function attachPlayback(
             fail('HLS 播放失败，请重新解析');
             return;
           }
-          options.onRecovering?.();
+          options.onRecovering?.(
+            type === Hls.ErrorTypes.MEDIA_ERROR ? 'HLS 解码异常' : 'HLS 网络异常',
+          );
           recoveryAttempts += 1;
           pendingRecoveryType = type;
           recoveryTimer = setTimeout(() => {
@@ -169,7 +181,7 @@ export function attachPlayback(
             fail('FLV 播放失败，请尝试重新解析');
             return;
           }
-          options.onRecovering?.();
+          options.onRecovering?.('FLV 连接中断或解码异常');
           recoveryAttempts += 1;
           recoveryTimer = setTimeout(() => {
             recoveryTimer = null;

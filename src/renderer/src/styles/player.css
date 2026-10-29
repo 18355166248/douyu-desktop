@@ -503,6 +503,40 @@
   transform: translateY(0);
 }
 
+.video-status {
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgb(8 11 15 / 75%);
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.playback-diagnostics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.playback-diagnostics-grid > div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.playback-diagnostics-grid dt {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.playback-diagnostics-grid dd {
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
 .immersive-anchor {
   position: absolute;
   z-index: 6;
@@ -1115,9 +1149,7 @@
 .gift-toast.is-large {
   gap: 9px;
   padding: 2px 0;
-  filter:
-    drop-shadow(0 2px 4px rgb(0 0 0 / 74%))
-    drop-shadow(0 0 10px rgb(255 174 66 / 28%));
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 74%)) drop-shadow(0 0 10px rgb(255 174 66 / 28%));
   text-shadow:
     0 1px 3px rgb(0 0 0 / 96%),
     0 0 12px rgb(0 0 0 / 58%);

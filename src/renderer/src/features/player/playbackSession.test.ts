@@ -105,6 +105,22 @@ async function start(paused = false, format = playback.format) {
 }
 
 describe('playback session recovery', () => {
+  it.each(['NotAllowedError', 'AbortError'])(
+    'only surfaces an autoplay policy rejection, not an interrupted load: %s',
+    async (name) => {
+      const video = new FakeVideo();
+      video.play.mockRejectedValue(Object.assign(new Error('play rejected'), { name }));
+      const rejected = vi.fn();
+      cleanup = attachPlayback(video as unknown as HTMLVideoElement, playback, {
+        isUserPaused: () => false,
+        onError: vi.fn(),
+        onPlayRejected: rejected,
+      });
+      await vi.dynamicImportSettled();
+      expect(rejected).toHaveBeenCalledTimes(name === 'NotAllowedError' ? 1 : 0);
+    },
+  );
+
   it('prioritizes a native decode error over a pending HLS network retry', async () => {
     const { video, hls, error, recovering } = await start();
     hls.fail('network');

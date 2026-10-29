@@ -18,7 +18,7 @@ export interface RoomContextMenuProps {
   playback: StreamPlayback;
   qualityLabel: string;
   status: string;
-  isPlaying: boolean;
+  canResume: boolean;
   muted: boolean;
   danmakuVisible: boolean;
   danmakuPaused: boolean;
@@ -37,6 +37,7 @@ export interface RoomContextMenuProps {
   onToggleImmersive: () => void;
   onClosePlayer: () => void;
   onReplace: () => void;
+  onOpenDiagnostics: () => void;
 }
 
 export function RoomContextMenu({
@@ -46,7 +47,7 @@ export function RoomContextMenu({
   playback,
   qualityLabel,
   status,
-  isPlaying,
+  canResume,
   muted,
   danmakuVisible,
   danmakuPaused,
@@ -65,6 +66,7 @@ export function RoomContextMenu({
   onToggleImmersive,
   onClosePlayer,
   onReplace,
+  onOpenDiagnostics,
 }: RoomContextMenuProps): React.JSX.Element | null {
   const menuRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ left: x, top: y });
@@ -205,8 +207,8 @@ export function RoomContextMenu({
           aria-keyshortcuts="Space K"
           onClick={() => run(onTogglePlayback)}
         >
-          <Icon name={isPlaying ? 'pause' : 'play'} size={15} />
-          <span>{isPlaying ? '暂停播放' : '继续播放'}</span>
+          <Icon name={canResume ? 'play' : 'pause'} size={15} />
+          <span>{canResume ? '继续播放' : '暂停播放'}</span>
           <kbd>Space / K</kbd>
         </button>
 
@@ -261,6 +263,16 @@ export function RoomContextMenu({
         </button>
 
         <div className="room-menu-separator" role="separator" />
+
+        <button
+          type="button"
+          className="room-menu-item"
+          role="menuitem"
+          onClick={() => run(onOpenDiagnostics)}
+        >
+          <Icon name="live" size={15} />
+          <span>播放诊断</span>
+        </button>
 
         <button
           type="button"
