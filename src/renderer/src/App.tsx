@@ -82,6 +82,7 @@ export function App(): React.JSX.Element {
   const [layoutMode, setLayoutMode] = useState<StreamLayoutMode>(() => loadStreamLayoutMode());
   const [mainStreamKey, setMainStreamKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [danmakuKeywordsDirty, setDanmakuKeywordsDirty] = useState(false);
   const [isDanmakuSettingsOpen, setDanmakuSettingsOpen] = useState(false);
   const [isHistoryOpen, setHistoryOpen] = useState(false);
   const [isTaskOpen, setTaskOpen] = useState(false);
@@ -147,16 +148,12 @@ export function App(): React.JSX.Element {
     open: isDanmakuSettingsOpen,
     onClose: () => setDanmakuSettingsOpen(false),
     layerRef: danmakuSettingsRef,
+    closeOnPointerDown: !danmakuKeywordsDirty,
   });
   useDismissableLayer({
     open: isHistoryOpen,
     onClose: () => setHistoryOpen(false),
     layerRef: historyRef,
-  });
-  useDismissableLayer({
-    open: isTaskOpen,
-    onClose: () => setTaskOpen(false),
-    closeOnPointerDown: false,
   });
 
   const clearImmersiveExitTimer = useCallback((): void => {
@@ -766,15 +763,7 @@ export function App(): React.JSX.Element {
       ) : null}
 
       {isTaskOpen ? (
-        <div
-          className="task-modal-backdrop"
-          role="dialog"
-          aria-modal="true"
-          aria-label="签到任务"
-          onPointerDown={(event) => {
-            if (event.target === event.currentTarget) setTaskOpen(false);
-          }}
-        >
+        <div className="task-modal-backdrop" role="dialog" aria-modal="true" aria-label="签到任务">
           <TaskPanel
             hasAccount={Boolean(activeAccount && activeAccount.status === 'active')}
             onClose={() => setTaskOpen(false)}
@@ -867,7 +856,10 @@ export function App(): React.JSX.Element {
 
       {isDanmakuSettingsOpen ? (
         <div className="danmaku-settings-dock" ref={danmakuSettingsRef}>
-          <DanmakuSettingsPanel onClose={() => setDanmakuSettingsOpen(false)} />
+          <DanmakuSettingsPanel
+            onClose={() => setDanmakuSettingsOpen(false)}
+            onDirtyChange={setDanmakuKeywordsDirty}
+          />
         </div>
       ) : null}
     </div>

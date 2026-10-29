@@ -1,3 +1,5 @@
+import { useDismissableLayer } from '../../lib/useDismissableLayer';
+import { useDialogFocus } from '../../lib/useDialogFocus';
 import { useState } from 'react';
 import type { TaskStatus } from '@shared/contracts/task';
 import { Icon } from '../../components/Icon';
@@ -19,6 +21,8 @@ interface TaskPanelProps {
 export function TaskPanel({ hasAccount, onClose }: TaskPanelProps): React.JSX.Element {
   const { query, tasks, runTask, progress, result, running, autoSignEnabled, setAutoSignEnabled } =
     useTasks();
+  const panelRef = useDialogFocus();
+  useDismissableLayer({ modal: true, open: true, onClose: () => onClose?.(), layerRef: panelRef });
   const [dryRun, setDryRun] = useState(false);
   const task = tasks[0];
 
@@ -28,7 +32,7 @@ export function TaskPanel({ hasAccount, onClose }: TaskPanelProps): React.JSX.El
       : 0;
 
   return (
-    <aside className="task-panel">
+    <aside ref={panelRef} className="task-panel">
       <header className="panel-head">
         <div>
           <span className="eyebrow">TASK CENTER</span>

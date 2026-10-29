@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { normalizeKeywords } from './danmakuSettings';
 import { Icon } from '../../components/Icon';
 import { useDanmakuSettings } from './DanmakuSettingsContext';
@@ -7,6 +7,7 @@ import type { DanmakuArea } from './danmakuSettings';
 interface DanmakuSettingsPanelProps {
   onClose: () => void;
   embedded?: boolean;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 interface SliderRowProps {
@@ -98,10 +99,18 @@ const BLOCK_OPTIONS: Array<{
 export function DanmakuSettingsPanel({
   onClose,
   embedded = false,
+  onDirtyChange,
 }: DanmakuSettingsPanelProps): React.JSX.Element {
   const { settings, update, reset, clearAll } = useDanmakuSettings();
 
   const [keywords, setKeywords] = useState(() => settings.blockedKeywords.join('\n'));
+  const dirty =
+    JSON.stringify(normalizeKeywords(keywords.split('\n'))) !==
+    JSON.stringify(settings.blockedKeywords);
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
 
   return (
     <section
@@ -311,7 +320,7 @@ export function DanmakuSettingsPanel({
         <button type="button" className="ds-clear" onClick={clearAll}>
           <Icon name="clearDanmaku" size={14} /> 清屏
         </button>
-        <span>设置会自动保存</span>
+        <span>{dirty ? '关键词尚未应用，点击外部不会关闭' : '设置会自动保存'}</span>
       </footer>
     </section>
   );

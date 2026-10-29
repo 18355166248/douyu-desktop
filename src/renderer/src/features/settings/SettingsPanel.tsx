@@ -1,3 +1,4 @@
+import { useDismissableLayer } from '../../lib/useDismissableLayer';
 import { useState } from 'react';
 import { Icon } from '../../components/Icon';
 import type { IconName } from '../../components/Icon';
@@ -35,25 +36,22 @@ export function SettingsPanel({
 }: Props): React.JSX.Element {
   const ref = useDialogFocus();
   const [error, setError] = useState<string | null>(null);
+  const [keywordsDirty, setKeywordsDirty] = useState(false);
+  useDismissableLayer({
+    modal: true,
+    open: true,
+    onClose,
+    layerRef: ref,
+    closeOnPointerDown: !keywordsDirty,
+  });
   return (
-    <div
-      className="viewing-backdrop"
-      onPointerDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
+    <div className="viewing-backdrop">
       <section
         ref={ref}
         className="viewing-panel app-settings"
         role="dialog"
         aria-modal="true"
         aria-label="设置"
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') {
-            event.stopPropagation();
-            onClose();
-          }
-        }}
       >
         <header className="settings-header">
           <div>
@@ -118,7 +116,7 @@ export function SettingsPanel({
               <PlaybackSettings busy={busy} hasRooms={hasRooms} onApplyQuality={onApplyQuality} />
             </section>
             <section hidden={section !== 'danmaku'} aria-label="弹幕配置">
-              <DanmakuSettingsPanel embedded onClose={onClose} />
+              <DanmakuSettingsPanel embedded onClose={onClose} onDirtyChange={setKeywordsDirty} />
             </section>
             <section hidden={section !== 'shortcuts'} aria-label="快捷键说明">
               <h3>快捷键</h3>
@@ -131,7 +129,9 @@ export function SettingsPanel({
             <Icon name="check" size={14} />
             偏好保存在本机 · 修改后自动保存
           </span>
-          <span>关键词需点击应用</span>
+          <span>
+            {keywordsDirty ? '关键词尚未应用 · 应用后可点击外部关闭' : '关键词需点击应用'}
+          </span>
         </footer>
       </section>
     </div>

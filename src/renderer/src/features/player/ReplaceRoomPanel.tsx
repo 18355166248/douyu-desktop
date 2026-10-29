@@ -1,3 +1,4 @@
+import { useDismissableLayer } from '../../lib/useDismissableLayer';
 import { useState } from 'react';
 import type { StreamPlatform } from '@shared/contracts/stream';
 import { PlatformPicker } from '../../components/PlatformPicker';
@@ -17,25 +18,22 @@ export function ReplaceRoomPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const panelRef = useDialogFocus();
+  useDismissableLayer({
+    modal: true,
+    open: true,
+    onClose,
+    layerRef: panelRef,
+    closeOnPointerDown: !busy,
+    closeOnEscape: !busy,
+  });
   return (
-    <div
-      className="viewing-backdrop"
-      onPointerDown={(event) => {
-        if (!busy && event.target === event.currentTarget) onClose();
-      }}
-    >
+    <div className="viewing-backdrop">
       <section
         ref={panelRef}
         className="viewing-panel"
         role="dialog"
         aria-modal="true"
         aria-label="替换直播间"
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') {
-            event.stopPropagation();
-            if (!busy) onClose();
-          }
-        }}
       >
         <header>
           <h2>替换这一路</h2>

@@ -1,3 +1,4 @@
+import { useDismissableLayer } from '../../lib/useDismissableLayer';
 import { useEffect, useState } from 'react';
 import { useDialogFocus } from '../../lib/useDialogFocus';
 import { loadScenes, saveScenes } from './viewingStorage';
@@ -29,33 +30,30 @@ export function ViewingScenesPanel({
     window.addEventListener('storage', refresh);
     return () => window.removeEventListener('storage', refresh);
   }, []);
-  function update(next: ViewingScene[]): void {
+  function update(next: ViewingScene[]): boolean {
     if (!saveScenes(next)) {
       setError('保存失败，请检查本地存储空间');
-      return;
+      return false;
     }
     setScenes(next);
     setError(null);
+    return true;
   }
+  useDismissableLayer({
+    modal: true,
+    open: true,
+    onClose,
+    layerRef: panelRef,
+    closeOnPointerDown: !name.trim(),
+  });
   return (
-    <div
-      className="viewing-backdrop"
-      onPointerDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
+    <div className="viewing-backdrop">
       <section
         ref={panelRef}
         className="viewing-panel"
         role="dialog"
         aria-modal="true"
         aria-label="观看组合"
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') {
-            event.stopPropagation();
-            onClose();
-          }
-        }}
       >
         <header>
           <h2>观看组合</h2>
@@ -64,6 +62,7 @@ export function ViewingScenesPanel({
           </button>
         </header>
         <p>保存房间顺序、画质、音量和主画面。载入组合会替换当前窗口的直播间。</p>
+        {name.trim() ? <p>组合名称尚未保存，点击外部不会关闭；可保存组合或主动关闭。</p> : null}
         {error ? <p role="alert">{error}</p> : null}
         <form
           onSubmit={(event) => {
@@ -73,8 +72,10 @@ export function ViewingScenesPanel({
               setError('最多保存 20 个组合，请先删除不需要的组合');
               return;
             }
-            update([...scenes, { ...current, id: crypto.randomUUID(), name: name.trim() }]);
-            setName('');
+            // 仅保存成功才清空名称；失败时保留草稿和外部关闭保护。
+            if (update([...scenes, { ...current, id: crypto.randomUUID(), name: name.trim() }])) {
+              setName('');
+            }
           }}
         >
           <input

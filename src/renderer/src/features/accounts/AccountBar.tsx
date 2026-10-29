@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useDismissableLayer } from '../../lib/useDismissableLayer';
+import { useEffect, useRef, useState } from 'react';
 import type { AccountSummary } from '@shared/contracts/account';
 import type { GuidedPlatform, PlatformLoginStatus } from '@shared/contracts/platformLogin';
 import type { StreamPlatform } from '@shared/contracts/stream';
@@ -209,16 +210,18 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
   const [chooserOpen, setChooserOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!open && !chooserOpen) return;
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key !== 'Escape') return;
+  const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  useDismissableLayer({
+    open: open || chooserOpen,
+    onClose: () => {
       setOpen(false);
       setChooserOpen(false);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [open, chooserOpen]);
+    },
+    layerRef: menuRef,
+    triggerRef,
+    restoreFocusRef: triggerRef,
+  });
   const rawError =
     login.error ??
     switchAccount.error ??
@@ -372,10 +375,11 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
   if (!display) {
     return (
       <div className={`account-area${compact ? ' is-compact' : ''}`}>
-        <div className="account-menu">
+        <div className="account-menu" ref={menuRef}>
           <button
             type="button"
             className="btn ghost"
+            ref={triggerRef}
             onClick={() => setChooserOpen((value) => !value)}
             disabled={loginPending}
             aria-haspopup="menu"
@@ -387,12 +391,6 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
           </button>
           {chooserOpen ? (
             <>
-              <button
-                type="button"
-                className="popover-backdrop"
-                aria-label="关闭平台选择"
-                onClick={() => setChooserOpen(false)}
-              />
               <div className="account-popover" role="menu">
                 <PlatformChooser
                   activeAccount={activeAccount}
@@ -423,9 +421,10 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
 
   return (
     <div className={`account-area${compact ? ' is-compact' : ''}`}>
-      <div className="account-menu">
+      <div className="account-menu" ref={menuRef}>
         <button
           type="button"
+          ref={triggerRef}
           className={`account-chip ${display.expired ? 'is-expired' : ''}`}
           onClick={() => {
             setOpen((value) => !value);
@@ -448,15 +447,6 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
 
         {open ? (
           <>
-            <button
-              type="button"
-              className="popover-backdrop"
-              aria-label="关闭账号菜单"
-              onClick={() => {
-                setOpen(false);
-                setChooserOpen(false);
-              }}
-            />
             <div className="account-popover" role="menu">
               <div className="popover-label">
                 <span>斗鱼账号</span>
