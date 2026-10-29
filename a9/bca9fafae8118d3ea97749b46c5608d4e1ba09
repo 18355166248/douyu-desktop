@@ -1,0 +1,66 @@
+src/renderer/src/features/settings/SettingsPanel.tsx
+  s_b16fc6363ce496::t_75d77cf17feced 1-57,59-66,68,73-92,97-111,114-139
+  s_b16fc6363ce496::t_3db9e1a5ba8a34 58,67,69-72,93-96,112-113
+src/renderer/src/features/player/VideoPlayer.tsx
+  s_b16fc6363ce496::t_6706941a43714f 6,193-199,201-206,208,214,224-225,277-279,423-424
+  s_aee743e09a4abd::t_b59e7307c570f0 200
+src/shared/shortcuts.ts
+  s_b16fc6363ce496::t_6706941a43714f 1-27
+src/renderer/src/styles/viewing.css
+  s_b16fc6363ce496::t_75d77cf17feced 286,311-333,336-339,345-355,363-366,376-380,444-551,553-555,559,574-575
+  s_b16fc6363ce496::t_15d31e79efc804 269-285
+  s_b16fc6363ce496::t_ac8f71bbc63136 287-310,334-335,340-344,356-362,367-375,381-443,552,556-558,560-573
+src/renderer/src/components/Icon.tsx
+  s_b16fc6363ce496::t_6706941a43714f 2,56
+src/renderer/src/features/settings/PlaybackSettings.tsx
+  s_b16fc6363ce496::t_e23b685fe16d26 20-28,31
+  s_b16fc6363ce496::t_75d77cf17feced 1-19,29-30,32-77
+src/renderer/src/features/home/HomePage.tsx
+  s_b16fc6363ce496::t_6706941a43714f 1,285-286
+src/renderer/src/features/danmaku/DanmakuSettingsPanel.tsx
+  s_b16fc6363ce496::t_75d77cf17feced 9,98-101,107-111,128-132
+src/renderer/src/lib/keyboard.ts
+  s_b16fc6363ce496::t_6706941a43714f 1-7
+src/main/window.ts
+  s_b16fc6363ce496::t_6706941a43714f 4,43-54,58-59
+  s_b16fc6363ce496::t_5d870f2b639f82 55-57
+src/shared/shortcuts.test.ts
+  s_b16fc6363ce496::t_15d31e79efc804 1-10,12-26
+  s_b16fc6363ce496::t_6f24c3e89474ad 11
+src/renderer/src/components/KeyboardHelp.tsx
+  s_b16fc6363ce496::t_6706941a43714f 1-2,62
+  s_b16fc6363ce496::t_75d77cf17feced 3-6,14-16,23-25,31-33,38-39,41-60
+  s_b16fc6363ce496::t_94951cba9b3b3e 7-13,17-22,26-30,34-37,40,61
+src/renderer/src/App.tsx
+  s_b16fc6363ce496::t_6706941a43714f 38,185-188,192-204,207,210-215,217-218,240-246,258-259,261-266,268,625,627,646-648,652,654
+  s_b16fc6363ce496::t_75d77cf17feced 39-40,91,191,221,260,649-651,653,723,785-790,818-820,822-828
+  s_b16fc6363ce496::t_92a39c4fc24824 190,205-206,208-209,267
+src/renderer/src/features/player/PlayerTile.tsx
+  s_b16fc6363ce496::t_b35130ef27de08 1,172-177,186-187
+src/renderer/src/features/player/RoomContextMenu.tsx
+  s_aee743e09a4abd::t_807932d859621b 1,205,210,269,307,312
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.1",
+  "base_commit_sha": "a9bca9fafae8118d3ea97749b46c5608d4e1ba09",
+  "prompts": {},
+  "sessions": {
+    "s_aee743e09a4abd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18734-ae1f-7dc2-8f06-923d6aa9389c",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "lang.jiang <lang.jiang@ximalaya.com>"
+    },
+    "s_b16fc6363ce496": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18735-7112-7292-b0a5-32b7a528f09d",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "lang.jiang <lang.jiang@ximalaya.com>"
+    }
+  }
+}
