@@ -1,0 +1,51 @@
+src/renderer/src/features/tasks/TaskButton.tsx
+  s_b16fc6363ce496::t_654eff655a7221 49-57
+src/renderer/src/features/home/LiveReminderControls.tsx
+  s_b16fc6363ce496::t_654eff655a7221 1,45-47
+src/renderer/src/features/player/PlayerTile.tsx
+  s_b16fc6363ce496::t_654eff655a7221 162
+package.json
+  s_b16fc6363ce496::t_9f56dd26d00d5a 27
+src/renderer/src/features/tasks/TaskPanel.tsx
+  s_b16fc6363ce496::t_654eff655a7221 120
+src/renderer/src/styles/viewing.css
+  s_b16fc6363ce496::t_654eff655a7221 253-268
+src/renderer/src/components/Icon.tsx
+  s_b16fc6363ce496::t_654eff655a7221 1-50,52-102,104,112,114-116,118-119,122-123,125,127
+  s_b16fc6363ce496::t_79373c02e1dcdf 124
+  s_b16fc6363ce496::t_6ca639b8666858 126
+docs/icon-system.md
+  s_b16fc6363ce496::t_dde79468aaeaf6 1-9,11-38
+  s_b16fc6363ce496::t_9fbc4851fdecc5 10
+src/renderer/src/App.tsx
+  s_b16fc6363ce496::t_654eff655a7221 370-371,489,498,514,571,583,595,707
+src/renderer/src/features/player/VideoPlayer.tsx
+  s_b16fc6363ce496::t_654eff655a7221 465,476
+src/renderer/src/features/accounts/AccountBar.tsx
+  s_b16fc6363ce496::t_654eff655a7221 498
+  s_b16fc6363ce496::t_0991c2ee7dae51 195,478,549
+src/renderer/src/features/danmaku/DanmakuSettingsPanel.tsx
+  s_b16fc6363ce496::t_654eff655a7221 302
+src/renderer/src/components/TitleBar.tsx
+  s_b16fc6363ce496::t_654eff655a7221 104,114,123,132
+src/renderer/src/features/player/RoomContextMenu.tsx
+  s_b16fc6363ce496::t_654eff655a7221 245,257,284,295
+package-lock.json
+  s_b16fc6363ce496::t_6dcdba74123bd0 16,5036-5050
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.1",
+  "base_commit_sha": "22b5e0c1169b5fc7b702fdec9370069c0ff1cb23",
+  "prompts": {},
+  "sessions": {
+    "s_b16fc6363ce496": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18735-7112-7292-b0a5-32b7a528f09d",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "lang.jiang <lang.jiang@ximalaya.com>"
+    }
+  }
+}
