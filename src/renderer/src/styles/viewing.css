@@ -250,3 +250,19 @@
   border-radius: 7px;
   user-select: text;
 }
+
+/* 图标与文字保留各自语义，紧凑窗口也不挤压 SVG。 */
+svg[data-icon] {
+  flex-shrink: 0;
+}
+.layout-switch button,
+.titlebar-scenes,
+.ds-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.reminder-controls summary svg {
+  vertical-align: -2px;
+}

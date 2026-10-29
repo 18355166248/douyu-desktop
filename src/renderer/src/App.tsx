@@ -367,8 +367,8 @@ export function App(): React.JSX.Element {
     return streams.length > 0 ? '添加' : '播放';
   }
 
-  function addButtonIcon(): 'refresh' | 'plus' | 'play' {
-    if (isAdding) return 'refresh';
+  function addButtonIcon(): 'loading' | 'plus' | 'play' {
+    if (isAdding) return 'loading';
     return streams.length > 0 ? 'plus' : 'play';
   }
 
@@ -486,7 +486,7 @@ export function App(): React.JSX.Element {
                 onClick={() => setLayoutMode('even')}
                 title="所有直播间等分屏幕"
               >
-                均分
+                <Icon name="layoutGrid" size={13} /> 均分
               </button>
               <button
                 type="button"
@@ -495,7 +495,7 @@ export function App(): React.JSX.Element {
                 onClick={() => setLayoutMode('focus')}
                 title="主直播间占大画面，其他直播间分剩余区域"
               >
-                主画面
+                <Icon name="mainView" size={13} /> 主画面
               </button>
             </div>
           ) : null}
@@ -511,7 +511,7 @@ export function App(): React.JSX.Element {
           <PlatformPicker value={platform} onChange={setPlatform} />
 
           <div className="room-field">
-            <Icon name="live" size={15} />
+            <Icon name="roomLink" size={15} />
             <input
               ref={roomInputRef}
               value={roomId}
@@ -568,6 +568,7 @@ export function App(): React.JSX.Element {
           className="btn ghost titlebar-scenes"
           onClick={() => setScenesOpen(true)}
         >
+          <Icon name="scenes" size={15} />
           组合
         </button>
 
@@ -579,7 +580,7 @@ export function App(): React.JSX.Element {
           aria-label="新建副屏窗口"
           aria-keyshortcuts="Control+N"
         >
-          <Icon name="grid" size={14} />
+          <Icon name="newWindow" size={17} />
         </button>
 
         {streams.length > 0 ? (
@@ -591,7 +592,7 @@ export function App(): React.JSX.Element {
             aria-label="进入沉浸模式"
             aria-keyshortcuts="F"
           >
-            <Icon name="expand" size={14} />
+            <Icon name="enterImmersive" size={14} />
             <span>沉浸</span>
           </button>
         ) : null}
@@ -703,7 +704,7 @@ export function App(): React.JSX.Element {
           aria-label="退出沉浸模式"
           aria-keyshortcuts="Escape"
         >
-          <Icon name="minimize" size={14} />
+          <Icon name="exitImmersive" size={14} />
           <span>退出沉浸</span>
         </button>
       ) : null}

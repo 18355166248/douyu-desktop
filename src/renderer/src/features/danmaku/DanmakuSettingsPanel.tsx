@@ -299,7 +299,7 @@ export function DanmakuSettingsPanel({ onClose }: DanmakuSettingsPanelProps): Re
 
       <footer className="ds-footer">
         <button type="button" className="ds-clear" onClick={clearAll}>
-          清屏
+          <Icon name="clearDanmaku" size={14} /> 清屏
         </button>
         <span>设置会自动保存</span>
       </footer>

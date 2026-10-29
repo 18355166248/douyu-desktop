@@ -242,7 +242,7 @@ export function RoomContextMenu({
           aria-keyshortcuts="D"
           onClick={() => run(onToggleDanmaku)}
         >
-          <Icon name={danmakuVisible ? 'eye' : 'eyeOff'} size={15} />
+          <Icon name={danmakuVisible ? 'danmaku' : 'danmakuOff'} size={15} />
           <span>{danmakuVisible ? '隐藏弹幕' : '显示弹幕'}</span>
           <kbd>D</kbd>
         </button>
@@ -254,7 +254,7 @@ export function RoomContextMenu({
           aria-keyshortcuts="P"
           onClick={() => run(onToggleDanmakuPaused)}
         >
-          <Icon name={danmakuPaused ? 'play' : 'pause'} size={15} />
+          <Icon name={danmakuPaused ? 'danmakuResume' : 'danmakuPause'} size={15} />
           <span>{danmakuPaused ? '继续弹幕' : '暂停弹幕'}</span>
           <kbd>P</kbd>
         </button>
@@ -281,7 +281,7 @@ export function RoomContextMenu({
           disabled={isReloading}
           onClick={() => run(onReplace)}
         >
-          <Icon name="grid" size={15} />
+          <Icon name="replaceRoom" size={15} />
           <span>替换这一路</span>
         </button>
 
@@ -292,7 +292,7 @@ export function RoomContextMenu({
           aria-keyshortcuts="F"
           onClick={() => run(onToggleImmersive)}
         >
-          <Icon name={immersive ? 'minimize' : 'expand'} size={15} />
+          <Icon name={immersive ? 'exitImmersive' : 'enterImmersive'} size={15} />
           <span>{immersive ? '退出沉浸' : '进入沉浸'}</span>
           <kbd>F</kbd>
         </button>

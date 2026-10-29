@@ -462,7 +462,7 @@ export function VideoPlayer({
             aria-pressed={settings.visible}
             title={settings.visible ? '隐藏弹幕 (D)' : '显示弹幕 (D)'}
           >
-            <Icon name={settings.visible ? 'eye' : 'eyeOff'} size={17} />
+            <Icon name={settings.visible ? 'danmaku' : 'danmakuOff'} size={17} />
           </button>
           <button
             type="button"
@@ -473,7 +473,7 @@ export function VideoPlayer({
             aria-pressed={settings.paused}
             title={settings.paused ? '继续弹幕 (P)' : '暂停弹幕 (P)'}
           >
-            <Icon name={settings.paused ? 'play' : 'pause'} size={17} />
+            <Icon name={settings.paused ? 'danmakuResume' : 'danmakuPause'} size={17} />
           </button>
 
           <div className="video-playback-controls">

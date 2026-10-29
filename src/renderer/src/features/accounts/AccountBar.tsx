@@ -128,11 +128,7 @@ function PlatformChooser({
             <strong>{choice.label}</strong>
             <small>{choice.detail}</small>
           </span>
-          {choice.loggedIn ? (
-            <Icon name="check" size={16} />
-          ) : (
-            <Icon name="chevron" size={15} />
-          )}
+          {choice.loggedIn ? <Icon name="check" size={16} /> : <Icon name="chevron" size={15} />}
         </button>
       ))}
     </>
@@ -196,11 +192,7 @@ function PlatformAccountRow({
         onClick={retryOnly ? onRetry : loggedIn ? onLogout : onLogin}
         disabled={busy || pending}
         aria-label={
-          retryOnly
-            ? `重试检查${label}登录状态`
-            : loggedIn
-              ? `退出${label}登录`
-              : `登录${label}`
+          retryOnly ? `重试检查${label}登录状态` : loggedIn ? `退出${label}登录` : `登录${label}`
         }
       >
         {pending ? '…' : retryOnly ? '重试' : loggedIn ? '退出' : '登录'}
@@ -292,9 +284,7 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
 
   useEffect(() => {
     if (!health.data) return;
-    setNotice(
-      health.data.status === 'active' ? '斗鱼账号状态正常' : '斗鱼账号登录已过期',
-    );
+    setNotice(health.data.status === 'active' ? '斗鱼账号状态正常' : '斗鱼账号登录已过期');
   }, [health.data]);
 
   const error = visibleError;
@@ -472,9 +462,7 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
                 <span>斗鱼账号</span>
                 <span className="popover-hint">签到 / 多开</span>
               </div>
-              {accounts.length === 0 ? (
-                <p className="platform-empty">还没有斗鱼账号</p>
-              ) : null}
+              {accounts.length === 0 ? <p className="platform-empty">还没有斗鱼账号</p> : null}
               {accounts.map((account) => (
                 <button
                   key={account.id}
@@ -487,11 +475,7 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
                   }}
                   disabled={account.isActive || busy}
                 >
-                  <AccountAvatar
-                    nickname={account.nickname}
-                    avatarUrl={account.avatarUrl}
-                    small
-                  />
+                  <AccountAvatar nickname={account.nickname} avatarUrl={account.avatarUrl} small />
                   <span className="account-row-text">
                     <strong>{account.nickname}</strong>
                     <small>{account.status === 'active' ? '在线' : '登录过期'}</small>
@@ -511,7 +495,7 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
                 }}
                 disabled={busy}
               >
-                <Icon name="plus" size={16} />
+                <Icon name="addAccount" size={16} />
                 添加斗鱼账号
               </button>
 
@@ -562,10 +546,7 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
                 className="popover-action"
                 onClick={refreshAll}
                 disabled={
-                  busy ||
-                  query.isFetching ||
-                  bilibili.query.isFetching ||
-                  huya.query.isFetching
+                  busy || query.isFetching || bilibili.query.isFetching || huya.query.isFetching
                 }
               >
                 <Icon name="refresh" size={16} />

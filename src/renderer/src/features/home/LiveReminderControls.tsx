@@ -1,3 +1,4 @@
+import { Icon } from '../../components/Icon';
 import { useEffect, useState } from 'react';
 import type { LiveReminderSettings } from '@shared/contracts/viewing';
 import { errorMessage, unwrap } from '../../lib/api';
@@ -41,7 +42,9 @@ export function LiveReminderControls(): React.JSX.Element {
   }
   return (
     <details className="reminder-controls">
-      <summary>开播提醒{settings?.enabled ? ' · 已开启' : ''}</summary>
+      <summary>
+        <Icon name="reminder" size={14} /> 开播提醒{settings?.enabled ? ' · 已开启' : ''}
+      </summary>
       <div className="reminder-options">
         <p>
           应用运行时，每分钟检查斗鱼特别关注。需登录且房间在关注列表内；首次检查不提醒，视频轮播不提醒。

@@ -46,7 +46,15 @@ export function TaskButton({ open, onToggle }: TaskButtonProps): React.JSX.Eleme
       title={title}
     >
       <Icon
-        name={running ? 'refresh' : result?.status === 'failed' ? 'alert' : 'check'}
+        name={
+          running
+            ? 'loading'
+            : result?.status === 'failed' || result?.status === 'partial'
+              ? 'alert'
+              : result?.status === 'success'
+                ? 'taskDone'
+                : 'tasks'
+        }
         size={14}
         className={running ? 'task-spin' : undefined}
       />

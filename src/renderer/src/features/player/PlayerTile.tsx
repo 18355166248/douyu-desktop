@@ -159,7 +159,7 @@ export function PlayerTile({
               aria-label={`将${anchorName}设为主画面`}
               title="设为主画面"
             >
-              <Icon name="expand" size={compact ? 15 : 17} />
+              <Icon name="mainView" size={compact ? 15 : 17} />
             </button>
           ) : null}
           <button

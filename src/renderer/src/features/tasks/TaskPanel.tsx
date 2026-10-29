@@ -117,7 +117,7 @@ export function TaskPanel({ hasAccount, onClose }: TaskPanelProps): React.JSX.El
                   runTask.mutate({ taskId: task.id, dryRun });
                 }}
               >
-                <Icon name="play" size={16} />
+                <Icon name={running ? 'loading' : 'tasks'} size={16} />
                 {running ? '后台运行中…' : '运行任务'}
               </button>
             </>

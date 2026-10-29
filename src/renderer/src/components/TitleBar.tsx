@@ -101,7 +101,7 @@ export function TitleBar({ children }: TitleBarProps): React.JSX.Element {
           title={modeError ?? (mode.alwaysOnTop ? '取消置顶' : '窗口置顶')}
           onClick={() => changeMode({ alwaysOnTop: !mode.alwaysOnTop })}
         >
-          <Icon name="pin" size={14} />
+          <Icon name={mode.alwaysOnTop ? 'unpin' : 'pin'} size={14} />
         </button>
         <button
           type="button"
@@ -111,7 +111,7 @@ export function TitleBar({ children }: TitleBarProps): React.JSX.Element {
           title={modeError ?? (mode.compact ? '退出小窗' : '进入小窗')}
           onClick={() => changeMode({ compact: !mode.compact })}
         >
-          <Icon name={mode.compact ? 'expand' : 'grid'} size={12} />
+          <Icon name={mode.compact ? 'exitCompact' : 'enterCompact'} size={15} />
         </button>
         <button
           type="button"
@@ -120,7 +120,7 @@ export function TitleBar({ children }: TitleBarProps): React.JSX.Element {
           aria-label="最小化窗口"
           title="最小化"
         >
-          <Icon name="minimize" size={12} />
+          <Icon name="minimize" size={15} />
         </button>
         <button
           type="button"
@@ -129,7 +129,7 @@ export function TitleBar({ children }: TitleBarProps): React.JSX.Element {
           aria-label={maximized ? '还原窗口' : '最大化窗口'}
           title={maximized ? '还原' : '最大化'}
         >
-          <Icon name={maximized ? 'restore' : 'maximize'} size={11} />
+          <Icon name={maximized ? 'restore' : 'maximize'} size={14} />
         </button>
         <button
           type="button"
