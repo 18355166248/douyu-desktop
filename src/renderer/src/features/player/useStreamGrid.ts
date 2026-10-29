@@ -25,6 +25,7 @@ export interface AddStreamOptions extends StreamResolveOptions {
   platform: StreamPlatform;
   roomId: string;
   volume?: number;
+  defaultVolume?: number;
   muted?: boolean;
 }
 
@@ -148,7 +149,8 @@ export function useStreamGrid(): UseStreamGridResult {
       ]);
       const saved = getRoomPreference(playback.platform, playback.roomId);
       const initialMuted = options.muted ?? saved?.muted ?? false;
-      const initialVolume = options.volume ?? saved?.volume ?? DEFAULT_VOLUME;
+      const initialVolume =
+        options.volume ?? saved?.volume ?? options.defaultVolume ?? DEFAULT_VOLUME;
       setMutedRooms((current) => ({
         ...current,
         [key]: mutedBeforeSoloRef.current !== null || initialMuted,
@@ -269,7 +271,8 @@ export function useStreamGrid(): UseStreamGridResult {
         return `房间 ${playback.roomId} 已在多屏中`;
       const preference = getRoomPreference(playback.platform, playback.roomId);
       const muted = options.muted ?? preference?.muted ?? false;
-      const volume = options.volume ?? preference?.volume ?? DEFAULT_VOLUME;
+      const volume =
+        options.volume ?? preference?.volume ?? options.defaultVolume ?? DEFAULT_VOLUME;
       const restored = mutedBeforeSoloRef.current
         ? restoredMutedRooms(streamsRef.current.map((item) => streamKey(item.playback)))
         : null;

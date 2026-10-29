@@ -11,6 +11,10 @@ export function shouldRenderDanmaku(event: DanmakuEvent, settings: DanmakuSettin
   if (event.kind === 'enter') return settings.showEnter;
   if (event.kind === 'gift') return settings.showGift;
 
+  // 只过滤聊天正文，使用字面包含匹配，避免把用户输入当成正则表达式。
+  if (settings.blockedKeywords.some((word) => event.text.toLowerCase().includes(word)))
+    return false;
+
   if (settings.simplified && event.hasDms !== true) return false;
   if (settings.blockSuper && event.isSuper === true) return false;
   if (settings.blockRole && isRoleMessage(event)) return false;

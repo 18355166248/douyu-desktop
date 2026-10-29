@@ -89,6 +89,7 @@ export class DanmakuEngine {
     const contentChanged =
       previous.showBadges !== next.showBadges || previous.showNickname !== next.showNickname;
     const filterChanged =
+      previous.blockedKeywords !== next.blockedKeywords ||
       previous.blockLarge !== next.blockLarge ||
       previous.blockTop !== next.blockTop ||
       previous.blockBottom !== next.blockBottom ||

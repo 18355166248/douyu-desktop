@@ -30,6 +30,7 @@ interface HomePageProps {
   history: RoomHistoryEntry[];
   specials: SpecialFollowEntry[];
   specialError: string | null;
+  specialBusy: boolean;
   refreshing: boolean;
   onRefreshHome: () => void;
   onOpen: (platform: StreamPlatform, roomId: string) => void;
@@ -50,6 +51,7 @@ interface HomeRoomRowProps {
   showStatus?: boolean;
   official?: boolean;
   pinned: boolean;
+  busy: boolean;
   onOpen: () => void;
   onToggle: () => void;
 }
@@ -66,6 +68,7 @@ function HomeRoomRow({
   showStatus = false,
   official = false,
   pinned,
+  busy,
   onOpen,
   onToggle,
 }: HomeRoomRowProps): React.JSX.Element {
@@ -162,6 +165,7 @@ function HomeRoomRow({
         <button
           type="button"
           className={`home-star${pinned ? ' is-active' : ''}`}
+          disabled={busy}
           onClick={onToggle}
           aria-pressed={pinned}
           aria-label={pinned ? `取消特别关注 ${name}` : `特别关注 ${name}`}
@@ -194,6 +198,7 @@ export function HomePage({
   history,
   specials,
   specialError,
+  specialBusy,
   refreshing,
   onRefreshHome,
   onOpen,
@@ -355,6 +360,7 @@ export function HomePage({
             ) : null}
             {filteredSpecials.map((room) => (
               <HomeRoomRow
+                busy={specialBusy}
                 previewEnabled={active && !isHistoryOpen}
                 key={specialFollowKey(room)}
                 platform={room.platform}
@@ -436,6 +442,7 @@ export function HomePage({
             {filteredFollowed.map((room) => (
               <div role="listitem" key={roomKey(room.platform, room.roomId)}>
                 <HomeRoomRow
+                  busy={specialBusy}
                   previewEnabled={active && !isHistoryOpen}
                   platform={room.platform}
                   roomId={room.roomId}

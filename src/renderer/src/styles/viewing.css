@@ -231,3 +231,22 @@
     min-width: 140px;
   }
 }
+
+.playback-preferences {
+  margin-top: 18px;
+  border: 1px solid var(--line-soft);
+  border-radius: 9px;
+  padding: 12px;
+}
+.ds-keywords {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 80px;
+  padding: 8px;
+  background: #090d12;
+  color: var(--text);
+  border: 1px solid var(--line-soft);
+  border-radius: 7px;
+  user-select: text;
+}

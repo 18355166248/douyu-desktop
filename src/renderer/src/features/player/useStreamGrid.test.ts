@@ -1,3 +1,5 @@
+import { saveRoomPreference } from './viewingStorage';
+import { newRoomOptions, savePlaybackPreferences } from './playbackPreferences';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useStreamGrid } from './useStreamGrid';
 import type { StreamPlayback } from '@shared/contracts/stream';
@@ -301,4 +303,35 @@ describe('audio solo', () => {
       'douyu:3': false,
     });
   });
+});
+
+it('uses canonical audio memory on first short-id resolution, with defaults only as fallback', async () => {
+  const storage = new Map<string, string>();
+  Object.assign(window, {
+    localStorage: {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+    },
+  });
+  savePlaybackPreferences({ balancedQuality: true, muteNewRooms: false, volume: 0.2 });
+  saveRoomPreference({
+    platform: 'douyu',
+    roomId: '100',
+    quality: '3',
+    preferHls: false,
+    volume: 0.7,
+    muted: true,
+  });
+  resolveStream.mockResolvedValueOnce(ok(playback('canonical', '100')));
+  await render().addStream(newRoomOptions('douyu', 'short', false));
+  expect(render().volumes['douyu:100']).toBe(0.7);
+  expect(render().mutedRooms['douyu:100']).toBe(true);
+  resolveStream.mockResolvedValueOnce(ok(playback('new', '200')));
+  await render().replaceStream('douyu:100', newRoomOptions('douyu', 'other-short', false));
+  expect(render().volumes['douyu:200']).toBe(0.2);
+  expect(render().mutedRooms['douyu:200']).toBe(false);
+  resolveStream.mockResolvedValueOnce(ok(playback('canonical', '100')));
+  await render().replaceStream('douyu:200', { ...input, roomId: '100', volume: 0.4, muted: false });
+  expect(render().volumes['douyu:100']).toBe(0.4);
+  expect(render().mutedRooms['douyu:100']).toBe(false);
 });

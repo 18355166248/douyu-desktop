@@ -87,3 +87,17 @@ describe('danmaku settings', () => {
     });
   });
 });
+
+it('normalizes keyword persistence and preserves old settings', () => {
+  expect(
+    parseDanmakuSettings({ blockedKeywords: [' ABC ', 'abc', '', 42, '广告'] }).blockedKeywords,
+  ).toEqual(['abc', '广告']);
+  expect(parseDanmakuSettings({ speed: 120 }).blockedKeywords).toEqual([]);
+  expect(
+    parseDanmakuSettings({ blockedKeywords: ['x'.repeat(80)] }).blockedKeywords[0],
+  ).toHaveLength(50);
+  expect(
+    parseDanmakuSettings({ blockedKeywords: Array.from({ length: 150 }, (_, n) => String(n)) })
+      .blockedKeywords,
+  ).toHaveLength(100);
+});

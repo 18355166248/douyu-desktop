@@ -12,6 +12,7 @@ export interface DanmakuSettings {
   area: DanmakuArea;
   /** 1-10; higher values pack tracks closer together. */
   density: number;
+  blockedKeywords: string[];
   blockLarge: boolean;
   blockTop: boolean;
   blockBottom: boolean;
@@ -34,6 +35,7 @@ export const DEFAULT_DANMAKU_SETTINGS: DanmakuSettings = {
   fontScale: 100,
   area: 'full',
   density: 6,
+  blockedKeywords: [],
   blockLarge: false,
   blockTop: false,
   blockBottom: false,
@@ -81,6 +83,7 @@ export function parseDanmakuSettings(raw: unknown): DanmakuSettings {
     fontScale: numberOr(value.fontScale, DEFAULT_DANMAKU_SETTINGS.fontScale, 80, 180),
     area: areaOr(value.area),
     density: numberOr(value.density, DEFAULT_DANMAKU_SETTINGS.density, 1, 10),
+    blockedKeywords: normalizeKeywords(value.blockedKeywords),
     blockLarge: boolOr(value.blockLarge, DEFAULT_DANMAKU_SETTINGS.blockLarge),
     blockTop: boolOr(value.blockTop, DEFAULT_DANMAKU_SETTINGS.blockTop),
     blockBottom: boolOr(value.blockBottom, DEFAULT_DANMAKU_SETTINGS.blockBottom),
@@ -131,4 +134,17 @@ export function saveDanmakuSettings(settings: DanmakuSettings): void {
   } catch {
     // Storage can be unavailable in a privacy-restricted renderer; settings still apply.
   }
+}
+
+// 限制词数和长度，避免异常存储内容拖慢每条实时弹幕的过滤。
+export function normalizeKeywords(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return [
+    ...new Set(
+      raw
+        .filter((word): word is string => typeof word === 'string')
+        .map((word) => word.trim().slice(0, 50).toLowerCase())
+        .filter(Boolean),
+    ),
+  ].slice(0, 100);
 }

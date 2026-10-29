@@ -105,3 +105,16 @@ describe('danmaku overload protection', () => {
     expect(root.children.filter((node) => !node.removed)).toHaveLength(0);
   });
 });
+
+it('applies keyword edits to queued messages without removing active messages', () => {
+  engine.push(event(1));
+  step();
+  engine.push(event(2));
+  engine.push(event(3));
+  engine.updateSettings({ ...DEFAULT_DANMAKU_SETTINGS, blockedKeywords: ['1', '2'] });
+  step();
+  step();
+  expect(
+    root.children.filter((node) => !node.removed).map((node) => node.children[0]?.textContent),
+  ).toEqual(['1', '3']);
+});

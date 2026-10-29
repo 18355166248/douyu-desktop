@@ -61,3 +61,24 @@ describe('danmaku filtering', () => {
     expect(shouldRenderDanmaku(gift, settings({ showGift: true }))).toBe(true);
   });
 });
+
+it('filters literal chat keywords across platforms without filtering nicknames or gifts', () => {
+  for (const platform of ['douyu', 'bilibili', 'huya'] as const) {
+    expect(
+      shouldRenderDanmaku(
+        { ...chat, platform, text: 'Hello 广告' },
+        settings({ blockedKeywords: ['广告'] }),
+      ),
+    ).toBe(false);
+    expect(
+      shouldRenderDanmaku(
+        { ...chat, platform, text: 'HELLO' },
+        settings({ blockedKeywords: ['hello'] }),
+      ),
+    ).toBe(false);
+  }
+  expect(shouldRenderDanmaku(chat, settings({ blockedKeywords: ['.*', 'alice'] }))).toBe(true);
+  expect(
+    shouldRenderDanmaku({ ...chat, kind: 'gift' }, settings({ blockedKeywords: ['hello'] })),
+  ).toBe(true);
+});

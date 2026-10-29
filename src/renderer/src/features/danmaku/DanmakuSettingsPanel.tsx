@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { normalizeKeywords } from './danmakuSettings';
 import { Icon } from '../../components/Icon';
 import { useDanmakuSettings } from './DanmakuSettingsContext';
 import type { DanmakuArea } from './danmakuSettings';
@@ -95,6 +97,8 @@ const BLOCK_OPTIONS: Array<{
 export function DanmakuSettingsPanel({ onClose }: DanmakuSettingsPanelProps): React.JSX.Element {
   const { settings, update, reset, clearAll } = useDanmakuSettings();
 
+  const [keywords, setKeywords] = useState(() => settings.blockedKeywords.join('\n'));
+
   return (
     <section className="danmaku-settings-panel" role="dialog" aria-label="弹幕设置">
       <header className="ds-header">
@@ -103,7 +107,14 @@ export function DanmakuSettingsPanel({ onClose }: DanmakuSettingsPanelProps): Re
           <small>所有画面同步生效</small>
         </div>
         <div className="ds-header-actions">
-          <button type="button" className="ds-text-button" onClick={reset}>
+          <button
+            type="button"
+            className="ds-text-button"
+            onClick={() => {
+              reset();
+              setKeywords('');
+            }}
+          >
             恢复默认
           </button>
           <button type="button" className="ds-close" onClick={onClose} aria-label="关闭弹幕设置">
@@ -216,6 +227,33 @@ export function DanmakuSettingsPanel({ onClose }: DanmakuSettingsPanelProps): Re
             checked={settings.simplified}
             onChange={(simplified) => update({ simplified })}
           />
+        </div>
+
+        <div className="ds-section">
+          <label className="ds-field">
+            <span>屏蔽关键词（每行一个）</span>
+            <textarea
+              className="ds-keywords"
+              rows={4}
+              maxLength={5100}
+              aria-label="屏蔽关键词"
+              value={keywords}
+              onChange={(event) => setKeywords(event.target.value)}
+            />
+          </label>
+          <p>匹配聊天正文，忽略英文大小写；最多 100 个词，每词 50 字。已在屏弹幕保持不变。</p>
+          <button
+            className="ds-text-button"
+            type="button"
+            onClick={() => {
+              const blockedKeywords = normalizeKeywords(keywords.split('\n'));
+              update({ blockedKeywords });
+              setKeywords(blockedKeywords.join('\n'));
+            }}
+          >
+            应用关键词
+          </button>
+          <span> 已应用 {settings.blockedKeywords.length} 个</span>
         </div>
 
         <div className="ds-section">

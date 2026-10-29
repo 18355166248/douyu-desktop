@@ -21,14 +21,9 @@ import {
   saveStreamLayoutMode,
 } from './features/player/streamGridLayout';
 import type { StreamLayoutMode } from './features/player/streamGridLayout';
-import {
-  ADD_CANCELLED,
-  defaultStreamOptions,
-  useStreamGrid,
-} from './features/player/useStreamGrid';
+import { ADD_CANCELLED, useStreamGrid } from './features/player/useStreamGrid';
 import { parseRoomInput } from './features/player/roomInput';
 import {
-  getRoomPreference,
   clearLastViewing,
   loadLastViewing,
   readStored,
@@ -37,6 +32,7 @@ import {
 } from './features/player/viewingStorage';
 import type { ViewingScene } from './features/player/viewingStorage';
 import { ViewingScenesPanel } from './features/player/ViewingScenesPanel';
+import { newRoomOptions, preferredQuality } from './features/player/playbackPreferences';
 import { ReplaceRoomPanel } from './features/player/ReplaceRoomPanel';
 import type { StreamResolveOptions } from './features/player/useStreamGrid';
 import { isEditableTarget } from './lib/keyboard';
@@ -76,6 +72,8 @@ export function App(): React.JSX.Element {
     moveStream,
     replaceStream,
   } = useStreamGrid();
+  const latestStreams = useRef(streams);
+  latestStreams.current = streams;
   const [platform, setPlatform] = useState<StreamPlatform>('douyu');
   const [roomId, setRoomId] = useState('9999');
   const [activeView, setActiveView] = useState<WorkspaceView>('home');
@@ -90,6 +88,7 @@ export function App(): React.JSX.Element {
   const [isImmersiveExitVisible, setImmersiveExitVisible] = useState(false);
   const [scenesOpen, setScenesOpen] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [applyingQuality, setApplyingQuality] = useState(false);
   const [replaceKey, setReplaceKey] = useState<string | null>(null);
   const [lastViewing, setLastViewing] = useState(loadLastViewing);
   const [autoRestore, setAutoRestore] = useState(
@@ -261,13 +260,8 @@ export function App(): React.JSX.Element {
       return;
     }
     setPlatform(target.platform);
-    const preference = getRoomPreference(target.platform, target.roomId);
     const message = await addStream(
-      {
-        ...defaultStreamOptions(target.platform),
-        ...(preference ?? {}),
-        ...target,
-      },
+      newRoomOptions(target.platform, target.roomId, streams.length > 0),
       (playback) => {
         recordVisit({
           platform: playback.platform,
@@ -636,6 +630,7 @@ export function App(): React.JSX.Element {
                 history={roomHistory}
                 specials={special.entries}
                 specialError={special.error}
+                specialBusy={special.busy}
                 refreshing={isHomeRefreshing}
                 onRefreshHome={() => void refreshHome()}
                 onOpen={handleRoomQuickOpen}
@@ -734,7 +729,31 @@ export function App(): React.JSX.Element {
         <ViewingScenesPanel
           current={currentViewing}
           last={lastViewing}
-          busy={restoring || isAdding}
+          busy={restoring || isAdding || applyingQuality || reloadingKeys.length > 0}
+          onApplyQuality={async (balanced) => {
+            setApplyingQuality(true);
+            try {
+              // 用户主动应用时才重载现有画面；逐路执行，复用原有错误提示和实例失效保护。
+              for (const entry of streams) {
+                // 面板关闭后仍可清空或替换房间，批量操作不能作用于后来加入的同号房间。
+                if (!latestStreams.current.some((item) => item.instanceId === entry.instanceId))
+                  continue;
+                const key = streamKey(entry.playback);
+                const quality = preferredQuality(
+                  entry.playback.platform,
+                  balanced &&
+                    key !==
+                      (layoutMode === 'focus' ? effectiveMainKey : streamKey(streams[0]!.playback)),
+                );
+                if (entry.options.quality !== quality) {
+                  const message = await setStreamOptions(key, { quality });
+                  if (message) setError(message);
+                }
+              }
+            } finally {
+              setApplyingQuality(false);
+            }
+          }}
           autoRestore={autoRestore}
           onAutoRestore={(value) => {
             if (writeStored('douyu-desktop.auto-restore.v1', value)) setAutoRestore(value);
@@ -755,10 +774,9 @@ export function App(): React.JSX.Element {
           onReplace={async (input, selected) => {
             try {
               const target = parseRoomInput(input, selected);
-              const preference = getRoomPreference(target.platform, target.roomId);
               const message = await replaceStream(
                 replaceKey,
-                { ...defaultStreamOptions(target.platform), ...(preference ?? {}), ...target },
+                newRoomOptions(target.platform, target.roomId, replaceKey !== effectiveMainKey),
                 (playback) => {
                   recordVisit({
                     platform: playback.platform,
