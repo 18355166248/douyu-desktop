@@ -772,7 +772,7 @@ export function App(): React.JSX.Element {
       ) : null}
 
       {isTaskOpen ? (
-        <div className="task-modal-backdrop" role="dialog" aria-modal="true" aria-label="签到任务">
+        <div className="task-modal-backdrop" role="dialog" aria-modal="true" aria-label="签到与领取">
           <TaskPanel
             hasAccount={Boolean(activeAccount && activeAccount.status === 'active')}
             onClose={() => setTaskOpen(false)}

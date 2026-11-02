@@ -179,6 +179,132 @@
   flex: none;
 }
 
+/**
+ * 「清空背包」：按钮固定在标题栏里，确认过程走锚定浮层，
+ * 浮层用绝对定位脱离布局流，所以开关它都不会挤动标题栏。
+ */
+.clear-backpack-wrap {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+.clear-backpack {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+}
+
+.clear-backpack.is-open,
+.clear-backpack.is-open:hover:not(:disabled) {
+  border-color: rgb(255 139 76 / 45%);
+  background: rgb(255 139 76 / 12%);
+  color: #ffc3a6;
+}
+
+/* 浮层关闭时只留一个角标，提示上次的结果，不占布局宽度。 */
+.clear-backpack-dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.clear-backpack-dot.is-success {
+  background: var(--teal);
+}
+
+.clear-backpack-dot.is-partial {
+  background: #ffcf8a;
+}
+
+.clear-backpack-dot.is-failed {
+  background: #ff9b9b;
+}
+
+.clear-backpack-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 258px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-2);
+  box-shadow: 0 18px 40px rgb(0 0 0 / 45%);
+  text-align: left;
+}
+
+.clear-backpack-pop-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.clear-backpack-pop-head strong {
+  font-size: 12px;
+}
+
+.clear-backpack-pop-head span {
+  overflow: hidden;
+  color: var(--dim);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clear-backpack-pop-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.clear-backpack-pop-text.is-success {
+  color: var(--teal);
+}
+
+.clear-backpack-pop-text.is-partial {
+  color: #ffcf8a;
+}
+
+.clear-backpack-pop-text.is-failed {
+  color: #ff9b9b;
+}
+
+.clear-backpack-pop-text.is-skipped {
+  color: var(--muted);
+}
+
+.clear-backpack-pop-note {
+  margin: 0;
+  color: var(--dim);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.clear-backpack-pop-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.clear-backpack-pop-actions .btn {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
 .room-audience {
   display: flex;
   flex: none;
@@ -945,6 +1071,16 @@
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.06em;
+}
+
+/* 覆盖层里的开播时长，和 ROOM / 播放状态同一排，用同一套深色胶囊。 */
+.video-topline .live-duration {
+  height: auto;
+  padding: 3px 8px;
+  border-color: rgb(61 219 200 / 30%);
+  border-radius: 6px;
+  background: rgb(8 10 13 / 58%);
+  font-size: 11px;
 }
 
 .video-bottom-fade {
@@ -1752,10 +1888,9 @@
   height: 5px;
 }
 
-.player-card.is-compact .live-duration {
-  height: 20px;
-  padding: 0 5px;
-  font-size: 9px;
+.player-card.is-compact .video-topline .live-duration {
+  padding: 2px 6px;
+  font-size: 10px;
 }
 
 .player-card.is-compact .player-title h2 {

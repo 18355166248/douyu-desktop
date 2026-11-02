@@ -14,10 +14,7 @@ import type { DouyuAuthContext } from '@core/douyu/auth/DouyuAuthContext';
 import { FansBadgeQuery } from '@core/douyu/queries/FansBadgeQuery';
 import { YubaFollowQuery } from '@core/douyu/queries/YubaFollowQuery';
 import { clientSignTaskDescriptor, createClientSignTask } from '@core/douyu/tasks/clientSignTask';
-import {
-  clearBackpackTaskDescriptor,
-  createClearBackpackTask,
-} from '@core/douyu/tasks/clearBackpackTask';
+import { createClearBackpackTask } from '@core/douyu/tasks/clearBackpackTask';
 import { createDailyAllTask, dailyAllTaskDescriptor } from '@core/douyu/tasks/dailyAllTask';
 import {
   createDiamondFansSignTask,
@@ -36,14 +33,16 @@ import { CHROME_UA } from '../constants';
 import { SessionHttpClient } from '../adapters/electron/SessionHttpClient';
 import type { AccountSessionManager } from './AccountSessionManager';
 
-/** 任务中心的展示顺序；`douyu.daily-all` 永远排最后，方便一键执行。 */
+/**
+ * 任务中心的展示顺序；`douyu.daily-all` 永远排最后，方便一键执行。
+ * 清空背包不在这里：它是直播卡片上的动作，只需要注册成可运行的任务。
+ */
 const TASK_DESCRIPTORS: readonly TaskDescriptor[] = [
   fansSignTaskDescriptor,
   clientSignTaskDescriptor,
   yubaSignTaskDescriptor,
   diamondFansSignTaskDescriptor,
   watchPointsTaskDescriptor,
-  clearBackpackTaskDescriptor,
   dailyAllTaskDescriptor,
 ];
 

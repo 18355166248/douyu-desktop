@@ -228,6 +228,19 @@ select {
   color: var(--text);
 }
 
+.btn.danger {
+  border-color: rgb(255 107 107 / 45%);
+  background: rgb(255 107 107 / 16%);
+  color: #ffb3b3;
+  font-weight: 700;
+}
+
+.btn.danger:hover:not(:disabled) {
+  border-color: rgb(255 107 107 / 70%);
+  background: rgb(255 107 107 / 26%);
+  color: #ffd0d0;
+}
+
 .icon-btn {
   display: inline-flex;
   align-items: center;

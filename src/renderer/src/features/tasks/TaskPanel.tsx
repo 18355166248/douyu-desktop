@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { TaskStatus } from '@shared/contracts/task';
 import { Icon } from '../../components/Icon';
 import { useDismissableLayer } from '../../lib/useDismissableLayer';
@@ -15,36 +15,24 @@ const statusLabel: Record<TaskStatus, string> = {
 };
 
 const RUN_ALL_TASK_ID = 'douyu.daily-all';
-/** 二次确认的保持时间，和「清空历史」保持一致的 3 秒手感。 */
-const CONFIRM_WINDOW_MS = 3_000;
 
 interface TaskPanelProps {
   hasAccount: boolean;
-  /** 当前正在看的斗鱼直播间，清空背包要用它作为收礼房间。 */
-  douyuRoomId: string | null;
   onClose?: () => void;
 }
 
-export function TaskPanel({
-  hasAccount,
-  douyuRoomId,
-  onClose,
-}: TaskPanelProps): React.JSX.Element {
+export function TaskPanel({ hasAccount, onClose }: TaskPanelProps): React.JSX.Element {
   const { query, tasks, runTask, progress, result, running, autoSignEnabled, setAutoSignEnabled } =
     useTasks();
   const panelRef = useDialogFocus();
   useDismissableLayer({ modal: true, open: true, onClose: () => onClose?.(), layerRef: panelRef });
   const [dryRun, setDryRun] = useState(false);
-  const [confirming, setConfirming] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (confirming === null) return;
-    const timer = window.setTimeout(() => setConfirming(null), CONFIRM_WINDOW_MS);
-    return () => window.clearTimeout(timer);
-  }, [confirming]);
 
   const dailyTask = tasks.find((task) => task.id === RUN_ALL_TASK_ID);
-  const singleTasks = tasks.filter((task) => task.id !== RUN_ALL_TASK_ID);
+  // 清空背包是直播卡片上的动作，不属于任务面板。
+  const singleTasks = tasks.filter(
+    (task) => task.id !== RUN_ALL_TASK_ID && task.category !== 'bag',
+  );
 
   const progressPercent =
     progress && progress.total > 0
@@ -135,53 +123,28 @@ export function TaskPanel({
           </button>
 
           <ul className="task-list">
-            {singleTasks.map((task) => {
-              const needsConfirm = task.risk === 'confirm';
-              const needsRoom = task.category === 'bag';
-              const blocked = needsRoom && !douyuRoomId;
-              const isConfirming = confirming === task.id;
-              return (
-                <li key={task.id} className="task-list-item">
-                  <div className="task-icon">
-                    <Icon name="check" size={16} />
+            {singleTasks.map((task) => (
+              <li key={task.id} className="task-list-item">
+                <div className="task-icon">
+                  <Icon name="check" size={16} />
+                </div>
+                <div className="task-list-body">
+                  <div className="task-list-title">
+                    <h3>{task.title}</h3>
+                    {task.risk === 'safe' ? null : <span className={`risk ${task.risk}`}>需确认</span>}
                   </div>
-                  <div className="task-list-body">
-                    <div className="task-list-title">
-                      <h3>{task.title}</h3>
-                      {task.risk === 'safe' ? null : (
-                        <span className={`risk ${task.risk}`}>需确认</span>
-                      )}
-                    </div>
-                    <p>{task.description}</p>
-                    {blocked ? (
-                      <p className="task-list-hint">先打开一个斗鱼直播间，再清空背包</p>
-                    ) : null}
-                  </div>
-                  <button
-                    type="button"
-                    className={`btn subtle task-list-run${isConfirming ? ' is-confirming' : ''}`}
-                    disabled={running || blocked}
-                    title={blocked ? '先打开一个斗鱼直播间' : undefined}
-                    onClick={() => {
-                      if (blocked) return;
-                      if (needsConfirm && !isConfirming) {
-                        setConfirming(task.id);
-                        return;
-                      }
-                      setConfirming(null);
-                      runTask.mutate({
-                        taskId: task.id,
-                        dryRun,
-                        ...(needsConfirm ? { confirmed: true } : {}),
-                        ...(needsRoom && douyuRoomId ? { options: { roomId: douyuRoomId } } : {}),
-                      });
-                    }}
-                  >
-                    {isConfirming ? '确认送出？' : needsConfirm ? '清空' : '运行'}
-                  </button>
-                </li>
-              );
-            })}
+                  <p>{task.description}</p>
+                </div>
+                <button
+                  type="button"
+                  className="btn subtle task-list-run"
+                  disabled={running}
+                  onClick={() => runTask.mutate({ taskId: task.id, dryRun })}
+                >
+                  运行
+                </button>
+              </li>
+            ))}
           </ul>
         </>
       ) : null}

@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { StreamPlayback, StreamQuality } from '@shared/contracts/stream';
 import { Icon } from '../../components/Icon';
 import { platformLabel } from '../../lib/streamIdentity';
-import { LiveDurationBadge } from './LiveDurationBadge';
+import { ClearBackpackButton } from './ClearBackpackButton';
 import { RoomAudience } from './RoomAudience';
 import { roomAudienceKey } from './useRoomAudience';
 import { roomLiveStatusKey } from './useRoomLiveStatus';
@@ -113,7 +113,6 @@ export function PlayerTile({
             <i className="live-dot" />
             LIVE
           </span>
-          <LiveDurationBadge platform={playback.platform} roomId={playback.roomId} />
           <div>
             <h2>{playback.title || `房间 ${playback.roomId}`}</h2>
             <p>
@@ -160,6 +159,13 @@ export function PlayerTile({
           <span className="tag">{playback.quality}</span>
           <span className="tag">{playback.format.toUpperCase()}</span>
           {isMain ? <span className="player-main-badge">主画面</span> : null}
+          {playback.platform === 'douyu' ? (
+            <ClearBackpackButton
+              roomId={playback.roomId}
+              anchorName={playback.anchorName ?? undefined}
+              compact={compact}
+            />
+          ) : null}
           {onSetMain ? (
             <button
               type="button"

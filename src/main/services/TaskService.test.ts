@@ -91,6 +91,8 @@ describe('TaskService background run state', () => {
       'douyu.watch-points',
       'douyu.daily-all',
     ]);
+    // 清空背包是直播卡片上的动作，不出现在任务列表里。
+    expect(descriptors.some((descriptor) => descriptor.id === 'douyu.clear-backpack')).toBe(false);
     expect(descriptors.at(-1)?.supportsDryRun).toBe(true);
   });
 
@@ -121,8 +123,7 @@ describe('TaskService background run state', () => {
     expect(service.status()?.result).toEqual(result);
   });
 
-  it('runs the whole daily set under one run id', async () => {
-    const { service } = createService();
+  it('runs the whole daily set under one run id', async () => {    const { service } = createService();
     const result = await service.run({ taskId: 'douyu.daily-all', dryRun: false });
 
     expect(result.taskId).toBe('douyu.daily-all');
@@ -135,6 +136,26 @@ describe('TaskService background run state', () => {
       'douyu.watch-points',
     ]);
     expect(service.status()).toMatchObject({ taskId: 'douyu.daily-all', running: false });
+  });
+
+  it('refuses to clear the backpack without an explicit confirmation', async () => {
+    const { service } = createService();
+
+    await expect(
+      service.run({ taskId: 'douyu.clear-backpack', options: { roomId: '9999' } }),
+    ).rejects.toMatchObject({ code: 'CONFIRM_REQUIRED' });
+  });
+
+  it('clears the backpack once confirmed and reports an empty bag', async () => {
+    const { service } = createService();
+
+    const result = await service.run({
+      taskId: 'douyu.clear-backpack',
+      options: { roomId: '9999' },
+      confirmed: true,
+    });
+
+    expect(result).toMatchObject({ status: 'skipped', summary: '背包里没有可送出的礼物' });
   });
 
   it('rejects a second run while the first is still active', async () => {
