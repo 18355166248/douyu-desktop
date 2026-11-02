@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import { IPC } from '@shared/contracts/ipc';
 import type { DesktopApi } from '@shared/contracts/ipc';
 import type { HuyaDanmakuUpdate } from '@shared/contracts/danmaku';
+import type { AutoClaimState } from '@shared/contracts/autoClaim';
 import type { RoomHistoryEntry } from '@shared/contracts/history';
 import type { SpecialFollowEntry } from '@shared/contracts/specialFollow';
 import type { TaskProgressEvent, TaskRunSnapshot } from '@shared/contracts/task';
@@ -73,6 +74,7 @@ const api: DesktopApi = {
   streams: {
     resolve: (input) => ipcRenderer.invoke(IPC.streamsResolve, input),
     audience: (input) => ipcRenderer.invoke(IPC.streamsAudience, input),
+    liveStatus: (input) => ipcRenderer.invoke(IPC.streamsLiveStatus, input),
     pk: (roomId) => ipcRenderer.invoke(IPC.streamsPk, roomId),
   },
   danmaku: {
@@ -110,6 +112,20 @@ const api: DesktopApi = {
       ipcRenderer.on(IPC.tasksState, handler);
       return () => {
         ipcRenderer.removeListener(IPC.tasksState, handler);
+      };
+    },
+  },
+  claims: {
+    state: () => ipcRenderer.invoke(IPC.claimsState),
+    setSettings: (settings) => ipcRenderer.invoke(IPC.claimsSetSettings, settings),
+    setRooms: (roomIds) => ipcRenderer.invoke(IPC.claimsSetRooms, roomIds),
+    poll: () => ipcRenderer.invoke(IPC.claimsPoll),
+    onChange: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, state: AutoClaimState): void =>
+        listener(state);
+      ipcRenderer.on(IPC.claimsChanged, handler);
+      return () => {
+        ipcRenderer.removeListener(IPC.claimsChanged, handler);
       };
     },
   },

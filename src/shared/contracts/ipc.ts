@@ -1,5 +1,7 @@
 import type { AccountHealth, AccountSummary } from './account';
 import type { RoomAudienceInput, RoomAudienceSnapshot } from './audience';
+import type { AutoClaimSettings, AutoClaimState } from './autoClaim';
+import type { RoomLiveStatus, RoomLiveStatusInput } from './liveStatus';
 import type { RoomPkSnapshot } from './pk';
 import type { BilibiliDanmakuConfig, DouyuDanmakuConfig, HuyaDanmakuUpdate } from './danmaku';
 import type { RoomHistoryEntry } from './history';
@@ -56,6 +58,7 @@ export interface DesktopApi {
   streams: {
     resolve(input: ResolveStreamInput): Promise<Result<StreamPlayback>>;
     audience(input: RoomAudienceInput): Promise<Result<RoomAudienceSnapshot>>;
+    liveStatus(input: RoomLiveStatusInput): Promise<Result<RoomLiveStatus>>;
     pk(roomId: string): Promise<Result<RoomPkSnapshot | null>>;
   };
   danmaku: {
@@ -71,6 +74,13 @@ export interface DesktopApi {
     status(): Promise<Result<TaskRunSnapshot | null>>;
     onProgress(listener: (event: TaskProgressEvent) => void): () => void;
     onState(listener: (state: TaskRunSnapshot | null) => void): () => void;
+  };
+  claims: {
+    state(): Promise<Result<AutoClaimState>>;
+    setSettings(settings: AutoClaimSettings): Promise<Result<AutoClaimState>>;
+    setRooms(roomIds: string[]): Promise<Result<AutoClaimState>>;
+    poll(): Promise<Result<AutoClaimState>>;
+    onChange(listener: (state: AutoClaimState) => void): () => void;
   };
   app: {
     openExternal(url: string): Promise<Result<void>>;
@@ -112,6 +122,7 @@ export const IPC = {
   specialChanged: 'special:changed',
   streamsResolve: 'streams:resolve',
   streamsAudience: 'streams:audience',
+  streamsLiveStatus: 'streams:live-status',
   streamsPk: 'streams:pk',
   danmakuBilibiliConfig: 'danmaku:bilibili-config',
   danmakuDouyuConfig: 'danmaku:douyu-config',
@@ -123,6 +134,11 @@ export const IPC = {
   tasksStatus: 'tasks:status',
   tasksProgress: 'tasks:progress',
   tasksState: 'tasks:state',
+  claimsState: 'claims:state',
+  claimsSetSettings: 'claims:set-settings',
+  claimsSetRooms: 'claims:set-rooms',
+  claimsPoll: 'claims:poll',
+  claimsChanged: 'claims:changed',
   appOpenExternal: 'app:open-external',
   windowMinimize: 'window:minimize',
   windowToggleMaximize: 'window:toggle-maximize',

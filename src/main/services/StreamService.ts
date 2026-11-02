@@ -1,10 +1,14 @@
 import { session } from 'electron';
 import type { RoomAudienceInput, RoomAudienceSnapshot } from '@shared/contracts/audience';
+import type { RoomLiveStatus, RoomLiveStatusInput } from '@shared/contracts/liveStatus';
 import type { RoomPkSnapshot } from '@shared/contracts/pk';
 import type { DouyuQuality, ResolveStreamInput, StreamPlayback } from '@shared/contracts/stream';
 import { BilibiliAudienceResolver } from '@core/bilibili/audience/BilibiliAudienceResolver';
+import { BilibiliLiveStatusResolver } from '@core/bilibili/live/BilibiliLiveStatusResolver';
 import { DouyuAudienceResolver } from '@core/douyu/audience/DouyuAudienceResolver';
+import { DouyuLiveStatusResolver } from '@core/douyu/live/DouyuLiveStatusResolver';
 import { HuyaAudienceResolver } from '@core/huya/audience/HuyaAudienceResolver';
+import { HuyaLiveStatusResolver } from '@core/huya/live/HuyaLiveStatusResolver';
 import { BilibiliStreamResolver } from '@core/bilibili/stream/BilibiliStreamResolver';
 import { BilibiliDanmakuConfigResolver } from '@core/bilibili/danmaku/BilibiliDanmakuConfigResolver';
 import { DouyuStreamResolver } from '@core/douyu/stream/DouyuStreamResolver';
@@ -77,6 +81,16 @@ export class StreamService {
       return new HuyaAudienceResolver(this.huyaHttp()).resolve(input.roomId);
     }
     return new DouyuAudienceResolver(this.http).resolve(input.roomId);
+  }
+
+  liveStatus(input: RoomLiveStatusInput): Promise<RoomLiveStatus> {
+    if (input.platform === 'bilibili') {
+      return new BilibiliLiveStatusResolver(this.bilibiliHttp()).resolve(input.roomId);
+    }
+    if (input.platform === 'huya') {
+      return new HuyaLiveStatusResolver(this.huyaHttp()).resolve(input.roomId);
+    }
+    return new DouyuLiveStatusResolver(this.http).resolve(input.roomId);
   }
 
   pk(roomId: string): Promise<RoomPkSnapshot | null> {

@@ -79,6 +79,21 @@ function createService(
 }
 
 describe('TaskService background run state', () => {
+  it('lists the daily sign/claim set with the run-all task last', () => {
+    const { service } = createService();
+    const descriptors = service.list();
+
+    expect(descriptors.map((descriptor) => descriptor.id)).toEqual([
+      'douyu.fans-sign',
+      'douyu.client-sign',
+      'douyu.yuba-sign',
+      'douyu.diamond-fans-sign',
+      'douyu.watch-points',
+      'douyu.daily-all',
+    ]);
+    expect(descriptors.at(-1)?.supportsDryRun).toBe(true);
+  });
+
   it('keeps a snapshot after a completed run', async () => {
     const { service, progress } = createService();
     const result = await service.run({ taskId: 'douyu.fans-sign', dryRun: false }, (event) =>
@@ -104,6 +119,22 @@ describe('TaskService background run state', () => {
     expect(result).toMatchObject({ accountId: 'account-1', dryRun: true, status: 'success' });
     expect(progress).toHaveLength(0);
     expect(service.status()?.result).toEqual(result);
+  });
+
+  it('runs the whole daily set under one run id', async () => {
+    const { service } = createService();
+    const result = await service.run({ taskId: 'douyu.daily-all', dryRun: false });
+
+    expect(result.taskId).toBe('douyu.daily-all');
+    const details = result.details as { tasks?: Array<{ taskId: string }> } | undefined;
+    expect(details?.tasks?.map((task) => task.taskId)).toEqual([
+      'douyu.fans-sign',
+      'douyu.client-sign',
+      'douyu.yuba-sign',
+      'douyu.diamond-fans-sign',
+      'douyu.watch-points',
+    ]);
+    expect(service.status()).toMatchObject({ taskId: 'douyu.daily-all', running: false });
   });
 
   it('rejects a second run while the first is still active', async () => {

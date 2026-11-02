@@ -12,7 +12,7 @@ const host = vi.hoisted(() => ({
     statusReady: true,
     running: false,
     runTask: { isPending: false, mutate: vi.fn() },
-    tasks: [{ id: 'douyu.fans-sign' }],
+    tasks: [{ id: 'douyu.fans-sign' }, { id: 'douyu.daily-all' }],
     result: null as TaskRunResult | null,
   },
 }));
@@ -63,7 +63,7 @@ describe('AutoSignRunner account isolation', () => {
     expect(hasAutoSignRunToday('a', localDayKey())).toBe(true);
     expect(hasAutoSignRunToday('b', localDayKey())).toBe(false);
     expect(host.state.runTask.mutate).toHaveBeenCalledExactlyOnceWith({
-      taskId: 'douyu.fans-sign',
+      taskId: 'douyu.daily-all',
       dryRun: false,
     });
     render('b');

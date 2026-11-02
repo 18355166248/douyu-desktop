@@ -1,11 +1,13 @@
 import { join } from 'node:path';
 import { app, BrowserWindow, screen } from 'electron';
 import { JsonAccountStore } from './adapters/storage/JsonAccountStore';
+import { JsonAutoClaimStore } from './adapters/storage/JsonAutoClaimStore';
 import { JsonRoomHistoryStore } from './adapters/storage/JsonRoomHistoryStore';
 import { JsonSpecialFollowStore } from './adapters/storage/JsonSpecialFollowStore';
 import { JsonLogger } from './adapters/electron/JsonLogger';
 import { configureMediaCors } from './mediaCors';
 import { AccountSessionManager } from './services/AccountSessionManager';
+import { AutoClaimService } from './services/AutoClaimService';
 import { DouyuAuthService } from './services/DouyuAuthService';
 import { DouyuDanmakuSession } from './services/DouyuDanmakuSession';
 import { HuyaDanmakuSession } from './services/HuyaDanmakuSession';
@@ -109,6 +111,12 @@ if (!hasLock) {
       const platforms = new PlatformLoginManager(() => mainWindow);
       const streams = new StreamService(platforms);
       const tasks = new TaskService(accounts, logger);
+      const claims = new AutoClaimService({
+        accounts,
+        logger,
+        store: new JsonAutoClaimStore(join(app.getPath('userData'), 'auto-claim.json')),
+      });
+      await claims.init();
       const home = new HomeService(accounts);
       const reminders = new LiveReminderService(
         join(app.getPath('userData'), 'live-reminders.json'),
@@ -141,6 +149,7 @@ if (!hasLock) {
         reminders.stop();
         streams.stop();
         huyaDanmaku.stopAll();
+        claims.dispose();
       });
       await streams.start();
 
@@ -149,6 +158,7 @@ if (!hasLock) {
         platforms,
         streams,
         tasks,
+        claims,
         history,
         special,
         home,

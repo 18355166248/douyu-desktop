@@ -2215,6 +2215,169 @@
   color: #ffb3b3;
 }
 
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.task-list-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 9px 11px;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  background: rgb(16 21 27 / 70%);
+}
+
+.task-list-item .task-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+}
+
+.task-list-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-list-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.task-list-title h3 {
+  margin: 0 0 2px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.task-list-body p {
+  margin: 0;
+  color: var(--dim);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.task-list-run {
+  flex: none;
+  height: 24px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
+.task-claim {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  background: rgb(16 21 27 / 70%);
+}
+
+.task-claim-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--dim);
+  font-size: 11px;
+}
+
+.task-claim-head strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.task-claim-live {
+  margin-left: auto;
+  color: var(--teal);
+  font-size: 10px;
+}
+
+.task-claim-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.task-claim-label {
+  color: var(--dim);
+  font-size: 10px;
+}
+
+.task-claim-select {
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgb(16 21 27 / 90%);
+  color: var(--text);
+  font-size: 11px;
+}
+
+.task-claim-row .btn {
+  height: 24px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
+.task-claim-note {
+  margin: 0;
+  color: var(--dim);
+  font-size: 10px;
+}
+
+.task-claim-error {
+  margin: 0;
+  color: #ff9b9b;
+  font-size: 10px;
+}
+
+.task-claim-events {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.task-claim-events li {
+  display: flex;
+  gap: 6px;
+  color: var(--dim);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.task-claim-time {
+  color: var(--dim);
+  opacity: 0.75;
+}
+
+.task-claim-kind {
+  flex: none;
+}
+
+.task-claim-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.task-claim-events .is-success .task-claim-kind {
+  color: #8ee6b0;
+}
+
+.task-claim-events .is-error .task-claim-kind {
+  color: #ff9b9b;
+}
+
 .task-options {
   display: flex;
   flex-direction: column;

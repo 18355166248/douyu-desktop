@@ -2,10 +2,13 @@ import type { TaskRunResult } from '@shared/contracts/task';
 
 const STORAGE_KEY = 'douyu-desktop.auto-sign.v1';
 
+/** 手动跑单个粉丝团签到，或跑「一键全部执行」，都算今天已经签到过。 */
+const SIGN_TASK_IDS = new Set(['douyu.fans-sign', 'douyu.daily-all']);
+
 export function completedSignAccount(result: TaskRunResult | null, day: string): string | null {
   if (
     !result ||
-    result.taskId !== 'douyu.fans-sign' ||
+    !SIGN_TASK_IDS.has(result.taskId) ||
     result.dryRun !== false ||
     result.status === 'failed' ||
     localDayKey(new Date(result.finishedAt)) !== day

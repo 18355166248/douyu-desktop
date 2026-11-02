@@ -10,6 +10,7 @@ import type { JsonRoomHistoryStore } from './adapters/storage/JsonRoomHistorySto
 import type { JsonSpecialFollowStore } from './adapters/storage/JsonSpecialFollowStore';
 import { isAllowedExternalUrl } from './constants';
 import type { AccountSessionManager } from './services/AccountSessionManager';
+import type { AutoClaimService } from './services/AutoClaimService';
 import type { DouyuDanmakuSession } from './services/DouyuDanmakuSession';
 import type { HomeService } from './services/HomeService';
 import type { HuyaDanmakuSession } from './services/HuyaDanmakuSession';
@@ -107,6 +108,7 @@ export interface IpcServices {
   platforms: PlatformLoginManager;
   streams: StreamService;
   tasks: TaskService;
+  claims?: AutoClaimService;
   history: JsonRoomHistoryStore;
   special: JsonSpecialFollowStore;
   home: HomeService;
@@ -119,6 +121,7 @@ export interface IpcServices {
 export function registerIpcHandlers(services: IpcServices): void {
   const { accounts, platforms, streams, tasks, history, special, home, douyuDanmaku, huyaDanmaku } =
     services;
+  const claims = services.claims;
 
   ipcMain.on(IPC.windowMinimize, (event) => {
     BrowserWindow.fromWebContents(event.sender)?.minimize();
@@ -266,6 +269,9 @@ export function registerIpcHandlers(services: IpcServices): void {
   ipcMain.handle(IPC.streamsAudience, (_event, rawInput: unknown) =>
     respond(() => streams.audience(roomAudienceSchema.parse(rawInput))),
   );
+  ipcMain.handle(IPC.streamsLiveStatus, (_event, rawInput: unknown) =>
+    respond(() => streams.liveStatus(roomAudienceSchema.parse(rawInput))),
+  );
   ipcMain.handle(IPC.streamsPk, (_event, rawRoomId: unknown) =>
     respond(() => streams.pk(pkRoomIdSchema.parse(rawRoomId))),
   );
@@ -306,6 +312,23 @@ export function registerIpcHandlers(services: IpcServices): void {
     void run.then(() => broadcast(IPC.tasksState, tasks.status()));
     return run;
   });
+
+  if (claims) {
+    ipcMain.handle(IPC.claimsState, () => respond(() => claims.snapshot()));
+
+    ipcMain.handle(IPC.claimsSetSettings, (_event, rawSettings: unknown) =>
+      respond(() => claims.setSettings(rawSettings)),
+    );
+
+    ipcMain.handle(IPC.claimsSetRooms, (_event, rawRooms: unknown) =>
+      respond(() => claims.setRooms(z.array(z.string()).max(64).parse(rawRooms))),
+    );
+
+    ipcMain.handle(IPC.claimsPoll, () => respond(() => claims.pollOnce()));
+
+    // 后台轮询拿到红包时推给所有窗口，面板上的流水实时更新。
+    claims.onChange((state) => broadcast(IPC.claimsChanged, state));
+  }
 
   ipcMain.handle(IPC.appOpenExternal, (_event, rawUrl: unknown) =>
     respond(async () => {

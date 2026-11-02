@@ -3,8 +3,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { StreamPlayback, StreamQuality } from '@shared/contracts/stream';
 import { Icon } from '../../components/Icon';
 import { platformLabel } from '../../lib/streamIdentity';
+import { LiveDurationBadge } from './LiveDurationBadge';
 import { RoomAudience } from './RoomAudience';
 import { roomAudienceKey } from './useRoomAudience';
+import { roomLiveStatusKey } from './useRoomLiveStatus';
 import type { StreamResolveOptions } from './useStreamGrid';
 import { VideoPlayer } from './VideoPlayer';
 
@@ -79,6 +81,9 @@ export function PlayerTile({
     void queryClient.invalidateQueries({
       queryKey: roomAudienceKey(playback.platform, playback.roomId),
     });
+    void queryClient.invalidateQueries({
+      queryKey: roomLiveStatusKey(playback.platform, playback.roomId),
+    });
   }
 
   return (
@@ -108,6 +113,7 @@ export function PlayerTile({
             <i className="live-dot" />
             LIVE
           </span>
+          <LiveDurationBadge platform={playback.platform} roomId={playback.roomId} />
           <div>
             <h2>{playback.title || `房间 ${playback.roomId}`}</h2>
             <p>

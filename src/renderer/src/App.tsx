@@ -76,6 +76,14 @@ export function App(): React.JSX.Element {
   } = useStreamGrid();
   const latestStreams = useRef(streams);
   latestStreams.current = streams;
+
+  // 自动抢红包只关心当前打开着的斗鱼直播间，变化时上报给主进程。
+  useEffect(() => {
+    const roomIds = streams
+      .filter((entry) => entry.playback.platform === 'douyu')
+      .map((entry) => entry.playback.roomId);
+    void window.api.claims.setRooms(roomIds).catch(() => undefined);
+  }, [streams]);
   const [platform, setPlatform] = useState<StreamPlatform>('douyu');
   const [roomId, setRoomId] = useState('9999');
   const [activeView, setActiveView] = useState<WorkspaceView>('home');
