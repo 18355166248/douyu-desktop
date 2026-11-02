@@ -8,6 +8,7 @@ import { usePlatformLoginStatus } from '../accounts/usePlatformLogin';
 import { DanmakuOverlay } from '../danmaku/DanmakuOverlay';
 import { useDanmakuSettings } from '../danmaku/DanmakuSettingsContext';
 import { RoomContextMenu } from './RoomContextMenu';
+import { LiveDurationBadge } from './LiveDurationBadge';
 import { qualityOptionsFor } from './streamQuality';
 import { STALL_TIMEOUT_MS, AUTO_RECOVERY_RESET_MS } from './streamStall';
 import { useVideoPlayback } from './useVideoPlayback';
@@ -323,6 +324,7 @@ export function VideoPlayer({
             LIVE
           </span>
           <span className="video-room">ROOM {playback.roomId}</span>
+          <LiveDurationBadge platform={playback.platform} roomId={playback.roomId} />
           <span className="video-status">{playbackStatus}</span>
         </div>
 

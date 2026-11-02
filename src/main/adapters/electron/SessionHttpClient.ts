@@ -1,6 +1,7 @@
 import type { Session } from 'electron';
 import { AppError } from '@core/errors';
 import type { HttpClient, HttpRequest, HttpResponse } from '@core/ports/HttpClient';
+import { extractReferrer } from './httpHeaders';
 
 function anySignal(signals: AbortSignal[]): AbortSignal {
   const controller = new AbortController();
@@ -29,13 +30,17 @@ export class SessionHttpClient implements HttpClient {
       : controller.signal;
 
     try {
+      // Referer 不能作为请求头跨域发送（会被 Chromium 判为 BLOCKED_BY_CLIENT），
+      // 这里改走 referrer 选项，让 fetch 按 referrer policy 处理。
+      const { headers, referrer } = extractReferrer(request.headers);
       const response = await this.session.fetch(request.url, {
         method: request.method ?? 'GET',
         credentials: 'include',
         headers: {
           'User-Agent': this.userAgent,
-          ...(request.headers ?? {}),
+          ...headers,
         },
+        ...(referrer === undefined ? {} : { referrer }),
         ...(request.body !== undefined ? { body: request.body } : {}),
         signal,
       });
