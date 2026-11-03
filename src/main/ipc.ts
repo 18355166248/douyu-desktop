@@ -2,6 +2,7 @@ import { BrowserWindow, ipcMain, shell } from 'electron';
 import { z } from 'zod';
 import { IPC } from '@shared/contracts/ipc';
 import { MAX_ROOM_HISTORY } from '@shared/contracts/history';
+import { MAX_SEARCH_KEYWORD_LENGTH } from '@shared/contracts/search';
 import type { SpecialFollowTarget } from '@shared/contracts/specialFollow';
 import type { AppErrorPayload, Result } from '@shared/contracts/result';
 import { fail, ok } from '@shared/contracts/result';
@@ -15,6 +16,7 @@ import type { DouyuDanmakuSession } from './services/DouyuDanmakuSession';
 import type { HomeService } from './services/HomeService';
 import type { HuyaDanmakuSession } from './services/HuyaDanmakuSession';
 import type { PlatformLoginManager } from './services/PlatformLoginManager';
+import type { SearchService } from './services/SearchService';
 import type { StreamService } from './services/StreamService';
 import type { TaskService } from './services/TaskService';
 import type { LiveReminderService } from './services/LiveReminderService';
@@ -67,6 +69,10 @@ const specialTargetSchema: z.ZodType<SpecialFollowTarget> = z.object({
   cover: z.string().trim().max(500).optional(),
 });
 
+const roomSearchSchema = z.object({
+  query: z.string().trim().min(1).max(MAX_SEARCH_KEYWORD_LENGTH),
+});
+
 function toPayload(error: unknown): AppErrorPayload {
   if (error instanceof z.ZodError) {
     return {
@@ -111,6 +117,7 @@ export interface IpcServices {
   claims?: AutoClaimService;
   history: JsonRoomHistoryStore;
   special: JsonSpecialFollowStore;
+  search: SearchService;
   home: HomeService;
   douyuDanmaku: DouyuDanmakuSession;
   huyaDanmaku: HuyaDanmakuSession;
@@ -119,8 +126,18 @@ export interface IpcServices {
 }
 
 export function registerIpcHandlers(services: IpcServices): void {
-  const { accounts, platforms, streams, tasks, history, special, home, douyuDanmaku, huyaDanmaku } =
-    services;
+  const {
+    accounts,
+    platforms,
+    streams,
+    tasks,
+    history,
+    special,
+    search,
+    home,
+    douyuDanmaku,
+    huyaDanmaku,
+  } = services;
   const claims = services.claims;
 
   ipcMain.on(IPC.windowMinimize, (event) => {
@@ -236,6 +253,13 @@ export function registerIpcHandlers(services: IpcServices): void {
       const entries = await special.toggle(target);
       broadcast(IPC.specialChanged, entries);
       return entries;
+    }),
+  );
+
+  ipcMain.handle(IPC.searchRooms, (_event, rawInput: unknown) =>
+    respond(async () => {
+      const { query } = roomSearchSchema.parse(rawInput);
+      return { query, items: await search.rooms(query) };
     }),
   );
 

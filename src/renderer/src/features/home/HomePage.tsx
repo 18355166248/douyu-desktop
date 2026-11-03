@@ -13,6 +13,8 @@ import { platformLabel, roomKey } from '../../lib/streamIdentity';
 import { RoomHistoryPanel } from '../history/RoomHistoryPanel';
 import { LiveReminderControls } from './LiveReminderControls';
 import { filterHomeRooms } from './homeFilter';
+import { excludeKnownRooms, searchRoomMeta } from './homeSearch';
+import { useRoomSearch } from './useRoomSearch';
 import { readStored, writeStored } from '../player/viewingStorage';
 import {
   resolveSpecialRooms,
@@ -53,6 +55,8 @@ interface HomeRoomRowProps {
   official?: boolean;
   pinned: boolean;
   busy: boolean;
+  /** 额外的一行说明，搜索结果用来展示主播/粉丝/分区信息。 */
+  meta?: string | undefined;
   onOpen: () => void;
   onToggle: () => void;
 }
@@ -70,6 +74,7 @@ function HomeRoomRow({
   official = false,
   pinned,
   busy,
+  meta,
   onOpen,
   onToggle,
 }: HomeRoomRowProps): React.JSX.Element {
@@ -152,6 +157,11 @@ function HomeRoomRow({
           <span className="home-room-subtitle" title={subtitle}>
             {subtitle}
           </span>
+          {meta ? (
+            <span className="home-room-meta" title={meta}>
+              {meta}
+            </span>
+          ) : null}
         </span>
       </button>
       {official ? (
@@ -209,6 +219,8 @@ export function HomePage({
 }: HomePageProps): React.JSX.Element {
   const [isHistoryOpen, setHistoryOpen] = useState(false);
   const [query, setQuery] = useState('');
+  // 中文输入法拼写期间不要拿拼音去请求搜索，等选词结束后再搜。
+  const [composingQuery, setComposingQuery] = useState(false);
   const [onlyLive, setOnlyLive] = useState(
     () => readStored('douyu-desktop.home-only-live.v1') === true,
   );
@@ -249,6 +261,27 @@ export function HomePage({
   const filter = { query, onlyLive, liveFirst };
   const filteredSpecials = filterHomeRooms(specialCards, filter);
   const filteredFollowed = filterHomeRooms(visibleFollowed, filter);
+
+  // 输入主播名时同时搜索斗鱼：本地过滤保留已关注房间，在线结果补全新的主播。
+  const roomSearch = useRoomSearch(query, active && !composingQuery);
+  const trimmedQuery = query.trim();
+  const searchCandidates = excludeKnownRooms(roomSearch.items, [
+    ...filteredSpecials,
+    ...filteredFollowed,
+  ]);
+  const searchItems = onlyLive ? searchCandidates.filter((room) => room.isLive) : searchCandidates;
+  const hiddenByLiveFilter = searchCandidates.length - searchItems.length;
+  const searchEmptyHint =
+    roomSearch.items.length === 0
+      ? `没有找到与「${trimmedQuery}」相关的主播或直播间。`
+      : searchCandidates.length === 0
+        ? '搜索到的房间已经在关注或特别关注中展示。'
+        : `「只看直播中」隐藏了 ${hiddenByLiveFilter} 个未开播结果。`;
+  // 结果还没回来时先显示“搜索中”，避免在副作用发起请求前闪一下“没有找到”。
+  const searchPending =
+    trimmedQuery !== '' &&
+    !roomSearch.error &&
+    (roomSearch.loading || roomSearch.settledQuery !== trimmedQuery);
   const accountIsActive = activeAccount?.status === 'active';
   const historyCovers = new Map<string, string>();
   for (const room of [...followed, ...specialCards]) {
@@ -304,10 +337,13 @@ export function HomePage({
 
       <div className="home-filter-bar">
         <input
-          aria-label="搜索主播、标题或房间号"
-          placeholder="搜索主播、标题或房间号"
+          aria-label="搜索斗鱼主播、直播间或房间号"
+          placeholder="搜索斗鱼主播、直播间或房间号"
+          title="输入主播名可直接搜索斗鱼，同时过滤已关注房间"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
+          onCompositionStart={() => setComposingQuery(true)}
+          onCompositionEnd={() => setComposingQuery(false)}
         />
         {query ? (
           <button type="button" className="btn ghost" onClick={() => setQuery('')}>
@@ -338,6 +374,85 @@ export function HomePage({
         </label>
         <LiveReminderControls />
       </div>
+
+      {trimmedQuery ? (
+        <section
+          className="home-section home-search-section"
+          aria-labelledby="home-search-title"
+          aria-busy={roomSearch.loading}
+        >
+          <header className="home-section-head">
+            <div>
+              <span className="home-kicker">
+                <Icon name="search" size={11} />
+                SEARCH
+              </span>
+              <h3 id="home-search-title">搜索结果</h3>
+            </div>
+            <div className="home-section-actions">
+              {roomSearch.loading ? (
+                <span className="home-search-busy" role="status">
+                  <Icon name="loading" size={13} />
+                  搜索中
+                </span>
+              ) : null}
+              <span className="home-section-count" title="搜索结果数量">
+                {searchItems.length}
+              </span>
+            </div>
+          </header>
+
+          {roomSearch.error ? (
+            <div className="home-error">
+              <Icon name="alert" size={17} />
+              <span className="selectable">{roomSearch.error}</span>
+              <button type="button" onClick={roomSearch.retry}>
+                重试
+              </button>
+            </div>
+          ) : null}
+
+          {searchItems.length === 0 ? (
+            roomSearch.error ? null : (
+              <p className="home-search-hint">
+                {searchPending ? `正在斗鱼搜索「${trimmedQuery}」…` : searchEmptyHint}
+              </p>
+            )
+          ) : (
+            <div className="home-room-list" role="list">
+              {searchItems.map((room) => (
+                <div role="listitem" key={roomKey(room.platform, room.roomId)}>
+                  <HomeRoomRow
+                    busy={specialBusy}
+                    previewEnabled={active && !isHistoryOpen}
+                    platform={room.platform}
+                    roomId={room.roomId}
+                    name={room.name}
+                    title={room.title}
+                    cover={room.cover}
+                    isLive={room.isLive}
+                    hasVideo={room.hasVideo}
+                    showStatus
+                    meta={searchRoomMeta(room)}
+                    official={officialKeys.has(specialFollowKey(room))}
+                    pinned={specialKeys.has(specialFollowKey(room))}
+                    onOpen={() => onOpen(room.platform, room.roomId)}
+                    onToggle={() =>
+                      onToggleSpecial({
+                        platform: room.platform,
+                        roomId: room.roomId,
+                        name: room.name,
+                        title: room.title,
+                        ...(room.cover ? { cover: room.cover } : {}),
+                      })
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      ) : null}
 
       <section className="home-section home-special-section" aria-labelledby="home-special-title">
         <header className="home-section-head">

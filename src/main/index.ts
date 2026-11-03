@@ -13,6 +13,7 @@ import { DouyuDanmakuSession } from './services/DouyuDanmakuSession';
 import { HuyaDanmakuSession } from './services/HuyaDanmakuSession';
 import { HomeService } from './services/HomeService';
 import { PlatformLoginManager } from './services/PlatformLoginManager';
+import { SearchService } from './services/SearchService';
 import { StreamService } from './services/StreamService';
 import { TaskService } from './services/TaskService';
 import { LegacyDevHistoryMigration } from './services/LegacyDevHistoryMigration';
@@ -118,6 +119,7 @@ if (!hasLock) {
       });
       await claims.init();
       const home = new HomeService(accounts);
+      const search = new SearchService();
       const reminders = new LiveReminderService(
         join(app.getPath('userData'), 'live-reminders.json'),
         accounts,
@@ -161,6 +163,7 @@ if (!hasLock) {
         claims,
         history,
         special,
+        search,
         home,
         reminders,
         douyuDanmaku,

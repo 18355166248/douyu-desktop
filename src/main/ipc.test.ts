@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { IPC } from '@shared/contracts/ipc';
+import { MAX_SEARCH_KEYWORD_LENGTH } from '@shared/contracts/search';
 import { AppError } from '@core/errors';
 import { registerIpcHandlers, type IpcServices } from './ipc';
 
@@ -66,5 +67,38 @@ describe('room PK IPC', () => {
     expect(pk).not.toHaveBeenCalled();
     expect(await invoke(' 4452132 ')).toEqual({ ok: true, data: null });
     expect(pk).toHaveBeenCalledWith('4452132');
+  });
+});
+
+describe('room search IPC', () => {
+  const rooms = vi.fn();
+  const invoke = (input: unknown) => electron.handlers.get(IPC.searchRooms)!(null, input);
+
+  beforeEach(() => {
+    rooms.mockReset();
+    electron.handlers.clear();
+    registerIpcHandlers({ search: { rooms } } as unknown as IpcServices);
+  });
+
+  it('trims the keyword and echoes it back with the results', async () => {
+    const items = [{ platform: 'douyu', roomId: '9999' }];
+    rooms.mockResolvedValue(items);
+    expect(await invoke({ query: '  旭旭宝宝 ' })).toEqual({
+      ok: true,
+      data: { query: '旭旭宝宝', items },
+    });
+    expect(rooms).toHaveBeenCalledWith('旭旭宝宝');
+  });
+
+  it.each([
+    { query: '' },
+    { query: '   ' },
+    { query: 'x'.repeat(MAX_SEARCH_KEYWORD_LENGTH + 1) },
+    {},
+    null,
+    '旭旭宝宝',
+  ])('rejects invalid keywords without contacting Douyu: %j', async (input) => {
+    expect(await invoke(input)).toMatchObject({ ok: false, error: { code: 'INVALID_INPUT' } });
+    expect(rooms).not.toHaveBeenCalled();
   });
 });

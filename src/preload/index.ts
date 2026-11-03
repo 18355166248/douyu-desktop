@@ -71,6 +71,9 @@ const api: DesktopApi = {
       };
     },
   },
+  search: {
+    rooms: (input) => ipcRenderer.invoke(IPC.searchRooms, input),
+  },
   streams: {
     resolve: (input) => ipcRenderer.invoke(IPC.streamsResolve, input),
     audience: (input) => ipcRenderer.invoke(IPC.streamsAudience, input),

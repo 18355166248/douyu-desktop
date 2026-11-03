@@ -6,6 +6,7 @@ import type { RoomPkSnapshot } from './pk';
 import type { BilibiliDanmakuConfig, DouyuDanmakuConfig, HuyaDanmakuUpdate } from './danmaku';
 import type { RoomHistoryEntry } from './history';
 import type { FollowedRoom } from './follow';
+import type { RoomSearchInput, RoomSearchResult } from './search';
 import type { SpecialFollowEntry, SpecialFollowTarget } from './specialFollow';
 import type { GuidedPlatform, PlatformLoginStatus } from './platformLogin';
 import type { ResolveStreamInput, StreamPlayback } from './stream';
@@ -54,6 +55,9 @@ export interface DesktopApi {
     load(): Promise<Result<SpecialFollowEntry[]>>;
     toggle(target: SpecialFollowTarget): Promise<Result<SpecialFollowEntry[]>>;
     onChange(listener: (entries: SpecialFollowEntry[]) => void): () => void;
+  };
+  search: {
+    rooms(input: RoomSearchInput): Promise<Result<RoomSearchResult>>;
   };
   streams: {
     resolve(input: ResolveStreamInput): Promise<Result<StreamPlayback>>;
@@ -120,6 +124,7 @@ export const IPC = {
   specialLoad: 'special:load',
   specialToggle: 'special:toggle',
   specialChanged: 'special:changed',
+  searchRooms: 'search:rooms',
   streamsResolve: 'streams:resolve',
   streamsAudience: 'streams:audience',
   streamsLiveStatus: 'streams:live-status',

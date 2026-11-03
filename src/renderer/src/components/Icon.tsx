@@ -47,6 +47,7 @@ import {
   UserRoundPlus,
   Eraser,
   BellRing,
+  Search,
 } from 'lucide-react';
 import type { SVGProps } from 'react';
 
@@ -102,6 +103,7 @@ const icons = {
   scenes: Layers,
   clearDanmaku: Eraser,
   reminder: BellRing,
+  search: Search,
 };
 export type IconName = keyof typeof icons;
 

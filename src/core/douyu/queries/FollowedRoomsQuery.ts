@@ -2,6 +2,7 @@ import { MAX_FOLLOWED_ROOMS } from '@shared/contracts/follow';
 import type { FollowedRoom } from '@shared/contracts/follow';
 import { AppError } from '../../errors';
 import type { HttpClient } from '../../ports/HttpClient';
+import { parseDouyuHeat } from '../heat';
 
 interface FollowListItem {
   room_id?: string | number;
@@ -46,18 +47,6 @@ function cleanUrl(value: unknown): string | undefined {
   if (url.startsWith('http://')) url = `https://${url.slice(7)}`;
   if (!url.startsWith('https://')) return undefined;
   return url.slice(0, 500);
-}
-
-function parseHeat(value: unknown): number {
-  if (typeof value === 'number') return Number.isFinite(value) && value > 0 ? value : 0;
-  if (typeof value !== 'string') return 0;
-  const text = value.trim().replace(/[\s,]/g, '');
-  const match = /^(\d+(?:\.\d+)?)(万|亿)?$/.exec(text);
-  const digits = match?.[1];
-  if (!digits) return 0;
-  const multiplier = match?.[2] === '亿' ? 100_000_000 : match?.[2] === '万' ? 10_000 : 1;
-  const heat = Math.round(Number(digits) * multiplier);
-  return Number.isFinite(heat) ? heat : 0;
 }
 
 /** Prefer the 16:9 cover, then fall back to the square/vertical follow image. */
@@ -133,7 +122,7 @@ export class FollowedRoomsQuery {
             Number(item.hasvid) === 1 &&
             typeof item.vurl === 'string' &&
             item.vurl.trim().length > 0),
-        heat: parseHeat(item.online),
+        heat: parseDouyuHeat(item.online),
         ...(cover ? { cover } : {}),
       });
     }
