@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { RoomSearchItem } from '@shared/contracts/search';
 import type { StreamPlatform } from '@shared/contracts/stream';
 import { Icon } from './components/Icon';
 import { PlatformPicker } from './components/PlatformPicker';
@@ -10,7 +11,10 @@ import { RoomHistoryPanel } from './features/history/RoomHistoryPanel';
 import { useRoomHistory } from './features/history/useRoomHistory';
 import type { RoomHistoryEntry } from './features/history/roomHistory';
 import { HomePage } from './features/home/HomePage';
+import { RoomSearchPanel } from './features/home/RoomSearchPanel';
+import { MAX_SEARCH_ROWS, stepSearchHighlight } from './features/home/homeSearch';
 import { useFollowedRooms } from './features/home/useFollowedRooms';
+import { useRoomSearch } from './features/home/useRoomSearch';
 import { useSpecialFollows } from './features/home/useSpecialFollows';
 import { EmptyStage } from './features/player/EmptyStage';
 import { StreamGrid } from './features/player/StreamGrid';
@@ -109,6 +113,11 @@ export function App(): React.JSX.Element {
   const restoreToken = useRef(0);
   const attemptedRestore = useRef(false);
   const roomInputRef = useRef<HTMLInputElement>(null);
+  const roomSearchPanelRef = useRef<HTMLDivElement>(null);
+  const [roomSearchOpen, setRoomSearchOpen] = useState(false);
+  const [roomSearchHighlight, setRoomSearchHighlight] = useState(-1);
+  // 中文输入法拼写期间不要拿拼音去请求搜索，等选词结束后再搜。
+  const [roomSearchComposing, setRoomSearchComposing] = useState(false);
   const danmakuSettingsRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);
   const homeRefreshRef = useRef(false);
@@ -288,6 +297,16 @@ export function App(): React.JSX.Element {
 
   const canAdd = canAddStream(streams.length);
   const canSubmit = canAdd && roomId.trim().length > 0;
+  const roomQuery = roomId.trim();
+  // 房间号和直播间链接直接提交，其余输入按主播名/直播间标题去斗鱼搜索。
+  const roomQueryIsDirect = /^\d+$/.test(roomQuery) || /[/:]/.test(roomQuery);
+  const roomSearchEnabled = !roomSearchComposing && roomQuery.length > 0 && !roomQueryIsDirect;
+  // 搜索不随焦点开关，失焦后再聚焦可以立刻复用上次结果；只有下拉跟着焦点显示。
+  const roomSearchVisible = roomSearchOpen && roomSearchEnabled;
+  const roomSearch = useRoomSearch(roomId, roomSearchEnabled);
+  const roomSearchRows = Math.min(roomSearch.items.length, MAX_SEARCH_ROWS);
+  // 结果还没回来时先按“搜索中”展示，避免闪一下“没有找到”。
+  const roomSearchPending = roomSearch.loading || roomSearch.settledQuery !== roomQuery;
   const effectiveMainKey = streams.some(
     (entry) => mainStreamKey !== null && streamKey(entry.playback) === mainStreamKey,
   )
@@ -299,6 +318,11 @@ export function App(): React.JSX.Element {
   useEffect(() => {
     saveStreamLayoutMode(layoutMode);
   }, [layoutMode]);
+
+  // 关键词变化后旧的选中行不再有意义。
+  useEffect(() => {
+    setRoomSearchHighlight(-1);
+  }, [roomId]);
 
   async function handleAdd(targetPlatform: StreamPlatform, targetRoomId: string): Promise<void> {
     setError(null);
@@ -343,6 +367,57 @@ export function App(): React.JSX.Element {
     }
     void handleAdd(targetPlatform, targetRoomId);
   }
+
+  function handleRoomInputFocus(): void {
+    setRoomSearchOpen(true);
+  }
+
+  function handleRoomInputBlur(): void {
+    setRoomSearchOpen(false);
+    setRoomSearchHighlight(-1);
+  }
+
+  function openSearchItem(item: RoomSearchItem): void {
+    setRoomSearchOpen(false);
+    setRoomSearchHighlight(-1);
+    setRoomId('');
+    handleRoomQuickOpen(item.platform, item.roomId);
+  }
+
+  function moveRoomSearchHighlight(step: 1 | -1): void {
+    const next = stepSearchHighlight(roomSearchHighlight, step, roomSearchRows);
+    if (next < 0) return;
+    setRoomSearchHighlight(next);
+    window.requestAnimationFrame(() => {
+      roomSearchPanelRef.current
+        ?.querySelector<HTMLElement>(`[data-search-row="${next}"]`)
+        ?.scrollIntoView({ block: 'nearest' });
+    });
+  }
+
+  function handleRoomInputKeyDown(event: React.KeyboardEvent<HTMLInputElement>): void {
+    if (event.nativeEvent.isComposing) return;
+    if (event.key === 'Escape') {
+      if (!roomSearchVisible) return;
+      event.preventDefault();
+      event.stopPropagation();
+      handleRoomInputBlur();
+      return;
+    }
+    if (!roomSearchVisible) return;
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      moveRoomSearchHighlight(event.key === 'ArrowDown' ? 1 : -1);
+      return;
+    }
+    if (event.key === 'Enter' && roomSearchHighlight >= 0) {
+      const target = roomSearch.items[roomSearchHighlight];
+      if (!target) return;
+      event.preventDefault();
+      openSearchItem(target);
+    }
+  }
+
   const notificationOpenRef = useRef(handleRoomQuickOpen);
   notificationOpenRef.current = handleRoomQuickOpen;
   useEffect(
@@ -562,15 +637,43 @@ export function App(): React.JSX.Element {
           <PlatformPicker value={platform} onChange={setPlatform} />
 
           <div className="room-field">
-            <Icon name="roomLink" size={15} />
+            <Icon name="search" size={15} />
             <input
               ref={roomInputRef}
               value={roomId}
-              onChange={(event) => setRoomId(event.target.value)}
-              placeholder={`${roomPlaceholder(platform)} / 直播间链接`}
+              onChange={(event) => {
+                setRoomId(event.target.value);
+                // Esc 关掉下拉后继续输入，应该重新弹出来。
+                setRoomSearchOpen(true);
+              }}
+              onFocus={handleRoomInputFocus}
+              onBlur={handleRoomInputBlur}
+              onKeyDown={handleRoomInputKeyDown}
+              onCompositionStart={() => setRoomSearchComposing(true)}
+              onCompositionEnd={() => setRoomSearchComposing(false)}
+              placeholder={`${roomPlaceholder(platform)} / 主播名`}
+              title="输入房间号、主播名或完整直播间链接；主播名会下拉搜索斗鱼结果"
               spellCheck={false}
-              aria-label={`${platformLabel(platform)}房间号`}
+              role="combobox"
+              aria-label={`${platformLabel(platform)}房间号、主播名或直播间链接`}
+              aria-autocomplete="list"
+              aria-expanded={roomSearchVisible}
+              aria-controls="room-search-panel"
+              autoComplete="off"
             />
+            {roomSearchVisible ? (
+              <RoomSearchPanel
+                items={roomSearch.items}
+                query={roomQuery}
+                loading={roomSearchPending && roomSearch.error === null}
+                error={roomSearch.error}
+                highlighted={roomSearchHighlight}
+                panelRef={roomSearchPanelRef}
+                onRetry={roomSearch.retry}
+                onHighlight={setRoomSearchHighlight}
+                onSelect={openSearchItem}
+              />
+            ) : null}
           </div>
 
           <div className="history-anchor" ref={historyRef}>
