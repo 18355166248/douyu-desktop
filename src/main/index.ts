@@ -85,6 +85,7 @@ if (!hasLock) {
         : [...appWindows].find((window) => !window.isDestroyed());
     if (!target) return;
     if (target.isMinimized()) target.restore();
+    target.show();
     target.focus();
   });
 

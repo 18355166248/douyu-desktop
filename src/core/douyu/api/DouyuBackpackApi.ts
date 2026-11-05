@@ -33,6 +33,7 @@ export interface BackpackSummary {
 interface BackpackPayload {
   error?: number | string;
   msg?: string;
+  message?: string;
   data?: {
     list?: Array<{
       id?: string | number;
@@ -108,10 +109,24 @@ export class DouyuBackpackApi {
       signal,
       retry: 'safe',
     });
+    if (response.status === 401) {
+      throw new AppError('AUTH_EXPIRED', '登录已过期，请重新登录斗鱼');
+    }
     if (response.status !== 200) {
       throw new AppError('UPSTREAM', `背包礼物获取失败（HTTP ${response.status}）`);
     }
-    const payload = (await readJson<BackpackPayload>(response)) ?? {};
+    const payload = await readJson<BackpackPayload>(response);
+    const message = (payload?.msg ?? payload?.message ?? '').trim();
+    if (message.includes('登录')) {
+      throw new AppError('AUTH_EXPIRED', message || '登录已过期，请重新登录斗鱼');
+    }
+    if (payload?.error !== undefined && Number(payload.error) !== 0) {
+      throw new AppError('UPSTREAM', `背包礼物获取失败：${message || `错误码 ${payload.error}`}`);
+    }
+    // 错误响应、HTML 和接口结构变化都不能解释成空背包；只有明确的空列表才是空。
+    if (!Array.isArray(payload?.data?.list)) {
+      throw new AppError('UPSTREAM', '背包礼物获取失败：接口未返回礼物列表，请稍后重试');
+    }
     return parseBackpack(payload);
   }
 
@@ -133,7 +148,8 @@ export class DouyuBackpackApi {
       },
       body: `propId=${encodeURIComponent(propId)}&propCount=${count}&roomId=${encodeURIComponent(roomId)}&bizExt=${BIZ_EXT}`,
       signal,
-      retry: 'safe',
+      // 送礼会消耗库存，网络超时后重试可能重复赠送。
+      retry: 'none',
     });
     const payload =
       (await readJson<{ error?: number | string; msg?: string; message?: string }>(response)) ?? {};

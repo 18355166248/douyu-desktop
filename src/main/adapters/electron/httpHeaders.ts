@@ -4,25 +4,41 @@
  * 跨域时只能降级成源）。斗鱼/虎牙的开播状态接口都是跨源带路径 Referer，
  * 于是整条请求被 block、状态接口静默失败。
  *
- * 解决方式是改走 fetch 的 `referrer` 选项：Chromium 会按 referrer policy 处理它，
- * 跨域降级到源、同源保留完整路径，两种接口都能拿到数据。
+ * 跨源请求改走 fetch 的 `referrer` 选项。同源接口保留 Referer 请求头：
+ * 主进程没有页面来源，session.fetch 的 referrer 选项不会可靠地发送它，
+ * 斗鱼仓库/赠送接口因此返回 403「非法请求」。
  */
 export interface SplitReferrerHeaders {
   headers: Record<string, string>;
   referrer: string | undefined;
 }
 
-export function extractReferrer(headers: Record<string, string> | undefined): SplitReferrerHeaders {
+export function extractReferrer(
+  headers: Record<string, string> | undefined,
+  requestUrl?: string,
+): SplitReferrerHeaders {
   if (!headers) return { headers: {}, referrer: undefined };
 
   const rest: Record<string, string> = {};
   let referrer: string | undefined;
   for (const [key, value] of Object.entries(headers)) {
     if (key.toLowerCase() === 'referer') {
+      if (requestUrl && isSameOrigin(value, requestUrl)) {
+        rest[key] = value;
+        continue;
+      }
       referrer = value;
       continue;
     }
     rest[key] = value;
   }
   return { headers: rest, referrer };
+}
+
+function isSameOrigin(referrer: string, requestUrl: string): boolean {
+  try {
+    return new URL(referrer).origin === new URL(requestUrl).origin;
+  } catch {
+    return false;
+  }
 }

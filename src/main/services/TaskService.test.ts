@@ -53,6 +53,7 @@ function createService(
     fetch: async (url: string) => {
       if (gate) await gate;
       if (url.includes('/member/cp/getFansBadgeList')) return fakeHtml(FANS_HTML);
+      if (url.includes('/prop/backpack/web/')) return fakeJson({ error: 0, data: { list: [] } });
       if (url.includes('/japi/interactnc/web/fanshome/sign')) {
         return fakeJson({ error: 0, msg: '操作成功' });
       }
@@ -123,7 +124,8 @@ describe('TaskService background run state', () => {
     expect(service.status()?.result).toEqual(result);
   });
 
-  it('runs the whole daily set under one run id', async () => {    const { service } = createService();
+  it('runs the whole daily set under one run id', async () => {
+    const { service } = createService();
     const result = await service.run({ taskId: 'douyu.daily-all', dryRun: false });
 
     expect(result.taskId).toBe('douyu.daily-all');

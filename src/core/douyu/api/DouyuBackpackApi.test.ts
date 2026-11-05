@@ -32,7 +32,15 @@ describe('parseBackpack', () => {
             isValuable: '1',
             batchInfo: {},
           },
-          { id: '2358', name: '弱鸡', count: 5, price: 300, intimate: 1, isValuable: '1', batchInfo: { a: 1 } },
+          {
+            id: '2358',
+            name: '弱鸡',
+            count: 5,
+            price: 300,
+            intimate: 1,
+            isValuable: '1',
+            batchInfo: { a: 1 },
+          },
           { id: 9999, name: '空礼物', count: 0 },
           { name: '无 id' },
         ],
@@ -62,6 +70,50 @@ describe('parseBackpack', () => {
 });
 
 describe('DouyuBackpackApi', () => {
+  it.each([
+    { error: 403, msg: '非法请求', data: {} },
+    { error: '403', message: '非法请求', data: { list: [] } },
+    { error: 0, data: {} },
+    null,
+  ])('does not report an invalid backpack response as an empty bag: %j', async (payload) => {
+    const http: HttpClient = { request: async () => jsonResponse(payload) };
+    await expect(new DouyuBackpackApi(http, auth).list('138243')).rejects.toMatchObject({
+      code: 'UPSTREAM',
+    });
+  });
+
+  it('reports an expired login while reading the backpack', async () => {
+    const http: HttpClient = {
+      request: async () => jsonResponse({ error: 1, msg: '请先登录', data: {} }),
+    };
+    await expect(new DouyuBackpackApi(http, auth).list('138243')).rejects.toMatchObject({
+      code: 'AUTH_EXPIRED',
+    });
+  });
+
+  it('accepts an explicitly empty backpack', async () => {
+    const http: HttpClient = {
+      request: async () => jsonResponse({ error: 0, data: { list: [] } }),
+    };
+    await expect(new DouyuBackpackApi(http, auth).list('138243')).resolves.toMatchObject({
+      units: 0,
+    });
+  });
+
+  it('reads all 100 glow sticks available for room 138243', async () => {
+    const http: HttpClient = {
+      request: async () =>
+        jsonResponse({
+          error: 0,
+          data: { list: [{ id: 268, name: '荧光棒', count: '100', batchInfo: {} }] },
+        }),
+    };
+    await expect(new DouyuBackpackApi(http, auth).list('138243')).resolves.toMatchObject({
+      units: 100,
+      gifts: [{ propId: '268', name: '荧光棒', count: 100 }],
+    });
+  });
+
   it('reads the backpack for the given room', async () => {
     const requests: HttpRequest[] = [];
     const http: HttpClient = {
@@ -93,6 +145,7 @@ describe('DouyuBackpackApi', () => {
     expect(requests[0]).toMatchObject({
       url: 'https://www.douyu.com/japi/prop/donate/mainsite/v1',
       method: 'POST',
+      retry: 'none',
       body: 'propId=268&propCount=25&roomId=9999&bizExt=%7B%22yzxq%22%3A%7B%7D%7D',
     });
     expect(requests[0]?.headers).toMatchObject({
@@ -105,9 +158,10 @@ describe('DouyuBackpackApi', () => {
       request: async () => jsonResponse({ error: 0, msg: '礼物数量不足' }),
     };
 
-    await expect(
-      new DouyuBackpackApi(http, auth).donate('9999', '268', 999),
-    ).resolves.toEqual({ ok: false, message: '礼物数量不足' });
+    await expect(new DouyuBackpackApi(http, auth).donate('9999', '268', 999)).resolves.toEqual({
+      ok: false,
+      message: '礼物数量不足',
+    });
   });
 
   it('surfaces an expired login', async () => {

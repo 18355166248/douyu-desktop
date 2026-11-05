@@ -30,9 +30,7 @@ export class SessionHttpClient implements HttpClient {
       : controller.signal;
 
     try {
-      // Referer 不能作为请求头跨域发送（会被 Chromium 判为 BLOCKED_BY_CLIENT），
-      // 这里改走 referrer 选项，让 fetch 按 referrer policy 处理。
-      const { headers, referrer } = extractReferrer(request.headers);
+      const { headers, referrer } = extractReferrer(request.headers, request.url);
       const response = await this.session.fetch(request.url, {
         method: request.method ?? 'GET',
         credentials: 'include',
