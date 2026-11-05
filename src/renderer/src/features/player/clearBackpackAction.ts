@@ -53,7 +53,7 @@ export function describeClearBackpackPreview(
 
 /** 把任务结果压成卡片上的一行提示。 */
 export function clearBackpackOutcome(
-  result: Pick<TaskRunResult, 'status' | 'summary' | 'metrics'>,
+  result: Pick<TaskRunResult, 'status' | 'summary' | 'metrics' | 'details'>,
 ): ClearBackpackOutcome {
   const metrics = result.metrics;
   if (result.status === 'success') {
@@ -63,10 +63,16 @@ export function clearBackpackOutcome(
     };
   }
   if (result.status === 'partial') {
+    const failures = result.details?.failures;
+    const first = Array.isArray(failures) ? failures[0] : undefined;
+    const reason =
+      first && typeof first === 'object' && typeof first.message === 'string'
+        ? first.message.trim()
+        : '';
     return {
       tone: 'partial',
       text: metrics
-        ? `送出 ${metrics.succeeded} 个，失败 ${metrics.failed} 个`
+        ? `送出 ${metrics.succeeded} 个，失败 ${metrics.failed} 个${reason ? `，原因：${reason}` : ''}`
         : result.summary,
     };
   }

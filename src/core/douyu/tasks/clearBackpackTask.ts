@@ -102,7 +102,9 @@ export function createClearBackpackTask(deps: ClearBackpackDeps): TaskDefinition
 
         if (gift.batchable) {
           const count = Math.min(gift.count, budget);
-          const outcome = await send(ctx, () => deps.backpack.donate(roomId, gift.propId, count, ctx.signal));
+          const outcome = await send(ctx, () =>
+            deps.backpack.donate(roomId, gift.propId, count, ctx.signal),
+          );
           budget -= count;
           if (outcome.ok) {
             sent += count;
@@ -116,7 +118,9 @@ export function createClearBackpackTask(deps: ClearBackpackDeps): TaskDefinition
         }
 
         for (let unit = 0; unit < gift.count && budget > 0; unit += 1) {
-          const outcome = await send(ctx, () => deps.backpack.donate(roomId, gift.propId, 1, ctx.signal));
+          const outcome = await send(ctx, () =>
+            deps.backpack.donate(roomId, gift.propId, 1, ctx.signal),
+          );
           budget -= 1;
           if (outcome.ok) sent += 1;
           else {
@@ -131,7 +135,7 @@ export function createClearBackpackTask(deps: ClearBackpackDeps): TaskDefinition
       const status = failed === 0 ? 'success' : sent === 0 ? 'failed' : 'partial';
       const outcome: TaskOutcome = {
         status,
-        summary: buildSummary(sent, failed, summary.valueYuan, truncated),
+        summary: buildSummary(sent, failed, summary.valueYuan, truncated, failures[0]?.message),
         metrics: { total, succeeded: sent, failed },
         details: {
           roomId,
@@ -178,9 +182,11 @@ function buildSummary(
   failed: number,
   valueYuan: number,
   truncated: boolean,
+  failureMessage?: string,
 ): string {
   const parts = [`清空背包：送出 ${sent} 个礼物${valueLabel(valueYuan)}`];
   if (failed > 0) parts.push(`失败 ${failed} 个`);
+  if (failed > 0 && failureMessage) parts.push(`原因：${failureMessage}`);
   if (truncated) parts.push(`单次最多送 ${MAX_UNITS} 个，剩余留到下次`);
   return parts.join('，');
 }

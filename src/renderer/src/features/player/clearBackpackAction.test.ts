@@ -27,7 +27,10 @@ describe('buildClearBackpackInput', () => {
 describe('describeClearBackpackPreview', () => {
   it('offers the confirm button when the backpack has gifts', () => {
     expect(
-      describeClearBackpackPreview({ status: 'success', summary: '将送出 7 个背包礼物（价值 ¥1.75）' }),
+      describeClearBackpackPreview({
+        status: 'success',
+        summary: '将送出 7 个背包礼物（价值 ¥1.75）',
+      }),
     ).toEqual({
       sendable: true,
       tone: 'success',
@@ -49,6 +52,17 @@ describe('describeClearBackpackPreview', () => {
 });
 
 describe('clearBackpackOutcome', () => {
+  it('keeps the platform failure reason visible after a partial send', () => {
+    expect(
+      clearBackpackOutcome({
+        status: 'partial',
+        summary: '部分礼物没能送出',
+        metrics: { total: 100, succeeded: 20, failed: 80 },
+        details: { failures: [{ message: '礼物数量不足' }] },
+      }),
+    ).toEqual({ tone: 'partial', text: '送出 20 个，失败 80 个，原因：礼物数量不足' });
+  });
+
   it('reports how many gifts were sent', () => {
     expect(
       clearBackpackOutcome({
@@ -70,9 +84,10 @@ describe('clearBackpackOutcome', () => {
   });
 
   it('passes the summary through when there is nothing to count', () => {
-    expect(
-      clearBackpackOutcome({ status: 'skipped', summary: '背包里没有可送出的礼物' }),
-    ).toEqual({ tone: 'skipped', text: '背包里没有可送出的礼物' });
+    expect(clearBackpackOutcome({ status: 'skipped', summary: '背包里没有可送出的礼物' })).toEqual({
+      tone: 'skipped',
+      text: '背包里没有可送出的礼物',
+    });
 
     expect(clearBackpackOutcome({ status: 'failed', summary: '房间不存在' })).toEqual({
       tone: 'failed',

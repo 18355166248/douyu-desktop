@@ -34,6 +34,7 @@ export function ClearBackpackButton({
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const popRef = useRef<HTMLDivElement | null>(null);
+  const runningRef = useRef(false);
 
   useDismissableLayer({
     open,
@@ -44,10 +45,10 @@ export function ClearBackpackButton({
   });
 
   useEffect(() => {
-    if (!preview) return;
+    if (!open || (!preview && !outcome)) return;
     // 焦点给「取消」而不是「确认送出」：送礼不可撤销，键盘用户不该连按两次 Enter 就送出去。
     popRef.current?.querySelector<HTMLButtonElement>('[data-action="cancel"]')?.focus();
-  }, [preview]);
+  }, [preview, outcome, open]);
 
   useEffect(() => {
     if (open || !outcome) return;
@@ -56,6 +57,8 @@ export function ClearBackpackButton({
   }, [open, outcome]);
 
   async function runTask(dryRun: boolean): Promise<void> {
+    if (runningRef.current) return;
+    runningRef.current = true;
     setBusy(true);
     try {
       const result = unwrap(await window.api.tasks.run(buildClearBackpackInput(roomId, dryRun)));
@@ -64,7 +67,7 @@ export function ClearBackpackButton({
       } else {
         const next = clearBackpackOutcome(result);
         setOutcome(next);
-        setOpen(false);
+        setPreview(null);
       }
     } catch (error) {
       const text = errorMessage(error);
@@ -72,18 +75,24 @@ export function ClearBackpackButton({
         setPreview({ sendable: false, tone: 'failed', text });
       } else {
         setOutcome({ tone: 'failed', text });
-        setOpen(false);
+        setPreview(null);
       }
     } finally {
+      runningRef.current = false;
       setBusy(false);
     }
   }
 
-  function openPanel(): void {
-    setOpen(true);
+  function refreshPreview(): void {
+    if (runningRef.current) return;
     setPreview(null);
     setOutcome(null);
     void runTask(true);
+  }
+
+  function openPanel(): void {
+    setOpen(true);
+    if (!outcome) refreshPreview();
   }
 
   return (
@@ -94,8 +103,8 @@ export function ClearBackpackButton({
         className={`icon-btn clear-backpack${open ? ' is-open' : ''}`}
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={`清空背包，把礼物送给房间 ${roomId}`}
-        title="把背包礼物全部送给这个直播间"
+        aria-label={`清空背包，把礼物送给房间 ${roomId}${outcome ? `，${outcome.text}` : ''}`}
+        title={outcome?.text ?? '把背包礼物全部送给这个直播间'}
         onClick={() => {
           if (open) {
             setOpen(false);
@@ -136,6 +145,12 @@ export function ClearBackpackButton({
             <p className={`clear-backpack-pop-text is-${preview.tone}`}>{preview.text}</p>
           ) : null}
 
+          {outcome ? (
+            <p className={`clear-backpack-pop-text is-${outcome.tone}`} role="status">
+              {outcome.text}
+            </p>
+          ) : null}
+
           <p className="clear-backpack-pop-note">
             送出后无法撤回；礼物只送给这个直播间，可在任务记录里查看进度。
           </p>
@@ -160,7 +175,11 @@ export function ClearBackpackButton({
               >
                 {busy ? '送出中…' : '确认送出'}
               </button>
-            ) : null}
+            ) : (
+              <button type="button" className="btn subtle" disabled={busy} onClick={refreshPreview}>
+                重新读取
+              </button>
+            )}
           </div>
         </div>
       ) : null}

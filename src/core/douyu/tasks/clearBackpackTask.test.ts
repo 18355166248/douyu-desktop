@@ -97,6 +97,7 @@ describe('clearBackpackTask', () => {
     const outcome = await task.run(makeCtx(), { roomId: '9999' });
 
     expect(outcome.status).toBe('partial');
+    expect(outcome.summary).toContain('原因：礼物数量不足');
     expect(outcome.metrics).toEqual({ total: 7, succeeded: 2, failed: 5 });
     expect(outcome.details).toMatchObject({
       failures: [{ propId: '2358', count: 5, message: '礼物数量不足' }],

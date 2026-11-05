@@ -161,6 +161,7 @@ export function PlayerTile({
           {isMain ? <span className="player-main-badge">主画面</span> : null}
           {playback.platform === 'douyu' ? (
             <ClearBackpackButton
+              key={playback.roomId}
               roomId={playback.roomId}
               anchorName={playback.anchorName ?? undefined}
               compact={compact}
