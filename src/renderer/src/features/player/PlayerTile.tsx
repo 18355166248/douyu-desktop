@@ -114,8 +114,10 @@ export function PlayerTile({
             LIVE
           </span>
           <div>
-            <h2>{playback.title || `房间 ${playback.roomId}`}</h2>
-            <p>
+            <h2 title={playback.title || `房间 ${playback.roomId}`}>
+              {playback.title || `房间 ${playback.roomId}`}
+            </h2>
+            <p title={`${anchorName} · 房间 ${playback.roomId}`}>
               {anchorName} · 房间 {playback.roomId}
             </p>
           </div>

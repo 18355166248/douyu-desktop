@@ -1,4 +1,6 @@
 import { useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { useAnchoredPanel } from '../lib/useAnchoredPanel';
 import type { ReactNode, RefObject } from 'react';
 import { useDismissableLayer } from '../lib/useDismissableLayer';
 
@@ -13,8 +15,7 @@ export interface FloatingPanelProps {
 }
 
 /**
- * Shared non-modal floating panel. Placement and sizing stay in the caller's
- * class, while dismissal, Escape handling and focus return live here.
+ * Non-modal panel that escapes clipped cards and stays inside the viewport.
  */
 export function FloatingPanel({
   open,
@@ -26,6 +27,7 @@ export function FloatingPanel({
   children,
 }: FloatingPanelProps): React.JSX.Element | null {
   const panelRef = useRef<HTMLElement>(null);
+  useAnchoredPanel(open, triggerRef, panelRef);
 
   useDismissableLayer({
     open,
@@ -37,7 +39,7 @@ export function FloatingPanel({
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <section
       ref={panelRef}
       id={panelId}
@@ -46,6 +48,7 @@ export function FloatingPanel({
       aria-label={label}
     >
       {children}
-    </section>
+    </section>,
+    document.body,
   );
 }

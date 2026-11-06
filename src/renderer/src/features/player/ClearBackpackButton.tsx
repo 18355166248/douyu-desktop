@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useAnchoredPanel } from '../../lib/useAnchoredPanel';
 import { Icon } from '../../components/Icon';
 import { errorMessage, unwrap } from '../../lib/api';
 import { useDismissableLayer } from '../../lib/useDismissableLayer';
@@ -35,6 +37,8 @@ export function ClearBackpackButton({
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const popRef = useRef<HTMLDivElement | null>(null);
   const runningRef = useRef(false);
+
+  useAnchoredPanel(open, buttonRef, popRef);
 
   useDismissableLayer({
     open,
@@ -123,66 +127,74 @@ export function ClearBackpackButton({
         ) : null}
       </button>
 
-      {open ? (
-        <div
-          className="clear-backpack-pop"
-          role="dialog"
-          aria-label={`清空背包，房间 ${roomId}`}
-          ref={popRef}
-        >
-          <header className="clear-backpack-pop-head">
-            <strong>清空背包</strong>
-            <span>{anchorName ? `${anchorName} · 房间 ${roomId}` : `房间 ${roomId}`}</span>
-          </header>
-
-          {busy && !preview ? (
-            <p className="clear-backpack-pop-text">
-              <Icon name="loading" size={13} /> 正在读取背包…
-            </p>
-          ) : null}
-
-          {preview ? (
-            <p className={`clear-backpack-pop-text is-${preview.tone}`}>{preview.text}</p>
-          ) : null}
-
-          {outcome ? (
-            <p className={`clear-backpack-pop-text is-${outcome.tone}`} role="status">
-              {outcome.text}
-            </p>
-          ) : null}
-
-          <p className="clear-backpack-pop-note">
-            送出后无法撤回；礼物只送给这个直播间，可在任务记录里查看进度。
-          </p>
-
-          <div className="clear-backpack-pop-actions">
-            <button
-              type="button"
-              data-action="cancel"
-              className="btn subtle"
-              onClick={() => setOpen(false)}
-              disabled={busy}
+      {open
+        ? createPortal(
+            <div
+              className="clear-backpack-pop"
+              role="dialog"
+              aria-label={`清空背包，房间 ${roomId}`}
+              ref={popRef}
             >
-              {preview?.sendable ? '取消' : '关闭'}
-            </button>
-            {preview?.sendable ? (
-              <button
-                type="button"
-                data-action="confirm"
-                className="btn danger"
-                disabled={busy}
-                onClick={() => void runTask(false)}
-              >
-                {busy ? '送出中…' : '确认送出'}
-              </button>
-            ) : (
-              <button type="button" className="btn subtle" disabled={busy} onClick={refreshPreview}>
-                重新读取
-              </button>
-            )}
-          </div>
-        </div>
-      ) : null}
+              <header className="clear-backpack-pop-head">
+                <strong>清空背包</strong>
+                <span>{anchorName ? `${anchorName} · 房间 ${roomId}` : `房间 ${roomId}`}</span>
+              </header>
+
+              {busy && !preview ? (
+                <p className="clear-backpack-pop-text">
+                  <Icon name="loading" size={13} /> 正在读取背包…
+                </p>
+              ) : null}
+
+              {preview ? (
+                <p className={`clear-backpack-pop-text is-${preview.tone}`}>{preview.text}</p>
+              ) : null}
+
+              {outcome ? (
+                <p className={`clear-backpack-pop-text is-${outcome.tone}`} role="status">
+                  {outcome.text}
+                </p>
+              ) : null}
+
+              <p className="clear-backpack-pop-note">
+                送出后无法撤回；礼物只送给这个直播间，可在任务记录里查看进度。
+              </p>
+
+              <div className="clear-backpack-pop-actions">
+                <button
+                  type="button"
+                  data-action="cancel"
+                  className="btn subtle"
+                  onClick={() => setOpen(false)}
+                  disabled={busy}
+                >
+                  {preview?.sendable ? '取消' : '关闭'}
+                </button>
+                {preview?.sendable ? (
+                  <button
+                    type="button"
+                    data-action="confirm"
+                    className="btn danger"
+                    disabled={busy}
+                    onClick={() => void runTask(false)}
+                  >
+                    {busy ? '送出中…' : '确认送出'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn subtle"
+                    disabled={busy}
+                    onClick={refreshPreview}
+                  >
+                    重新读取
+                  </button>
+                )}
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

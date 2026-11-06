@@ -83,6 +83,7 @@
 }
 
 .player-card {
+  container-type: inline-size;
   position: relative;
   display: flex;
   flex: 1;
@@ -151,6 +152,9 @@
 }
 
 .player-title p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   margin: 1px 0 0;
   color: var(--dim);
   font-size: 10px;
@@ -181,7 +185,7 @@
 
 /**
  * 「清空背包」：按钮固定在标题栏里，确认过程走锚定浮层，
- * 浮层用绝对定位脱离布局流，所以开关它都不会挤动标题栏。
+ * 浮层挂载到页面顶层并跟随按钮定位，避免被小窗和直播卡片裁切。
  */
 .clear-backpack-wrap {
   position: relative;
@@ -227,14 +231,13 @@
 }
 
 .clear-backpack-pop {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: 40;
+  position: fixed;
+  z-index: 200;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  width: 258px;
+  width: min(258px, calc(100vw - 16px));
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -476,8 +479,8 @@
 }
 
 .floating-panel {
-  position: absolute;
-  z-index: 40;
+  position: fixed;
+  z-index: 200;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -487,11 +490,9 @@
 }
 
 .room-rankings {
-  top: calc(100% + 6px);
-  right: 10px;
   display: flex;
   flex-direction: column;
-  width: min(600px, calc(100% - 24px));
+  width: min(540px, calc(100vw - 16px));
   max-height: 380px;
   padding: 10px 16px;
 }
@@ -2101,4 +2102,43 @@
   top: 8px;
   right: 8px;
   font-size: 8px;
+}
+
+/* 根据卡片自身宽度调整，而不是依赖整个应用窗口的宽度。 */
+@container (max-width: 620px) {
+  .player-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 5px;
+  }
+
+  .player-title {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .player-actions {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .player-head > .douyu-audience {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-width: 0;
+  }
+
+  .player-head .room-audience {
+    justify-content: space-between;
+  }
+}
+
+@container (max-width: 400px) {
+  .player-title > .live-pill {
+    display: none;
+  }
+
+  .player-head .room-audience-metrics {
+    gap: 6px;
+  }
 }
