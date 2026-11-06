@@ -110,6 +110,11 @@ export class DanmakuEngine {
     }
   }
 
+  clearQueue(): void {
+    // Keep active animations and their lane reservations intact.
+    this.queue = [];
+  }
+
   clear(): void {
     this.cancelGeometryTimer();
     for (const item of [...this.active]) {

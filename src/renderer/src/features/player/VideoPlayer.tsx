@@ -65,7 +65,8 @@ export function VideoPlayer({
   onReplace,
 }: VideoPlayerProps): React.JSX.Element {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const playbackState = useVideoPlayback(videoRef, playback);
+  const mediaContainerRef = useRef<HTMLDivElement>(null);
+  const playbackState = useVideoPlayback(videoRef, playback, mediaContainerRef, muted, volume);
   const { isReady, isPlaying, userPaused, userPausedRef, error, togglePlayback } = playbackState;
   const wasReloadingRef = useRef(false);
   const autoRecoveredRef = useRef(false);
@@ -82,9 +83,10 @@ export function VideoPlayer({
   const { settings, update } = useDanmakuSettings();
   const stall = useStreamStall(
     videoRef,
-    !error && !isReloading && !playbackState.playBlocked,
+    !error && !isReloading && !playbackState.recovering && !playbackState.playBlocked,
     userPausedRef,
     playbackVisible,
+    playbackState.videoRevision,
   );
   const { stalled: streamStalled, dismiss: dismissStall } = stall;
   const qualityOptions = qualityOptionsFor(playback.platform);
@@ -110,14 +112,8 @@ export function VideoPlayer({
   const needsBilibiliLogin =
     playback.platform === 'bilibili' && bilibiliLogin.data?.loggedIn === false;
 
-  useEffect(() => {
-    const video = videoRef.current;
-    if (video) video.muted = muted;
-  }, [muted]);
-
-  // The refresh button re-resolves the stream but keeps the same room. Danmaku
-  // owns a separate socket, so remount the overlay to reconnect it as well.
-  useEffect(() => {
+  // Refresh the connection without remounting the running danmaku animations.
+  useLayoutEffect(() => {
     if (isReloading && !wasReloadingRef.current) {
       setDanmakuRevision((revision) => revision + 1);
     }
@@ -133,7 +129,13 @@ export function VideoPlayer({
   // automatic recovery is about to start.
   useLayoutEffect(() => {
     // 播放器致命错误会关闭卡顿检测，必须同时进入有次数限制的重新解析。
-    if ((!streamStalled && !error) || isReloading || userPausedRef.current) return;
+    if (
+      (!streamStalled && !error) ||
+      isReloading ||
+      playbackState.recovering ||
+      userPausedRef.current
+    )
+      return;
     if (autoRecoveredRef.current) {
       setAutoRecovering(false);
       return;
@@ -143,21 +145,25 @@ export function VideoPlayer({
     setAutoRecovering(true);
     dismissStall();
     onReloadRef.current();
-  }, [dismissStall, error, isReloading, streamStalled, userPaused, userPausedRef]);
+  }, [
+    dismissStall,
+    error,
+    isReloading,
+    playbackState.recovering,
+    streamStalled,
+    userPaused,
+    userPausedRef,
+  ]);
 
   useEffect(() => {
-    if (!isReady || !isPlaying || error || isReloading || streamStalled) return undefined;
+    if (!isReady || !isPlaying || error || isReloading || playbackState.recovering || streamStalled)
+      return undefined;
     const timer = window.setTimeout(() => {
       autoRecoveredRef.current = false;
       setAutoRecovering(false);
     }, AUTO_RECOVERY_RESET_MS);
     return () => window.clearTimeout(timer);
-  }, [error, isPlaying, isReady, isReloading, streamStalled]);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (video) video.volume = Math.min(1, Math.max(0, volume));
-  }, [volume]);
+  }, [error, isPlaying, isReady, isReloading, playbackState.recovering, streamStalled]);
 
   const closeContextMenu = useCallback((): void => {
     setContextMenu(null);
@@ -306,14 +312,7 @@ export function VideoPlayer({
           controls.scheduleHide();
         }}
       >
-        <video
-          ref={videoRef}
-          className="video"
-          muted={muted}
-          playsInline
-          preload="auto"
-          controls={false}
-        />
+        <div ref={mediaContainerRef} className="video-media" />
 
         <div
           className={`video-topline${controls.visible ? ' is-visible' : ''}`}
@@ -334,15 +333,14 @@ export function VideoPlayer({
         />
 
         <DanmakuOverlay
-          key={`${playback.platform}:${playback.roomId}:${danmakuRevision}`}
+          key={`${playback.platform}:${playback.roomId}`}
+          reconnectToken={danmakuRevision + playbackState.reconnects}
           roomId={playback.roomId}
           platform={playback.platform}
-          suspended={
-            !playbackVisible || !isPlaying || isReloading || streamStalled || Boolean(error)
-          }
+          suspended={!playbackVisible || userPaused}
         />
 
-        {autoRecovering && isReloading ? (
+        {autoRecovering && isReloading && !isReady ? (
           <div className="video-stall is-auto" role="status" aria-live="polite">
             <span className="video-stall-icon" aria-hidden="true">
               <span className="spinner video-stall-spinner" />
@@ -395,11 +393,25 @@ export function VideoPlayer({
           </div>
         ) : null}
 
-        {error ? (
+        {error && !isReady ? (
           <div className="video-error selectable">
             <Icon name="alert" size={24} />
             <strong>{error}</strong>
             <span>可以尝试重新解析，或切换 HLS 模式。</span>
+          </div>
+        ) : null}
+
+        {playbackState.replacementError || (error && isReady) ? (
+          <div className="video-reconnect-notice" role="status">
+            {playbackState.replacementError || error}
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={onReload}
+              disabled={isReloading || playbackState.preparing}
+            >
+              重试
+            </button>
           </div>
         ) : null}
 
@@ -525,7 +537,7 @@ export function VideoPlayer({
               onClick={() => onOptionsChange({ preferHls: !preferHls })}
               disabled={isReloading}
               aria-pressed={preferHls}
-              title={`优先使用 HLS（当前 ${playback.format.toUpperCase()}）`}
+              title={`优先使用 HLS（当前 ${(playbackState.activePlayback ?? playback).format.toUpperCase()}）`}
             >
               HLS
             </button>
@@ -576,7 +588,7 @@ export function VideoPlayer({
       {diagnosticsOpen ? (
         <PlaybackDiagnostics
           videoRef={videoRef}
-          playback={playback}
+          playback={playbackState.activePlayback ?? playback}
           status={playbackStatus}
           reconnects={playbackState.reconnects}
           reparses={playbackState.reparses}

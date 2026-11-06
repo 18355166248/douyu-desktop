@@ -697,6 +697,34 @@
   color: var(--accent);
 }
 
+.video-media {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.video-media > .video {
+  position: absolute;
+  inset: 0;
+}
+
+.video-reconnect-notice {
+  position: absolute;
+  z-index: 4;
+  right: 12px;
+  bottom: 64px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgb(26 18 12 / 85%);
+  color: #ffd8a8;
+  font-size: 11px;
+}
+
 .video {
   display: block;
   width: 100%;

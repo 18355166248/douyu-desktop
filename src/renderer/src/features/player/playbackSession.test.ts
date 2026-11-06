@@ -105,6 +105,49 @@ async function start(paused = false, format = playback.format) {
 }
 
 describe('playback session recovery', () => {
+  it('stops deferred initialization after delegating an early native error', async () => {
+    const video = new FakeVideo();
+    const recovery = vi.fn();
+    cleanup = attachPlayback(video as unknown as HTMLVideoElement, playback, {
+      isUserPaused: () => false,
+      onError: vi.fn(),
+      onRecoveryRequired: recovery,
+    });
+    video.error = { code: 3 };
+    video.dispatchEvent(new Event('error'));
+    video.dispatchEvent(new Event('error'));
+    await vi.dynamicImportSettled();
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(recovery).toHaveBeenCalledOnce();
+    expect(mocks.FakeHls.instances).toHaveLength(0);
+    expect(video.play).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it.each(['hls', 'flv'] as const)(
+    'delegates visible %s recovery without detaching its media',
+    async (format) => {
+      const video = new FakeVideo();
+      const recovery = vi.fn();
+      cleanup = attachPlayback(
+        video as unknown as HTMLVideoElement,
+        {
+          ...playback,
+          format,
+          url: format === 'hls' ? playback.url : 'https://cdn.example/live.flv',
+        },
+        { isUserPaused: () => false, onError: vi.fn(), onRecoveryRequired: recovery },
+      );
+      await vi.dynamicImportSettled();
+      if (format === 'hls') mocks.FakeHls.instances[0]!.fail();
+      else mocks.flv.on.mock.calls.find(([event]) => event === 'complete')?.[1]();
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(recovery).toHaveBeenCalledOnce();
+      expect(mocks.flv.destroy).not.toHaveBeenCalled();
+      expect(mocks.FakeHls.instances[0]?.destroy ?? vi.fn()).not.toHaveBeenCalled();
+      expect(video.removeAttribute).not.toHaveBeenCalled();
+      expect(video.load).not.toHaveBeenCalled();
+    },
+  );
   it.each(['NotAllowedError', 'AbortError'])(
     'only surfaces an autoplay policy rejection, not an interrupted load: %s',
     async (name) => {

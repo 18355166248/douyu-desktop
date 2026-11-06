@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import type { StreamPlayback } from '@shared/contracts/stream';
-import { attachPlayback } from './playbackSession';
+import { SeamlessPlayback } from './seamlessPlayback';
 import { resumeLivePlayback } from './resumeLivePlayback';
 
 interface PlaybackState {
+  activePlayback: StreamPlayback | null;
   isReady: boolean;
+  preparing: boolean;
+  replacementError: string | null;
+  videoRevision: number;
   isPlaying: boolean;
   userPaused: boolean;
   recovering: boolean;
@@ -17,7 +21,11 @@ interface PlaybackState {
 }
 
 const initialState: PlaybackState = {
+  activePlayback: null,
   isReady: false,
+  preparing: false,
+  replacementError: null,
+  videoRevision: 0,
   isPlaying: false,
   userPaused: false,
   recovering: false,
@@ -31,15 +39,90 @@ const initialState: PlaybackState = {
 export function useVideoPlayback(
   videoRef: RefObject<HTMLVideoElement | null>,
   playback: StreamPlayback,
+  containerRef: RefObject<HTMLDivElement | null>,
+  muted: boolean,
+  volume: number,
 ) {
   const userPausedRef = useRef(false);
   const roomRef = useRef<string | null>(null);
   const sessionRef = useRef(0);
   const [state, setState] = useState<PlaybackState>(initialState);
 
+  const controllerRef = useRef<SeamlessPlayback | null>(null);
+
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
+    const container = containerRef.current;
+    if (!container) return;
+    const controller = new SeamlessPlayback(container, {
+      isUserPaused: () => userPausedRef.current,
+      onSource: (activePlayback) => setState((previous) => ({ ...previous, activePlayback })),
+      onVideo: (video) => {
+        sessionRef.current += 1;
+        videoRef.current = video;
+        if (video)
+          setState((previous) => ({
+            ...previous,
+            preparing: false,
+            recovering: false,
+            error: null,
+            replacementError: null,
+            playBlocked: false,
+            videoRevision: previous.videoRevision + 1,
+          }));
+      },
+      onReady: () => setState((previous) => ({ ...previous, isReady: true })),
+      onPlaying: () =>
+        setState((previous) => ({
+          ...previous,
+          isReady: true,
+          isPlaying: true,
+          recovering: previous.preparing,
+          playBlocked: false,
+        })),
+      onWaiting: () => setState((previous) => ({ ...previous, isPlaying: false })),
+      onPreparing: () =>
+        setState((previous) => ({
+          ...previous,
+          preparing: true,
+          recovering: true,
+          replacementError: null,
+        })),
+      onError: (error) =>
+        setState((previous) => ({
+          ...previous,
+          error,
+          lastError: error,
+          preparing: false,
+          recovering: false,
+        })),
+      onReplacementError: (message) =>
+        setState((previous) => ({
+          ...previous,
+          replacementError: message,
+          lastError: message,
+          preparing: false,
+          recovering: false,
+        })),
+      onRecovering: (message) =>
+        setState((previous) => ({
+          ...previous,
+          preparing: true,
+          recovering: true,
+          reconnects: previous.reconnects + 1,
+          lastError: message,
+        })),
+      onPlayRejected: () =>
+        setState((previous) => ({ ...previous, playBlocked: true, isPlaying: false })),
+    });
+    controllerRef.current = controller;
+    return () => {
+      controller.destroy();
+      controllerRef.current = null;
+      roomRef.current = null;
+    };
+  }, [containerRef, videoRef]);
+
+  useEffect(() => {
     sessionRef.current += 1;
     const room = `${playback.platform}:${playback.roomId}`;
     const sameRoom = roomRef.current === room;
@@ -47,70 +130,18 @@ export function useVideoPlayback(
     if (!sameRoom) userPausedRef.current = false;
     setState((previous) => ({
       ...(sameRoom ? previous : initialState),
-      isReady: false,
-      isPlaying: false,
-      recovering: false,
-      playBlocked: false,
       error: null,
+      replacementError: null,
+      playBlocked: false,
       userPaused: userPausedRef.current,
       reparses: sameRoom ? previous.reparses + 1 : 0,
     }));
+    controllerRef.current?.setSource(playback);
+  }, [playback]);
 
-    const ready = (): void => setState((previous) => ({ ...previous, isReady: true }));
-    const playing = (): void => {
-      // 浏览器或底层播放器的自动播放也必须遵守用户暂停。
-      if (userPausedRef.current) {
-        video.pause();
-        return;
-      }
-      setState((previous) => ({
-        ...previous,
-        isReady: true,
-        isPlaying: true,
-        recovering: false,
-        playBlocked: false,
-      }));
-    };
-    const waiting = (): void => setState((previous) => ({ ...previous, isPlaying: false }));
-    const events = {
-      loadedmetadata: ready,
-      canplay: ready,
-      playing,
-      waiting,
-      seeking: waiting,
-      pause: waiting,
-      ended: waiting,
-    };
-    for (const [name, listener] of Object.entries(events)) video.addEventListener(name, listener);
-    const dispose = attachPlayback(video, playback, {
-      isUserPaused: () => userPausedRef.current,
-      onError: (error) =>
-        setState((previous) => ({
-          ...previous,
-          error,
-          lastError: error,
-          recovering: false,
-          isPlaying: false,
-        })),
-      onRecovering: (message) =>
-        setState((previous) => ({
-          ...previous,
-          isPlaying: false,
-          recovering: true,
-          playBlocked: false,
-          reconnects: previous.reconnects + 1,
-          lastError: message,
-        })),
-      onPlayRejected: () =>
-        setState((previous) => ({ ...previous, playBlocked: true, isPlaying: false })),
-    });
-    return () => {
-      sessionRef.current += 1;
-      for (const [name, listener] of Object.entries(events))
-        video.removeEventListener(name, listener);
-      dispose();
-    };
-  }, [playback, videoRef]);
+  useEffect(() => {
+    controllerRef.current?.setAudio(muted, volume);
+  }, [muted, volume]);
 
   const togglePlayback = useCallback((): void => {
     const video = videoRef.current;

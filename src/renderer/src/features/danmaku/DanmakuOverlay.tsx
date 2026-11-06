@@ -10,6 +10,7 @@ interface DanmakuOverlayProps {
   roomId: string;
   platform: DanmakuPlatform;
   suspended: boolean;
+  reconnectToken?: number;
 }
 
 function statusLabel(status: DanmakuStatusEvent): string {
@@ -33,21 +34,28 @@ export function DanmakuOverlay({
   roomId,
   platform,
   suspended,
+  reconnectToken = 0,
 }: DanmakuOverlayProps): React.JSX.Element {
   const trackRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<DanmakuEngine | null>(null);
   const giftFeedRef = useRef<GiftFeedHandle>(null);
   const { settings, clearToken } = useDanmakuSettings();
   const initialSettingsRef = useRef(settings);
-  const status = useDanmaku(roomId, platform, (event) => {
-    // 视频没有实际播放时丢弃实时消息，恢复后不补播断流期间的旧弹幕。
-    if (suspended) return;
-    if (event.kind === 'gift') {
-      giftFeedRef.current?.push(event);
-      return;
-    }
-    engineRef.current?.push(event);
-  });
+  const status = useDanmaku(
+    roomId,
+    platform,
+    (event) => {
+      // Explicit pause/hidden views discard messages; reconnects keep animations alive.
+      if (suspended) return;
+      if (event.kind === 'gift') {
+        giftFeedRef.current?.push(event);
+        return;
+      }
+      engineRef.current?.push(event);
+    },
+    reconnectToken,
+    () => engineRef.current?.clearQueue(),
+  );
 
   useLayoutEffect(() => {
     const track = trackRef.current;
@@ -68,6 +76,10 @@ export function DanmakuOverlay({
     engineRef.current?.clear();
     giftFeedRef.current?.clear();
   }, [suspended]);
+
+  useLayoutEffect(() => {
+    engineRef.current?.clearQueue();
+  }, [reconnectToken]);
 
   useEffect(() => {
     engineRef.current?.clear();

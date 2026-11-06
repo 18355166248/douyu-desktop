@@ -8,6 +8,8 @@ export function useDanmaku(
   roomId: string,
   platform: DanmakuPlatform,
   onEvent: (event: DanmakuEvent) => void,
+  reconnectToken = 0,
+  onResetQueue?: () => void,
 ): DanmakuStatusEvent {
   const [status, setStatus] = useState<DanmakuStatusEvent>({
     roomId,
@@ -17,8 +19,16 @@ export function useDanmaku(
   const onEventRef = useRef(onEvent);
   onEventRef.current = onEvent;
 
+  const resetRef = useRef(onResetQueue);
+  resetRef.current = onResetQueue;
+  const revisionRef = useRef(reconnectToken);
+  revisionRef.current = reconnectToken;
+
   useEffect(() => {
     let active = true;
+    const isCurrent = (): boolean => active && revisionRef.current === reconnectToken;
+    let lastStatus: DanmakuStatusEvent['status'] = 'connecting';
+    resetRef.current?.();
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     const stopRetries = (): void => {
       active = false;
@@ -26,14 +36,17 @@ export function useDanmaku(
     };
     let bilibili: BilibiliDanmakuClient | null = null;
     const emit = (event: DanmakuStatusEvent): void => {
-      if (active) setStatus(event);
+      if (!isCurrent()) return;
+      if (lastStatus !== event.status) resetRef.current?.();
+      lastStatus = event.status;
+      setStatus(event);
     };
     setStatus({ roomId, platform, status: 'connecting' });
 
     const startWithRetry = (start: () => Promise<void>, attempt = 0): void => {
-      if (!active) return;
+      if (!isCurrent()) return;
       void start().catch((error: unknown) => {
-        if (!active) return;
+        if (!isCurrent()) return;
         const delay = [1_000, 3_000, 8_000][attempt];
         if (delay === undefined) {
           emit({ roomId, platform, status: 'error', message: errorMessage(error) });
@@ -55,14 +68,14 @@ export function useDanmaku(
           .bilibiliConfig(roomId)
           .then((result) => unwrap(result))
           .then((config) => {
-            if (!active) return;
+            if (!isCurrent()) return;
             bilibili = new BilibiliDanmakuClient({
               roomId,
               host: config.host,
               token: config.token,
               refreshConfig: async () => unwrap(await window.api.danmaku.bilibiliConfig(roomId)),
               onEvent: (event) => {
-                if (active) onEventRef.current(event);
+                if (isCurrent()) onEventRef.current(event);
               },
               onStatus: emit,
             });
@@ -83,12 +96,12 @@ export function useDanmaku(
           .douyuConfig()
           .then((result) => unwrap(result))
           .then((config) => {
-            if (!active) return;
+            if (!isCurrent()) return;
             douyu = new DouyuDanmakuClient({
               roomId,
               host: config.host,
               onEvent: (event) => {
-                if (active) onEventRef.current(event);
+                if (isCurrent()) onEventRef.current(event);
               },
               onStatus: emit,
             });
@@ -106,7 +119,7 @@ export function useDanmaku(
       let subscriptionId: string | null = null;
       let disposed = false;
       const unsubscribe = window.api.danmaku.onHuyaUpdate((update) => {
-        if (!active || update.subscriptionId !== subscriptionId) return;
+        if (!isCurrent() || update.subscriptionId !== subscriptionId) return;
         if (update.status) emit(update.status);
         if (update.event) onEventRef.current(update.event);
       });
@@ -136,7 +149,7 @@ export function useDanmaku(
     return () => {
       active = false;
     };
-  }, [roomId, platform]);
+  }, [roomId, platform, reconnectToken]);
 
   return status;
 }

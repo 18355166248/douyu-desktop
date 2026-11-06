@@ -15,6 +15,7 @@ export function useStreamStall(
   enabled: boolean,
   userPausedRef?: RefObject<boolean>,
   observeFrames = true,
+  videoRevision = 0,
 ): StreamStallState {
   const [stalled, setStalled] = useState(false);
   const lastProgressAtRef = useRef(0);
@@ -96,7 +97,7 @@ export function useStreamStall(
       video.removeEventListener('emptied', resetObservation);
       if (frameHandle !== undefined) video.cancelVideoFrameCallback(frameHandle);
     };
-  }, [dismiss, enabled, observeFrames, videoRef, userPausedRef]);
+  }, [dismiss, enabled, observeFrames, videoRef, userPausedRef, videoRevision]);
 
   return { stalled, dismiss };
 }

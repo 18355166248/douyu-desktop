@@ -76,6 +76,31 @@ function step() {
   tick();
 }
 describe('danmaku overload protection', () => {
+  it('refreshes only the pending queue while active messages finish naturally', () => {
+    engine.push(event(1));
+    step();
+    const active = root.children[0]!;
+    engine.push(event(2));
+    engine.clearQueue();
+    engine.push(event(3));
+    step();
+    expect(active.removed).toBe(false);
+    expect(root.children.map((node) => node.children[0]?.textContent)).toEqual(['1', '3']);
+  });
+
+  it('keeps lane reservations when replacing a queue', () => {
+    root.clientHeight = 30;
+    engine.push(event(1));
+    step();
+    engine.push(event(2));
+    engine.clearQueue();
+    engine.push(event(3));
+    step();
+    expect(root.children).toHaveLength(1);
+    vi.advanceTimersByTime(1000);
+    step();
+    expect(root.children.map((node) => node.children[0]?.textContent)).toEqual(['1', '3']);
+  });
   it('sheds old backlog while preserving order within the newest batch', () => {
     for (let i = 0; i < 41; i++) engine.push(event(i));
     step();

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DanmakuPlatform } from '@shared/contracts/danmaku';
+import type { DanmakuEvent, DanmakuStatusEvent, DanmakuPlatform } from '@shared/contracts/danmaku';
 import { useDanmaku } from './useDanmaku';
 
 const host = vi.hoisted(() => ({
@@ -7,6 +7,10 @@ const host = vi.hoisted(() => ({
   status: vi.fn(),
   connect: vi.fn(),
   close: vi.fn(),
+  clients: [] as Array<{
+    onEvent: (event: DanmakuEvent) => void;
+    onStatus: (status: DanmakuStatusEvent) => void;
+  }>,
 }));
 vi.mock('react', () => ({
   useRef: (current: unknown) => ({ current }),
@@ -17,12 +21,18 @@ vi.mock('react', () => ({
 }));
 vi.mock('./BilibiliDanmakuClient', () => ({
   BilibiliDanmakuClient: class {
+    constructor(options: (typeof host.clients)[number]) {
+      host.clients.push(options);
+    }
     connect = host.connect;
     close = host.close;
   },
 }));
 vi.mock('./douyuDanmakuClient', () => ({
   DouyuDanmakuClient: class {
+    constructor(options: (typeof host.clients)[number]) {
+      host.clients.push(options);
+    }
     connect = host.connect;
     close = host.close;
   },
@@ -40,6 +50,7 @@ function mount(platform: DanmakuPlatform): void {
 beforeEach(() => {
   vi.useFakeTimers();
   vi.clearAllMocks();
+  host.clients = [];
   config.mockReset();
   huyaStop.mockResolvedValue({ ok: true, data: null });
   vi.stubGlobal('window', {
@@ -63,6 +74,31 @@ afterEach(() => {
 });
 
 describe('initial danmaku subscription recovery', () => {
+  it.each(['douyu', 'bilibili'] as const)(
+    'ignores late %s messages and flushes pending messages on connection changes',
+    async (platform) => {
+      config.mockResolvedValue({ ok: true, data: { host: 'example.test', token: 'token' } });
+      const onEvent = vi.fn();
+      const reset = vi.fn();
+      useDanmaku('1', platform, onEvent, 1, reset);
+      cleanup = host.effect?.();
+      await vi.advanceTimersByTimeAsync(0);
+      const old = host.clients[0]!;
+      old.onStatus({ roomId: '1', platform, status: 'connected' });
+      reset.mockClear();
+      old.onStatus({ roomId: '1', platform, status: 'reconnecting' });
+      expect(reset).toHaveBeenCalledOnce();
+      cleanup?.();
+      useDanmaku('1', platform, onEvent, 2, reset);
+      cleanup = host.effect?.();
+      await vi.advanceTimersByTimeAsync(0);
+      old.onEvent({ kind: 'chat', text: 'old' } as DanmakuEvent);
+      expect(onEvent).not.toHaveBeenCalled();
+      const latest = { kind: 'chat', text: 'new' } as DanmakuEvent;
+      host.clients[1]!.onEvent(latest);
+      expect(onEvent).toHaveBeenCalledExactlyOnceWith(latest);
+    },
+  );
   it.each(['douyu', 'bilibili', 'huya'] as const)(
     'retries %s config/start failures and stops retrying after success',
     async (platform) => {

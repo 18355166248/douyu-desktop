@@ -7,6 +7,8 @@ interface PlaybackSessionOptions {
   onError: (message: string) => void;
   onRecovering?: (message: string) => void;
   onPlayRejected?: () => void;
+  // A visible session can delegate recovery to a second media element.
+  onRecoveryRequired?: (message: string) => void;
 }
 
 /** Owns one media element attachment, including deferred imports and all retries. */
@@ -74,6 +76,11 @@ export function attachPlayback(
     for (const timer of retryTimers) clearTimeout(timer);
     if (recoveryTimer !== null) clearTimeout(recoveryTimer);
     recoveryTimer = null;
+    if (options.onRecoveryRequired) {
+      // Stop this session's asynchronous work, but retain its media/buffer until handoff.
+      options.onRecoveryRequired(message);
+      return;
+    }
     destroyPlayers();
     options.onError(message);
   };
@@ -102,6 +109,10 @@ export function attachPlayback(
         let pendingRecoveryType: string | null = null;
         const recoverHls = (type: string): void => {
           if (disposed || failed || !hls) return;
+          if (options.onRecoveryRequired) {
+            fail('HLS 连接中断或解码异常');
+            return;
+          }
           resetHealthyWindow();
           if (type !== Hls.ErrorTypes.NETWORK_ERROR && type !== Hls.ErrorTypes.MEDIA_ERROR) {
             fail('HLS 播放失败，请尝试重新解析');
@@ -176,6 +187,10 @@ export function attachPlayback(
         flv = player;
         const reconnect = (): void => {
           if (disposed || failed || flv !== player || recoveryTimer !== null) return;
+          if (options.onRecoveryRequired) {
+            fail('FLV 连接中断或解码异常');
+            return;
+          }
           resetHealthyWindow();
           if (recoveryAttempts >= 3) {
             fail('FLV 播放失败，请尝试重新解析');

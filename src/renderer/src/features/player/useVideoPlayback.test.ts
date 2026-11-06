@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StreamPlayback } from '@shared/contracts/stream';
 import { attachPlayback } from './playbackSession';
 import { useVideoPlayback } from './useVideoPlayback';
+import { PlaybackTestVideo as Video } from './playbackTestVideo';
 
 // Deterministic effect host: run cleanup on dependency changes, retaining hook state.
 const host = vi.hoisted(() => ({
@@ -41,18 +42,6 @@ vi.mock('react', () => ({
 }));
 vi.mock('./playbackSession', () => ({ attachPlayback: vi.fn() }));
 
-class Video extends EventTarget {
-  paused = true;
-  currentTime = 1;
-  buffered = { length: 1, start: () => 0, end: () => 20 };
-  play = vi.fn(async () => {
-    this.paused = false;
-  });
-  pause = vi.fn(() => {
-    this.paused = true;
-    this.dispatchEvent(new Event('pause'));
-  });
-}
 const playback: StreamPlayback = {
   platform: 'douyu',
   roomId: '1',
@@ -65,32 +54,68 @@ const playback: StreamPlayback = {
 let video: Video;
 let ref: { current: HTMLVideoElement | null };
 let source: StreamPlayback;
+let containerRef: { current: HTMLDivElement | null };
+let videos: Video[];
 function render(next = source) {
   source = next;
   host.cursor = 0;
   // eslint-disable-next-line react-hooks/rules-of-hooks -- deterministic hook host.
-  useVideoPlayback(ref, source);
+  useVideoPlayback(ref, source, containerRef, false, 0.6);
   for (const effect of host.effects.splice(0)) effect();
   host.cursor = 0;
   // eslint-disable-next-line react-hooks/rules-of-hooks -- expose the state after effects flush.
-  return useVideoPlayback(ref, source);
+  return useVideoPlayback(ref, source, containerRef, false, 0.6);
 }
 function session() {
   return vi.mocked(attachPlayback).mock.calls.at(-1)![2];
 }
 
 beforeEach(() => {
+  vi.useFakeTimers();
   host.slots = [];
   host.effects = [];
   source = playback;
+  videos = [];
   video = new Video();
-  ref = { current: video as unknown as HTMLVideoElement };
+  vi.stubGlobal('document', {
+    createElement: () => {
+      const created = videos.length === 0 ? video : new Video();
+      videos.push(created);
+      return created;
+    },
+  });
+  containerRef = { current: { appendChild: vi.fn() } as unknown as HTMLDivElement };
+  ref = { current: null };
   vi.mocked(attachPlayback)
     .mockReset()
-    .mockImplementation(() => () => video.pause());
+    .mockImplementation((target) => {
+      video = target as unknown as Video;
+      return vi.fn();
+    });
+});
+
+afterEach(() => {
+  for (const slot of host.slots) {
+    (slot as { cleanup?: () => void } | undefined)?.cleanup?.();
+  }
+  expect(vi.getTimerCount()).toBe(0);
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 describe('playback intent and media state', () => {
+  it('exposes the displayed source while a different source is preparing or fails', () => {
+    expect(render().activePlayback).toEqual(playback);
+    const next = { ...playback, format: 'hls' as const, url: 'new.m3u8', quality: '原画' };
+    expect(render(next).activePlayback).toEqual(playback);
+    session().onError('offline');
+    expect(render().activePlayback).toEqual(playback);
+    expect(render().replacementError).toBe('offline');
+    render({ ...next });
+    video.paused = false;
+    video.presentFrame();
+    expect(render().activePlayback).toEqual(next);
+  });
   it.each([true, false])(
     'returns to the newest buffered picture without changing user pause: %s',
     (paused) => {
@@ -107,6 +132,8 @@ describe('playback intent and media state', () => {
     render().togglePlayback();
     expect(render().userPaused).toBe(true);
     render({ ...playback, quality: '原画', url: 'https://example.test/new.flv' });
+    expect(session().isUserPaused()).toBe(false);
+    video.presentFrame();
     expect(session().isUserPaused()).toBe(true);
     video.dispatchEvent(new Event('canplay'));
     // Even an unexpected underlying autoplay must not break the pause.
@@ -123,7 +150,7 @@ describe('playback intent and media state', () => {
     { platform: 'bilibili' as const, roomId: '1' },
   ])('resets intent and diagnostics when changing room identity to %j', (identity) => {
     render();
-    session().onRecovering?.('network');
+    session().onRecoveryRequired?.('network');
     render().togglePlayback();
     const state = render({ ...playback, ...identity });
     expect(session().isUserPaused()).toBe(false);
@@ -143,16 +170,23 @@ describe('playback intent and media state', () => {
 
   it('clears recovering on actual playback while retaining diagnostic history', () => {
     render();
-    session().onRecovering?.('HLS 网络异常');
+    video.dispatchEvent(new Event('playing'));
+    session().onRecoveryRequired?.('HLS 网络异常');
     expect(render()).toMatchObject({ recovering: true, reconnects: 1, lastError: 'HLS 网络异常' });
     video.dispatchEvent(new Event('playing'));
-    expect(render()).toMatchObject({ recovering: false, isPlaying: true });
-    session().onError('failed');
-    expect(render()).toMatchObject({ error: 'failed', lastError: 'failed', isPlaying: false });
+    expect(render()).toMatchObject({ recovering: true, isPlaying: true });
+    vi.advanceTimersByTime(400);
+    video.paused = false;
+    video.presentFrame();
+    expect(render()).toMatchObject({
+      recovering: false,
+      isPlaying: true,
+      lastError: 'HLS 网络异常',
+    });
     render({ ...playback });
     expect(render()).toMatchObject({
       error: null,
-      lastError: 'failed',
+      lastError: 'HLS 网络异常',
       reconnects: 1,
       reparses: 1,
     });
@@ -191,7 +225,8 @@ describe('playback intent and media state', () => {
     video.play.mockRejectedValueOnce(new DOMException('source changed', 'AbortError'));
     render().togglePlayback();
     render().togglePlayback();
-    session().onRecovering?.('HLS 解码异常');
+    video.dispatchEvent(new Event('canplay'));
+    session().onRecoveryRequired?.('HLS 解码异常');
     await Promise.resolve();
     expect(render()).toMatchObject({ userPaused: false, playBlocked: false, recovering: true });
   });
