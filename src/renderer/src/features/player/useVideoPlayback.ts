@@ -175,5 +175,21 @@ export function useVideoPlayback(
     if (video) resumeLivePlayback(video);
   }, [videoRef]);
 
-  return { ...state, userPausedRef, togglePlayback, returnToLive };
+  /**
+   * Drops the paused state and starts playback again. Used when the user asks
+   * for a reload: refreshing a paused room must bring the picture back.
+   */
+  const resumePlayback = useCallback((): void => {
+    userPausedRef.current = false;
+    setState((previous) => ({ ...previous, userPaused: false, playBlocked: false }));
+    const video = videoRef.current;
+    if (!video) return;
+    resumeLivePlayback(video);
+    void video.play().catch((error: unknown) => {
+      if (error instanceof Error && error.name === 'NotAllowedError')
+        setState((previous) => ({ ...previous, playBlocked: true, isPlaying: false }));
+    });
+  }, [videoRef]);
+
+  return { ...state, userPausedRef, togglePlayback, resumePlayback, returnToLive };
 }

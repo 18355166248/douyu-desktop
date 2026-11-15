@@ -1,4 +1,5 @@
 import { primaryKey, primaryAria } from '../../lib/keyboard';
+import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { StreamPlayback, StreamQuality } from '@shared/contracts/stream';
 import { Icon } from '../../components/Icon';
@@ -75,8 +76,11 @@ export function PlayerTile({
 }: PlayerTileProps): React.JSX.Element {
   const queryClient = useQueryClient();
   const anchorName = playback.anchorName?.trim() || `${platformLabel(playback.platform)}主播`;
+  const [resumeToken, setResumeToken] = useState(0);
 
   function reloadPlaybackAndAudience(): void {
+    // 刷新前先解开暂停：手动刷新意味着“重新连上并继续看”。
+    setResumeToken((token) => token + 1);
     onReload();
     void queryClient.invalidateQueries({
       queryKey: roomAudienceKey(playback.platform, playback.roomId),
@@ -230,6 +234,7 @@ export function PlayerTile({
         quality={quality}
         preferHls={preferHls}
         isReloading={isReloading}
+        resumeToken={resumeToken}
         shortcutsEnabled={shortcutsEnabled}
         immersive={immersive}
         canSolo={canSolo}

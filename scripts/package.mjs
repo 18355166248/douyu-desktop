@@ -131,7 +131,7 @@ if (target === 'dir' && !unpacked) {
   process.exit(1);
 }
 
-if (installer && installer.mtimeMs < startedAt - 10_000) {
+if (target === 'nsis' && installer && installer.mtimeMs < startedAt - 10_000) {
   console.warn('[package] 未检测到本次新生成的安装包，下面显示最新已有文件，请确认是否覆盖成功。');
 }
 

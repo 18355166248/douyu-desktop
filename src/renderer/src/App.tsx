@@ -354,7 +354,9 @@ export function App(): React.JSX.Element {
     }
     setActiveView('live');
     setRoomId('');
-    focusRoomInput();
+    // 不主动抢焦点：从首页或列表点进直播间时，焦点留在被点的按钮上。
+    // 但如果是输入框里按 Enter 进来的，顺手释放焦点，免得接下来的按键还打进输入框。
+    if (document.activeElement === roomInputRef.current) roomInputRef.current?.blur();
   }
 
   function handleRoomQuickOpen(targetPlatform: StreamPlatform, targetRoomId: string): void {

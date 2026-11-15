@@ -83,7 +83,9 @@ function HomeRoomRow({
   }, [cover]);
 
   const subtitle = title && title !== name ? title : `房间 ${roomId}`;
-  const thumbnail = cover && !coverFailed ? cover : null;
+  const isOffline = showStatus && !isLive;
+  const thumbnail = !isOffline && cover && !coverFailed ? cover : null;
+  const previewAvailable = previewEnabled && !isOffline;
 
   return (
     <article className={`home-room-row${isLive ? ' is-live' : ''}`}>
@@ -91,11 +93,13 @@ function HomeRoomRow({
         type="button"
         className="home-room-open"
         onPointerEnter={(event) => {
-          if (event.pointerType === 'mouse') setPreviewRequested(true);
+          if (event.pointerType !== 'mouse' || !previewAvailable) return;
+          setPreviewRequested(true);
         }}
         onPointerLeave={() => setPreviewRequested(false)}
         onPointerCancel={() => setPreviewRequested(false)}
         onFocus={(event) => {
+          if (!previewAvailable) return;
           if (event.currentTarget.matches(':focus-visible')) setPreviewRequested(true);
         }}
         onBlur={() => setPreviewRequested(false)}
@@ -105,7 +109,9 @@ function HomeRoomRow({
         }}
         title={`打开${platformLabel(platform)}房间 ${roomId}`}
       >
-        <span className={`home-room-thumb home-room-thumb-${platform}`}>
+        <span
+          className={`home-room-thumb home-room-thumb-${platform}${isOffline ? ' is-offline' : ''}`}
+        >
           <span className="home-thumb-fallback" aria-hidden="true">
             <img
               src={PLATFORM_ICON_URLS[platform]}
@@ -126,10 +132,10 @@ function HomeRoomRow({
               onError={() => setCoverFailed(true)}
             />
           ) : null}
-          {previewRequested && previewEnabled && (isLive || !showStatus) ? (
+          {previewRequested && previewAvailable ? (
             <RoomHoverPreview key={`${platform}:${roomId}`} platform={platform} roomId={roomId} />
           ) : null}
-          {showStatus && !isLive ? (
+          {isOffline ? (
             <span className="home-thumb-offline">
               <strong>未开播</strong>
             </span>

@@ -263,6 +263,9 @@
 
 .home-room-thumb {
   position: relative;
+  /* 缩略图内部自成层叠上下文：图片被提升为合成层（悬停缩放、懒加载解码）时
+     也不会盖到上面的角标和离线蒙层。 */
+  isolation: isolate;
   display: block;
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -272,6 +275,7 @@
   border-bottom: 1px solid var(--line-soft);
   border-radius: 0;
   background: #0b0f14;
+  transition: transform 220ms ease;
 }
 
 .home-thumb-fallback {
@@ -294,16 +298,25 @@
 
 .home-thumb-image {
   position: absolute;
+  z-index: 0;
   inset: 0;
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 220ms ease;
 }
 
-.home-room-row:hover .home-thumb-image {
+.home-room-row:hover .home-room-thumb:not(.is-offline) {
   transform: scale(1.025);
+}
+
+/* 离线卡片使用固定的深色平台占位图。 */
+.home-room-thumb.is-offline .home-thumb-fallback {
+  background: #10171e;
+}
+
+.home-room-thumb.is-offline .home-thumb-fallback img {
+  opacity: 0.2;
 }
 
 .home-room-preview {
@@ -343,8 +356,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  background: rgb(4 7 10 / 58%);
-  backdrop-filter: blur(1px);
+  pointer-events: none;
 }
 
 .home-thumb-offline strong {
@@ -375,7 +387,6 @@
   letter-spacing: 0.02em;
   line-height: 1.2;
   white-space: nowrap;
-  backdrop-filter: blur(4px);
 }
 
 .home-thumb-live {
@@ -394,7 +405,6 @@
   font-weight: 800;
   letter-spacing: 0.05em;
   line-height: 1.2;
-  backdrop-filter: blur(4px);
 }
 
 .home-thumb-live i {

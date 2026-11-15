@@ -64,6 +64,40 @@ npm run package
 
 `PACKAGE_OUTPUT_DIR` 支持相对项目根目录的路径，也支持绝对路径。
 
+安装到本机（日常使用推荐这种方式，不必每次进 `release/win-unpacked` 找 exe）：
+
+```powershell
+npm run install:local     # 只打包免安装目录，再安装到 %LOCALAPPDATA%\Programs\斗鱼多屏
+npm run package:install   # 一键打包 + 安装：同时产出 NSIS 安装包和免安装版本
+npm run uninstall:local   # 卸载，默认保留用户数据
+```
+
+`package:install` 和 `install:local` 装的是同一份免安装版本（`release\win-unpacked`），区别只在于要不要顺手产出可分发的安装包 `release\douyu-desktop-<版本>-x64.exe`：要发版或给别人装就用 `package:install`，只是自己更新就用更快的 `install:local`。
+
+也可以直接双击 `scripts\install-local.cmd`。安装脚本会：
+
+- 先关掉正在运行的实例，再跑打包（`install:local` 用 `npm run package:dir`，`package:install` 用 `npm run package`），避免 `release\win-unpacked` 里的 exe 被占用；托管 Kill 关不掉的进程会用 `taskkill /T` 连进程树重试，仍失败就中止安装，而不是留下半新半旧的目录；
+- 把免安装目录镜像复制到 `%LOCALAPPDATA%\Programs\斗鱼多屏`，只写当前用户目录，不需要管理员权限；
+- 接管上一次安装：先删掉指向该目录的旧快捷方式和旧卸载项（即使应用改过名也不会留下两套），再重建；
+- 创建开始菜单快捷方式（默认还有桌面快捷方式）；
+- 写入「设置 → 应用 → 安装的应用」里的卸载项，注册表键为 `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\douyu-desktop`；
+- 用户数据仍在 `%APPDATA%\douyu-desktop`，重装或升级不会丢房间、设置和观看历史。
+
+直接调用 `scripts\install.ps1` 时可用：
+
+| 参数                 | 说明                                              |
+| -------------------- | ------------------------------------------------- |
+| `-Package nsis`      | 打包时同时生成 NSIS 安装包（默认 `dir` 只出目录） |
+| `-SkipBuild`         | 跳过打包，直接安装现成的 `release\win-unpacked`   |
+| `-Source <dir>`      | 指定免安装版目录                                  |
+| `-InstallDir <dir>`  | 安装到其它位置                                    |
+| `-NoDesktopShortcut` | 只创建开始菜单快捷方式                            |
+| `-Launch`            | 安装完成后立即启动                                |
+| `-Uninstall`         | 卸载                                              |
+| `-PurgeUserData`     | 卸载时连用户数据一起删除                          |
+
+`scripts\install.ps1` 必须保持 UTF-8 BOM 编码（Windows PowerShell 5.1 靠 BOM 识别中文注释和提示文字），编辑后如果 BOM 丢了会变成乱码。
+
 ## 当前范围（P2 + P3 + 平台登录引导）
 
 - [x] 深色桌面壳 + 单路播放器
@@ -149,7 +183,7 @@ npm run package
 - 2 路以上时，“直播”页签右侧出现“均分 / 主画面”切换；主画面模式会把选中的主卡放在左侧大块，2-4 路时占整列，5/6 路时占左上两行、下方并排最多两路，右侧固定三路；点任意小卡右上角的展开图标（悬停提示“设为主画面”）即可换主卡，布局偏好会记住
 - 顶部是唯一的操作栏：左侧品牌，中间依次是“直播”页签与布局切换、房间号输入、历史、播放/添加、清空、签到和账号登录，右侧为最小化/最大化/关闭；顶栏除按钮、输入框、账号菜单等交互控件外均可拖拽，双击品牌或顶栏空白拖拽区也可最大化/还原
 - 不再有左侧导航和右侧任务栏；直播画面从顶栏下方 6px 开始，四路时也使用整窗宽度
-- 每张卡片右上角可单独“重新解析”或关闭
+- 每张卡片右上角可单独“重新解析”或关闭；暂停状态下手动刷新（重新解析按钮、右键“重新解析”、`R` / `Ctrl+R` / `F5`、“重新加载”）会解除暂停并直接恢复播放
 - 播放中媒体时间连续 8 秒不前进时自动重新解析一次；自动恢复后 60 秒内再次卡顿改为显示“自动刷新后仍卡顿”，避免无限刷新。切回首页时仅按媒体时钟判断卡顿，返回直播页后恢复画面帧检测；保持播放和弹幕连接，隐藏期间不积压弹幕展示。
 - 右键菜单的“重连弹幕”仅重建当前房间弹幕连接，保留视频播放。首次获取弹幕配置或启动订阅失败时，最多额外重试 3 次；仍失败可手动重连。
 - 右键菜单的“回到最新画面”跳到最新已缓存的连续画面，保留约两秒余量和当前暂停状态；它不表示已测得真实直播延迟。首页悬停预览在窗口重新聚焦、卡片滚回视口时自动恢复。

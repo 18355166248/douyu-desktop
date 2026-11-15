@@ -10,7 +10,13 @@ import { useDanmakuSettings } from '../danmaku/DanmakuSettingsContext';
 import { RoomContextMenu } from './RoomContextMenu';
 import { LiveDurationBadge } from './LiveDurationBadge';
 import { qualityOptionsFor } from './streamQuality';
-import { STALL_TIMEOUT_MS, AUTO_RECOVERY_RESET_MS } from './streamStall';
+import {
+  STALL_TIMEOUT_MS,
+  AUTO_RECOVERY_RESET_MS,
+  canAutoRecover,
+  clearAutoRecovered,
+  markAutoRecovered,
+} from './streamStall';
 import { useVideoPlayback } from './useVideoPlayback';
 import { PlaybackDiagnostics } from './PlaybackDiagnosticsPanel';
 import { LivePkPanel } from './LivePkPanel';
@@ -31,6 +37,8 @@ interface VideoPlayerProps {
   immersive: boolean;
   canSolo: boolean;
   isSolo: boolean;
+  /** 每次用户主动刷新（重解析/重连）自增，用来在刷新后恢复播放。 */
+  resumeToken: number;
   onReload: () => void;
   onToggleMute: () => void;
   onToggleSolo: () => void;
@@ -54,6 +62,7 @@ export function VideoPlayer({
   immersive,
   canSolo,
   isSolo,
+  resumeToken,
   onReload,
   onToggleMute,
   onToggleSolo,
@@ -67,7 +76,8 @@ export function VideoPlayer({
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaContainerRef = useRef<HTMLDivElement>(null);
   const playbackState = useVideoPlayback(videoRef, playback, mediaContainerRef, muted, volume);
-  const { isReady, isPlaying, userPaused, userPausedRef, error, togglePlayback } = playbackState;
+  const { isReady, isPlaying, userPaused, userPausedRef, error, togglePlayback, resumePlayback } =
+    playbackState;
   const wasReloadingRef = useRef(false);
   const autoRecoveredRef = useRef(false);
   const onReloadRef = useRef(onReload);
@@ -77,18 +87,31 @@ export function VideoPlayer({
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [livePkOpen, setLivePkOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+
+  // 用户主动刷新时即使当前是暂停，也要重新播放。
+  useEffect(() => {
+    if (resumeToken === 0) return;
+    resumePlayback();
+  }, [resumePlayback, resumeToken]);
+
   const controls = useAutoHideControls();
   const showControls = controls.show;
   const queryClient = useQueryClient();
   const { settings, update } = useDanmakuSettings();
   const stall = useStreamStall(
     videoRef,
-    !error && !isReloading && !playbackState.recovering && !playbackState.playBlocked,
+    // 切到首页等其它视图时视频是 display:none，媒体时钟不可靠，不能据此自动刷新。
+    playbackVisible &&
+      !error &&
+      !isReloading &&
+      !playbackState.recovering &&
+      !playbackState.playBlocked,
     userPausedRef,
     playbackVisible,
     playbackState.videoRevision,
   );
   const { stalled: streamStalled, dismiss: dismissStall } = stall;
+  const recoveryKey = `${playback.platform}:${playback.roomId}`;
   const qualityOptions = qualityOptionsFor(playback.platform);
   const qualityLabel = qualityOptions.find((option) => option.value === quality)?.label ?? quality;
   const audience = queryClient.getQueryData<RoomAudienceSnapshot>(
@@ -141,6 +164,14 @@ export function VideoPlayer({
       return;
     }
 
+    // 冷却按房间记录，组件重挂载后也不会立刻再自动刷新一次。
+    const now = Date.now();
+    if (!canAutoRecover(recoveryKey, now)) {
+      setAutoRecovering(false);
+      return;
+    }
+
+    markAutoRecovered(recoveryKey, now);
     autoRecoveredRef.current = true;
     setAutoRecovering(true);
     dismissStall();
@@ -150,6 +181,7 @@ export function VideoPlayer({
     error,
     isReloading,
     playbackState.recovering,
+    recoveryKey,
     streamStalled,
     userPaused,
     userPausedRef,
@@ -372,6 +404,7 @@ export function VideoPlayer({
                 onClick={() => {
                   autoRecoveredRef.current = false;
                   setAutoRecovering(false);
+                  clearAutoRecovered(recoveryKey);
                   stall.dismiss();
                   onReload();
                 }}
