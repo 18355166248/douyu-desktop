@@ -112,7 +112,7 @@ function HomeRoomRow({
         <span
           className={`home-room-thumb home-room-thumb-${platform}${isOffline ? ' is-offline' : ''}`}
         >
-          <span className="home-thumb-fallback" aria-hidden="true">
+          <span className="home-thumb-fallback">
             <img
               src={PLATFORM_ICON_URLS[platform]}
               width={24}
@@ -120,6 +120,7 @@ function HomeRoomRow({
               alt=""
               draggable={false}
             />
+            {isOffline ? <strong className="home-thumb-offline">未开播</strong> : null}
           </span>
           {thumbnail ? (
             <img
@@ -134,11 +135,6 @@ function HomeRoomRow({
           ) : null}
           {previewRequested && previewAvailable ? (
             <RoomHoverPreview key={`${platform}:${roomId}`} platform={platform} roomId={roomId} />
-          ) : null}
-          {isOffline ? (
-            <span className="home-thumb-offline">
-              <strong>未开播</strong>
-            </span>
           ) : null}
           {showStatus && hasVideo ? <span className="home-thumb-loop">视频轮播</span> : null}
           {isLive ? (

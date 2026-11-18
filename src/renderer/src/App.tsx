@@ -352,11 +352,13 @@ export function App(): React.JSX.Element {
       setError(message);
       return;
     }
-    setActiveView('live');
     setRoomId('');
-    // 不主动抢焦点：从首页或列表点进直播间时，焦点留在被点的按钮上。
-    // 但如果是输入框里按 Enter 进来的，顺手释放焦点，免得接下来的按键还打进输入框。
-    if (document.activeElement === roomInputRef.current) roomInputRef.current?.blur();
+    showOpenedRoom();
+  }
+
+  function showOpenedRoom(): void {
+    dismissRoomSearch();
+    setActiveView('live');
   }
 
   function handleRoomQuickOpen(targetPlatform: StreamPlatform, targetRoomId: string): void {
@@ -364,7 +366,7 @@ export function App(): React.JSX.Element {
     if (
       streams.some((entry) => streamKey(entry.playback) === roomKey(targetPlatform, targetRoomId))
     ) {
-      setActiveView('live');
+      showOpenedRoom();
       return;
     }
     void handleAdd(targetPlatform, targetRoomId);
@@ -379,9 +381,13 @@ export function App(): React.JSX.Element {
     setRoomSearchHighlight(-1);
   }
 
+  function dismissRoomSearch(): void {
+    roomInputRef.current?.blur();
+    handleRoomInputBlur();
+  }
+
   function openSearchItem(item: RoomSearchItem): void {
-    setRoomSearchOpen(false);
-    setRoomSearchHighlight(-1);
+    dismissRoomSearch();
     setRoomId('');
     handleRoomQuickOpen(item.platform, item.roomId);
   }
