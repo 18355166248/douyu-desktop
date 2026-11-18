@@ -263,8 +263,6 @@
 
 .home-room-thumb {
   position: relative;
-  /* 缩略图内部自成层叠上下文：图片被提升为合成层（悬停缩放、懒加载解码）时
-     也不会盖到上面的角标和离线蒙层。 */
   isolation: isolate;
   display: block;
   width: 100%;
@@ -311,18 +309,22 @@
 }
 
 .home-room-thumb.is-offline {
+  display: grid;
+  place-items: center;
   background: #10171e;
 }
 
 .home-room-thumb.is-offline .home-thumb-fallback {
-  position: static;
-  height: 100%;
   background: none;
 }
 
 .home-room-thumb.is-offline .home-thumb-fallback img {
-  grid-area: 1 / 1;
   opacity: 0.2;
+}
+
+.home-room-thumb.is-offline .home-thumb-image {
+  /* 直接调暗封面，避免独立蒙层随列表滚动时露出亮边。 */
+  filter: brightness(0.42);
 }
 
 .home-room-preview {
@@ -357,7 +359,7 @@
 }
 
 .home-thumb-offline {
-  grid-area: 1 / 1;
+  z-index: 1;
   padding: 5px 13px;
   border: 1px solid rgb(255 107 53 / 48%);
   border-radius: 7px;

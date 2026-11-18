@@ -84,7 +84,7 @@ function HomeRoomRow({
 
   const subtitle = title && title !== name ? title : `房间 ${roomId}`;
   const isOffline = showStatus && !isLive;
-  const thumbnail = !isOffline && cover && !coverFailed ? cover : null;
+  const thumbnail = cover && !coverFailed ? cover : null;
   const previewAvailable = previewEnabled && !isOffline;
 
   return (
@@ -120,7 +120,6 @@ function HomeRoomRow({
               alt=""
               draggable={false}
             />
-            {isOffline ? <strong className="home-thumb-offline">未开播</strong> : null}
           </span>
           {thumbnail ? (
             <img
@@ -133,6 +132,7 @@ function HomeRoomRow({
               onError={() => setCoverFailed(true)}
             />
           ) : null}
+          {isOffline ? <strong className="home-thumb-offline">未开播</strong> : null}
           {previewRequested && previewAvailable ? (
             <RoomHoverPreview key={`${platform}:${roomId}`} platform={platform} roomId={roomId} />
           ) : null}
