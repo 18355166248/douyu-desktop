@@ -6,13 +6,15 @@ import { KeyboardHelp } from '../../components/KeyboardHelp';
 import { useDialogFocus } from '../../lib/useDialogFocus';
 import { DanmakuSettingsPanel } from '../danmaku/DanmakuSettingsPanel';
 import { PlaybackSettings } from './PlaybackSettings';
+import { DevelopmentLog } from './DevelopmentLog';
 
-export type SettingsSection = 'general' | 'playback' | 'danmaku' | 'shortcuts';
+export type SettingsSection = 'general' | 'playback' | 'danmaku' | 'shortcuts' | 'development-log';
 const sections: Array<{ id: SettingsSection; label: string; icon: IconName }> = [
   { id: 'general', label: '通用', icon: 'settings' },
   { id: 'playback', label: '播放与声音', icon: 'volume' },
   { id: 'danmaku', label: '弹幕', icon: 'danmaku' },
   { id: 'shortcuts', label: '快捷键', icon: 'keyboard' },
+  { id: 'development-log', label: '开发日志', icon: 'history' },
 ];
 interface Props {
   section: SettingsSection;
@@ -121,6 +123,9 @@ export function SettingsPanel({
             <section hidden={section !== 'shortcuts'} aria-label="快捷键说明">
               <h3>快捷键</h3>
               <KeyboardHelp />
+            </section>
+            <section hidden={section !== 'development-log'} aria-label="开发日志">
+              <DevelopmentLog />
             </section>
           </div>
         </div>

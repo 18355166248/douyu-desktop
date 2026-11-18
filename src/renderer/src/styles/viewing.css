@@ -377,6 +377,42 @@ svg[data-icon] {
 .settings-content > section[hidden] {
   display: none;
 }
+
+.development-log-meta {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 14px;
+  margin: 0;
+}
+
+.development-log-meta dt {
+  color: var(--muted);
+}
+
+.development-log-meta dd {
+  margin: 0;
+}
+
+.development-log {
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.development-log ul {
+  margin: 6px 0 0;
+  padding-inline-start: 20px;
+  line-height: 1.6;
+}
+
+.development-log summary {
+  cursor: pointer;
+}
+
+.development-log > h4:not(:first-child),
+.development-log > details {
+  margin-top: 16px;
+}
+
 .settings-content h3 {
   margin: 0 0 10px;
   font-size: 17px;

@@ -34,6 +34,27 @@ const builderCli = resolve(dirname(builderPackagePath), builderBin);
 const env = { ...process.env };
 delete env.ELECTRON_RUN_AS_NODE;
 
+function runNode(args) {
+  const child = spawn(process.execPath, args, {
+    cwd: projectRoot,
+    stdio: 'inherit',
+    env,
+  });
+  return new Promise((resolveExit, reject) => {
+    child.once('error', reject);
+    child.once('exit', (code, signal) => resolveExit({ code, signal }));
+  });
+}
+
+const vitePackage = require.resolve('electron-vite/package.json');
+const viteBin = JSON.parse(readFileSync(vitePackage, 'utf8')).bin['electron-vite'];
+const build = await runNode([resolve(dirname(vitePackage), viteBin), 'build']);
+if (build.code !== 0) process.exit(build.code ?? 1);
+
+const buildInfo = JSON.parse(
+  readFileSync(join(projectRoot, 'out', 'renderer', 'build-info.json'), 'utf8'),
+);
+
 console.log(`[package] 目标：${targetLabel}`);
 console.log(`[package] 输出目录：${outputDir}`);
 
@@ -65,17 +86,7 @@ if (process.platform === 'win32' && process.arch === 'x64') {
   }
 }
 
-const child = spawn(process.execPath, builderArgs, {
-  cwd: projectRoot,
-  stdio: 'inherit',
-  env,
-  windowsHide: false,
-});
-
-const result = await new Promise((resolveExit, reject) => {
-  child.once('error', reject);
-  child.once('exit', (code, signal) => resolveExit({ code, signal }));
-});
+const result = await runNode(builderArgs);
 
 if (result.code !== 0) {
   console.error(
@@ -139,6 +150,8 @@ const recordPath = join(outputDir, 'package-result.json');
 const record = {
   status: 'success',
   version: packageJson.version,
+  buildId: buildInfo.buildId,
+  builtAt: buildInfo.builtAt,
   target,
   createdAt: new Date().toISOString(),
   outputDir,
@@ -150,6 +163,7 @@ writeFileSync(recordPath, `${JSON.stringify(record, null, 2)}\n`, 'utf8');
 console.log('');
 console.log(`打包成功（${targetLabel}）`);
 console.log(`版本：${packageJson.version}`);
+console.log(`构建号：${buildInfo.buildId}`);
 console.log(`输出目录：${outputDir}`);
 if (installer) {
   console.log(`安装包地址：${installer.file}`);
