@@ -1,7 +1,6 @@
 import { AUTO_CLAIM_INTERVALS, autoClaimEventLabel } from '@shared/contracts/autoClaim';
 import type { AutoClaimEventKind } from '@shared/contracts/autoClaim';
 import { Icon } from '../../components/Icon';
-import { errorMessage } from '../../lib/api';
 import { useAutoClaim } from './useAutoClaim';
 
 const eventTone: Record<AutoClaimEventKind, string> = {
@@ -83,12 +82,6 @@ export function AutoClaimPanel(): React.JSX.Element {
           ? `正在监听 ${rooms} 个斗鱼直播间`
           : '打开斗鱼直播间后开始监听（最多 12 个）'}
       </p>
-
-      {poll.error || setSettings.error ? (
-        <p className="task-claim-error selectable">
-          {errorMessage(poll.error ?? setSettings.error)}
-        </p>
-      ) : null}
 
       {state && state.events.length > 0 ? (
         <ul className="task-claim-events">

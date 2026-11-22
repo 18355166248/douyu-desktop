@@ -47,6 +47,8 @@ import { useDismissableLayer } from './lib/useDismissableLayer';
 import { AutoSignRunner } from './features/tasks/AutoSignRunner';
 import { TaskButton } from './features/tasks/TaskButton';
 import { TaskPanel } from './features/tasks/TaskPanel';
+import { YubaPage } from './features/yuba/YubaPage';
+import { useToast } from './lib/toast';
 
 function roomPlaceholder(platform: StreamPlatform): string {
   if (platform === 'bilibili') return 'B站房间号，如 6';
@@ -56,10 +58,27 @@ function roomPlaceholder(platform: StreamPlatform): string {
 
 const IMMERSIVE_EXIT_HIDE_MS = 4000;
 const isSecondaryWindow = new URLSearchParams(window.location.search).get('role') === 'secondary';
-type WorkspaceView = 'home' | 'live';
+type WorkspaceView = 'home' | 'live' | 'yuba' | 'yuba-split';
+
+function isYubaView(view: WorkspaceView): boolean {
+  return view === 'yuba' || view === 'yuba-split';
+}
+
+function showLiveWorkspace(view: WorkspaceView): WorkspaceView {
+  return view === 'yuba-split' ? view : 'live';
+}
 
 export function App(): React.JSX.Element {
-  const { activeAccount, query: accountsQuery } = useAccounts();
+  const notify = useToast();
+  const { activeAccount, query: accountsQuery, login } = useAccounts();
+  const refetchAccounts = accountsQuery.refetch;
+  useEffect(
+    () =>
+      window.api.accounts.onChange(() => {
+        void refetchAccounts();
+      }),
+    [refetchAccounts],
+  );
   const {
     streams,
     isAdding,
@@ -91,9 +110,10 @@ export function App(): React.JSX.Element {
   const [platform, setPlatform] = useState<StreamPlatform>('douyu');
   const [roomId, setRoomId] = useState('9999');
   const [activeView, setActiveView] = useState<WorkspaceView>('home');
+  const [yubaOpened, setYubaOpened] = useState(false);
+  const [splitShortcutPane, setSplitShortcutPane] = useState<'yuba' | 'live'>('yuba');
   const [layoutMode, setLayoutMode] = useState<StreamLayoutMode>(() => loadStreamLayoutMode());
   const [mainStreamKey, setMainStreamKey] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [danmakuKeywordsDirty, setDanmakuKeywordsDirty] = useState(false);
   const [isDanmakuSettingsOpen, setDanmakuSettingsOpen] = useState(false);
   const [isHistoryOpen, setHistoryOpen] = useState(false);
@@ -101,6 +121,15 @@ export function App(): React.JSX.Element {
   const [isHomeRefreshing, setHomeRefreshing] = useState(false);
   const [isImmersive, setImmersive] = useState(false);
   const [isImmersiveExitVisible, setImmersiveExitVisible] = useState(false);
+  const yubaVisible = isYubaView(activeView) && !isImmersive;
+  const yubaSplit = activeView === 'yuba-split' && yubaVisible;
+  const liveVisible = activeView === 'live' || activeView === 'yuba-split';
+  const closeYuba = useCallback(() => {
+    const nextView = streams.length > 0 ? 'live' : 'home';
+    setYubaOpened(false);
+    setActiveView(nextView);
+    window.requestAnimationFrame(() => document.getElementById(`${nextView}-tab`)?.focus());
+  }, [streams.length]);
   const [settingsSection, setSettingsSection] = useState<SettingsSection | null>(null);
   const [scenesOpen, setScenesOpen] = useState(false);
   const [restoring, setRestoring] = useState(false);
@@ -253,7 +282,7 @@ export function App(): React.JSX.Element {
       }
       if (
         event.shiftKey ||
-        activeView !== 'live' ||
+        !liveVisible ||
         event.key.toLowerCase() !== 'f' ||
         streams.length === 0
       )
@@ -263,7 +292,6 @@ export function App(): React.JSX.Element {
       setHistoryOpen(false);
       setTaskOpen(false);
       setDanmakuSettingsOpen(false);
-      setActiveView('live');
       setImmersive((value) => !value);
     }
 
@@ -278,6 +306,7 @@ export function App(): React.JSX.Element {
     isHistoryOpen,
     isDanmakuSettingsOpen,
     activeView,
+    liveVisible,
     refreshHome,
   ]);
 
@@ -325,13 +354,12 @@ export function App(): React.JSX.Element {
   }, [roomId]);
 
   async function handleAdd(targetPlatform: StreamPlatform, targetRoomId: string): Promise<void> {
-    setError(null);
     if (restoring) return;
     let target;
     try {
       target = parseRoomInput(targetRoomId, targetPlatform);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '直播间链接不合法');
+      notify(reason instanceof Error ? reason.message : '直播间链接不合法', 'error');
       return;
     }
     setPlatform(target.platform);
@@ -349,7 +377,7 @@ export function App(): React.JSX.Element {
     );
     if (message) {
       if (message === ADD_CANCELLED) return;
-      setError(message);
+      notify(message, 'error');
       return;
     }
     setRoomId('');
@@ -358,11 +386,10 @@ export function App(): React.JSX.Element {
 
   function showOpenedRoom(): void {
     dismissRoomSearch();
-    setActiveView('live');
+    setActiveView(showLiveWorkspace);
   }
 
   function handleRoomQuickOpen(targetPlatform: StreamPlatform, targetRoomId: string): void {
-    setError(null);
     if (
       streams.some((entry) => streamKey(entry.playback) === roomKey(targetPlatform, targetRoomId))
     ) {
@@ -440,7 +467,7 @@ export function App(): React.JSX.Element {
     restoreToken.current += 1;
     setRestoring(false);
     clearStreams();
-    setActiveView('home');
+    setActiveView((view) => (isYubaView(view) ? view : 'home'));
   }
 
   function handleRemoveStream(key: string): void {
@@ -449,7 +476,7 @@ export function App(): React.JSX.Element {
     if (isLast) {
       clearLastViewing();
       setLastViewing(null);
-      setActiveView('home');
+      setActiveView((view) => (isYubaView(view) ? view : 'home'));
     }
   }
 
@@ -462,7 +489,7 @@ export function App(): React.JSX.Element {
 
   function handleReload(key: string): void {
     void reloadStream(key).then((message) => {
-      if (message) setError(message);
+      if (message) notify(message, 'info');
     });
   }
 
@@ -471,7 +498,7 @@ export function App(): React.JSX.Element {
     setHistoryOpen(false);
     setTaskOpen(false);
     setDanmakuSettingsOpen(false);
-    setActiveView('live');
+    setActiveView(showLiveWorkspace);
     setImmersive(true);
   }
 
@@ -485,7 +512,7 @@ export function App(): React.JSX.Element {
 
   function handleStreamOptionsChange(key: string, patch: Partial<StreamResolveOptions>): void {
     void setStreamOptions(key, patch).then((message) => {
-      if (message) setError(message);
+      if (message) notify(message, 'info');
     });
   }
 
@@ -542,8 +569,7 @@ export function App(): React.JSX.Element {
     clearStreams();
     setRestoring(true);
     setScenesOpen(false);
-    setError(null);
-    setActiveView('live');
+    setActiveView(showLiveWorkspace);
     setLayoutMode(scene.layout);
     setMainStreamKey(scene.mainKey);
     const failures: string[] = [];
@@ -562,7 +588,10 @@ export function App(): React.JSX.Element {
       if (message) failures.push(`${room.roomId}：${message}`);
     }
     setRestoring(false);
-    if (failures.length) setError(`部分房间未能打开：${failures.join('；')}`);
+    if (failures.length) {
+      const heading = failures.length === scene.rooms.length ? '组合未能打开' : '部分房间未能打开';
+      notify(`${heading}\n${failures.join('\n')}`, 'error');
+    }
   }
   const restoreViewingRef = useRef(restoreViewing);
   restoreViewingRef.current = restoreViewing;
@@ -611,7 +640,26 @@ export function App(): React.JSX.Element {
               {streams.length}/{MAX_STREAMS}
             </span>
           </button>
-          {activeView === 'live' && streams.length > 1 ? (
+          <button
+            type="button"
+            role="tab"
+            id="yuba-tab"
+            aria-selected={yubaVisible}
+            aria-controls="yuba-view"
+            className={`titlebar-tab${yubaVisible ? ' is-active' : ''}`}
+            onClick={() => {
+              setYubaOpened(true);
+              setSplitShortcutPane('yuba');
+              setActiveView((view) => {
+                if (isYubaView(view)) return view;
+                return view === 'live' && streams.length > 0 ? 'yuba-split' : 'yuba';
+              });
+            }}
+          >
+            <Icon name="yuba" size={14} />
+            <strong>鱼吧</strong>
+          </button>
+          {liveVisible && streams.length > 1 ? (
             <div className="layout-switch" role="group" aria-label="直播画面布局">
               <button
                 type="button"
@@ -774,17 +822,7 @@ export function App(): React.JSX.Element {
       </TitleBar>
       <div className="app-shell">
         <main className={`main${activeView === 'live' ? ' is-live' : ''}`}>
-          {error ? (
-            <div className="alert" role="alert">
-              <Icon name="alert" size={18} />
-              <span className="selectable">{error}</span>
-              <button type="button" className="alert-close" onClick={() => setError(null)}>
-                <Icon name="close" size={15} />
-              </button>
-            </div>
-          ) : null}
-
-          <div className="workspace">
+          <div className={`workspace${yubaSplit ? ' is-yuba-split' : ''}`}>
             <section
               id="home-view"
               role="tabpanel"
@@ -813,11 +851,42 @@ export function App(): React.JSX.Element {
             </section>
 
             <section
-              id="live-view"
+              id="yuba-view"
               role="tabpanel"
+              aria-labelledby="yuba-tab"
+              className="workspace-view"
+              hidden={!yubaVisible}
+              onPointerDownCapture={() => setSplitShortcutPane('yuba')}
+              onFocusCapture={() => setSplitShortcutPane('yuba')}
+            >
+              {yubaOpened ? (
+                <YubaPage
+                  account={activeAccount}
+                  visible={yubaVisible}
+                  keyboardActive={yubaVisible && (!yubaSplit || splitShortcutPane === 'yuba')}
+                  split={yubaSplit}
+                  onToggleSplit={() => {
+                    setSplitShortcutPane('yuba');
+                    setActiveView(yubaSplit ? 'yuba' : 'yuba-split');
+                  }}
+                  onClose={closeYuba}
+                  accountsLoading={accountsQuery.isLoading}
+                  accountError={accountsQuery.isError}
+                  loginPending={login.isPending}
+                  onLogin={() => login.mutate()}
+                  onRetryAccounts={() => void refetchAccounts()}
+                />
+              ) : null}
+            </section>
+
+            <section
+              id="live-view"
+              role={yubaSplit ? 'region' : 'tabpanel'}
               aria-labelledby="live-tab"
               className="workspace-view"
-              hidden={activeView !== 'live'}
+              hidden={!liveVisible}
+              onPointerDownCapture={() => setSplitShortcutPane('live')}
+              onFocusCapture={() => setSplitShortcutPane('live')}
             >
               <div className="stage">
                 {streams.length === 0 ? (
@@ -831,12 +900,13 @@ export function App(): React.JSX.Element {
                 ) : (
                   <StreamGrid
                     streams={streams}
-                    playbackVisible={activeView === 'live'}
+                    playbackVisible={liveVisible}
                     layoutMode={layoutMode}
                     mainKey={effectiveMainKey}
                     immersive={isImmersive}
                     keyboardActive={
-                      activeView === 'live' &&
+                      liveVisible &&
+                      (!yubaSplit || splitShortcutPane === 'live') &&
                       !settingsSection &&
                       !scenesOpen &&
                       !replaceKey &&
@@ -915,7 +985,7 @@ export function App(): React.JSX.Element {
                 );
                 if (entry.options.quality !== quality) {
                   const message = await setStreamOptions(key, { quality });
-                  if (message) setError(message);
+                  if (message) notify(message, 'info');
                 }
               }
             } finally {

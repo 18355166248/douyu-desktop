@@ -664,20 +664,6 @@
   border-radius: 8px;
 }
 
-.titlebar .account-area.is-compact .account-error {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  z-index: 80;
-  max-width: 260px;
-  padding: 4px 7px;
-  border: 1px solid rgb(255 107 107 / 24%);
-  border-radius: 6px;
-  background: #1a1114;
-  font-size: 9px;
-  white-space: nowrap;
-}
-
 .titlebar-controls {
   display: flex;
   flex: none;
@@ -957,20 +943,6 @@
 
 .account-chip > svg {
   color: var(--dim);
-}
-
-.account-notice {
-  max-width: 280px;
-  color: var(--green);
-  font-size: 10px;
-  text-align: right;
-}
-
-.account-error {
-  max-width: 280px;
-  color: #ff9c9c;
-  font-size: 10px;
-  text-align: right;
 }
 
 .account-popover {
@@ -1338,8 +1310,6 @@
 }
 
 .window-frame.is-immersive .player-head,
-.window-frame.is-immersive .player-alert,
-.window-frame.is-immersive .alert,
 .window-frame.is-immersive .video-topline {
   display: none;
 }
@@ -2506,12 +2476,6 @@
 .task-claim-note {
   margin: 0;
   color: var(--dim);
-  font-size: 10px;
-}
-
-.task-claim-error {
-  margin: 0;
-  color: #ff9b9b;
   font-size: 10px;
 }
 

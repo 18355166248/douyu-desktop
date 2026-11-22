@@ -28,6 +28,7 @@ import type { StreamResolveOptions } from './useStreamGrid';
 interface VideoPlayerProps {
   playback: StreamPlayback;
   playbackVisible: boolean;
+  resolveError: string | null;
   muted: boolean;
   volume: number;
   quality: StreamQuality;
@@ -53,6 +54,7 @@ interface VideoPlayerProps {
 export function VideoPlayer({
   playback,
   playbackVisible,
+  resolveError,
   muted,
   volume,
   quality,
@@ -78,6 +80,7 @@ export function VideoPlayer({
   const playbackState = useVideoPlayback(videoRef, playback, mediaContainerRef, muted, volume);
   const { isReady, isPlaying, userPaused, userPausedRef, error, togglePlayback, resumePlayback } =
     playbackState;
+  const reconnectMessage = resolveError ?? playbackState.replacementError ?? (isReady ? error : null);
   const wasReloadingRef = useRef(false);
   const autoRecoveredRef = useRef(false);
   const onReloadRef = useRef(onReload);
@@ -434,9 +437,11 @@ export function VideoPlayer({
           </div>
         ) : null}
 
-        {playbackState.replacementError || (error && isReady) ? (
+        {reconnectMessage ? (
           <div className="video-reconnect-notice" role="status">
-            {playbackState.replacementError || error}
+            <span className="selectable" title={reconnectMessage}>
+              {reconnectMessage}
+            </span>
             <button
               type="button"
               className="btn ghost"

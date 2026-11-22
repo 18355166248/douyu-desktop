@@ -27,6 +27,7 @@ export interface DesktopApi {
     switch(accountId: string): Promise<Result<void>>;
     logout(accountId: string): Promise<Result<void>>;
     health(accountId: string): Promise<Result<AccountHealth>>;
+    onChange(listener: () => void): () => void;
   };
   platforms: {
     status(platform: GuidedPlatform): Promise<Result<PlatformLoginStatus>>;
@@ -50,6 +51,9 @@ export interface DesktopApi {
     onReminderChange(
       listener: (settings: LiveReminderSettings & { supported: boolean }) => void,
     ): () => void;
+  };
+  yuba: {
+    prepare(accountId: string): Promise<Result<string>>;
   };
   special: {
     load(): Promise<Result<SpecialFollowEntry[]>>;
@@ -108,6 +112,7 @@ export const IPC = {
   accountsSwitch: 'accounts:switch',
   accountsLogout: 'accounts:logout',
   accountsHealth: 'accounts:health',
+  accountsChanged: 'accounts:changed',
   platformsStatus: 'platforms:status',
   platformsLogin: 'platforms:login',
   platformsLogout: 'platforms:logout',
@@ -121,6 +126,7 @@ export const IPC = {
   homeSetReminders: 'home:set-reminders',
   homeOpenRoom: 'home:open-room',
   homeReminderChanged: 'home:reminder-changed',
+  yubaPrepare: 'yuba:prepare',
   specialLoad: 'special:load',
   specialToggle: 'special:toggle',
   specialChanged: 'special:changed',

@@ -48,6 +48,10 @@ import {
   Eraser,
   BellRing,
   Search,
+  ArrowLeft,
+  MessagesSquare,
+  Columns2,
+  Info,
 } from 'lucide-react';
 import type { SVGProps } from 'react';
 
@@ -104,6 +108,10 @@ const icons = {
   clearDanmaku: Eraser,
   reminder: BellRing,
   search: Search,
+  back: ArrowLeft,
+  yuba: MessagesSquare,
+  splitView: Columns2,
+  info: Info,
 };
 export type IconName = keyof typeof icons;
 

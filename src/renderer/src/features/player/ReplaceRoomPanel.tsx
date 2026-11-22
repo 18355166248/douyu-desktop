@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { StreamPlatform } from '@shared/contracts/stream';
 import { PlatformPicker } from '../../components/PlatformPicker';
 import { useDialogFocus } from '../../lib/useDialogFocus';
+import { useToast } from '../../lib/toast';
 
 export function ReplaceRoomPanel({
   platform,
@@ -16,7 +17,7 @@ export function ReplaceRoomPanel({
   const [selected, setSelected] = useState(platform);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const notify = useToast();
   const panelRef = useDialogFocus();
   useDismissableLayer({
     modal: true,
@@ -50,12 +51,12 @@ export function ReplaceRoomPanel({
             void onReplace(input, selected)
               .then((message) => {
                 if (message) {
-                  setError(message);
+                  notify(message, 'error');
                   setBusy(false);
                 } else onClose();
               })
               .catch(() => {
-                setError('替换失败，请重试');
+                notify('替换失败，请重试', 'error');
                 setBusy(false);
               });
           }}
@@ -73,7 +74,6 @@ export function ReplaceRoomPanel({
             {busy ? '解析中…' : '替换'}
           </button>
         </form>
-        {error ? <p role="alert">{error}</p> : null}
       </section>
     </div>
   );

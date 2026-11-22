@@ -264,30 +264,6 @@ select {
   color: var(--text);
 }
 
-.alert {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid rgb(255 107 107 / 26%);
-  border-radius: 10px;
-  background: rgb(255 107 107 / 8%);
-  color: #ffb3b3;
-  font-size: 12px;
-}
-
-.alert span {
-  flex: 1;
-}
-
-.alert-close {
-  display: inline-flex;
-  padding: 4px;
-  border: 0;
-  background: transparent;
-  color: #ffb3b3;
-}
-
 .spinner {
   display: inline-block;
   width: 22px;

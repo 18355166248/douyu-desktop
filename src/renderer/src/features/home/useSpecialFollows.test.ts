@@ -6,7 +6,9 @@ const host = vi.hoisted(() => ({
   slots: [] as unknown[],
   cursor: 0,
   effects: [] as (() => unknown)[],
+  notify: vi.fn(),
 }));
+vi.mock('../../lib/toast', () => ({ useToast: () => host.notify }));
 vi.mock('react', () => ({
   useState<T>(initial: T) {
     const index = host.cursor++;
@@ -58,6 +60,7 @@ const flush = async () => {
 beforeEach(() => {
   host.slots = [];
   host.effects = [];
+  host.notify.mockReset();
   load.mockReset().mockResolvedValue(ok([room('1')]));
   toggle.mockReset();
   vi.stubGlobal('window', {
@@ -83,7 +86,8 @@ it('rolls back failed removal and allows retry after a failed Result', async () 
   expect(render().busy).toBe(true);
   await flush();
   expect(render().entries).toEqual([room('1')]);
-  expect(render().error).toBe('磁盘已满');
+  expect(host.notify).toHaveBeenCalledWith('磁盘已满', 'error');
+  expect(render().error).toBeNull();
   expect(render().busy).toBe(false);
   toggle.mockResolvedValueOnce(ok([]));
   render().toggle(room('1'));
@@ -107,7 +111,7 @@ it('rolls back rejected additions to the newest cross-window snapshot and blocks
   reject(new Error('offline'));
   await flush();
   expect(render().entries).toEqual([room('1'), room('3')]);
-  expect(render().error).toBe('offline');
+  expect(host.notify).toHaveBeenCalledWith('offline', 'error');
 });
 it('does not overwrite a newer broadcast with an older load response', async () => {
   let finish!: (value: ReturnType<typeof ok<SpecialFollowEntry[]>>) => void;

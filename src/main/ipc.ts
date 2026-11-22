@@ -21,6 +21,7 @@ import type { StreamService } from './services/StreamService';
 import type { TaskService } from './services/TaskService';
 import type { LiveReminderService } from './services/LiveReminderService';
 import { getWindowMode, setWindowMode } from './windowMode';
+import { prepareYubaView } from './yubaView';
 
 const resolveStreamSchema = z.object({
   roomId: z.string().trim().min(1).max(32),
@@ -192,12 +193,19 @@ export function registerIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle(IPC.accountsList, () => respond(() => accounts.list()));
 
-  ipcMain.handle(IPC.accountsLogin, () => respond(() => accounts.login()));
+  ipcMain.handle(IPC.accountsLogin, () =>
+    respond(async () => {
+      const account = await accounts.login();
+      broadcast(IPC.accountsChanged, undefined);
+      return account;
+    }),
+  );
 
   ipcMain.handle(IPC.accountsSwitch, (_event, rawAccountId: unknown) =>
     respond(async () => {
       const accountId = accountIdSchema.parse(rawAccountId);
       await accounts.switchAccount(accountId);
+      broadcast(IPC.accountsChanged, undefined);
     }),
   );
 
@@ -205,6 +213,7 @@ export function registerIpcHandlers(services: IpcServices): void {
     respond(async () => {
       const accountId = accountIdSchema.parse(rawAccountId);
       await accounts.logout(accountId);
+      broadcast(IPC.accountsChanged, undefined);
     }),
   );
 
@@ -244,6 +253,17 @@ export function registerIpcHandlers(services: IpcServices): void {
   );
 
   ipcMain.handle(IPC.homeFollowed, () => respond(() => home.followed()));
+
+  ipcMain.handle(IPC.yubaPrepare, (event, rawAccountId: unknown) =>
+    respond(async () => {
+      const accountId = accountIdSchema.parse(rawAccountId);
+      const accountSession = await accounts.getSession(accountId);
+      if (accountId !== (await accounts.getActiveId())) {
+        throw new AppError('AUTH_REQUIRED', '斗鱼账号已切换，请重试');
+      }
+      return prepareYubaView(event.sender, accountSession);
+    }),
+  );
 
   ipcMain.handle(IPC.specialLoad, () => respond(() => special.load()));
 

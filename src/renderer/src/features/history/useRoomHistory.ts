@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { unwrap } from '../../lib/api';
+import { errorMessage, unwrap } from '../../lib/api';
 import { roomKey } from '../../lib/streamIdentity';
+import { useToast } from '../../lib/toast';
 import {
   clearLegacyRoomHistory,
   loadLegacyRoomHistory,
@@ -19,6 +20,7 @@ export interface UseRoomHistoryResult {
 }
 
 export function useRoomHistory(): UseRoomHistoryResult {
+  const notify = useToast();
   // Show the legacy localStorage copy immediately, then merge it into the global file.
   const [entries, setEntries] = useState<RoomHistoryEntry[]>(() => loadLegacyRoomHistory());
   const attemptedCoverKeys = useRef<Set<string>>(new Set());
@@ -149,23 +151,27 @@ export function useRoomHistory(): UseRoomHistoryResult {
     (keys: readonly string[]): void => {
       if (keys.length === 0) return;
       setEntries((current) => removeRoomHistory(current, keys));
-      void window.api.history.remove([...keys]).then((result) => {
-        if (result.ok) return;
-        console.warn('[history] 全局历史删除失败', result.error.message);
-        void reloadFromGlobal();
-      });
+      void window.api.history
+        .remove([...keys])
+        .then(unwrap)
+        .catch((reason: unknown) => {
+          notify(`删除历史失败：${errorMessage(reason)}`, 'error');
+          void reloadFromGlobal();
+        });
     },
-    [reloadFromGlobal],
+    [reloadFromGlobal, notify],
   );
 
   const clearHistory = useCallback((): void => {
     setEntries([]);
-    void window.api.history.clear().then((result) => {
-      if (result.ok) return;
-      console.warn('[history] 全局历史清空失败', result.error.message);
-      void reloadFromGlobal();
-    });
-  }, [reloadFromGlobal]);
+    void window.api.history
+      .clear()
+      .then(unwrap)
+      .catch((reason: unknown) => {
+        notify(`清空历史失败：${errorMessage(reason)}`, 'error');
+        void reloadFromGlobal();
+      });
+  }, [reloadFromGlobal, notify]);
 
   return { entries, reload: reloadFromGlobal, recordVisit, removeHistory, clearHistory };
 }

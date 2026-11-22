@@ -4,6 +4,7 @@ import { Icon } from '../../components/Icon';
 import type { IconName } from '../../components/Icon';
 import { KeyboardHelp } from '../../components/KeyboardHelp';
 import { useDialogFocus } from '../../lib/useDialogFocus';
+import { useToast } from '../../lib/toast';
 import { DanmakuSettingsPanel } from '../danmaku/DanmakuSettingsPanel';
 import { PlaybackSettings } from './PlaybackSettings';
 import { DevelopmentLog } from './DevelopmentLog';
@@ -37,7 +38,7 @@ export function SettingsPanel({
   onClose,
 }: Props): React.JSX.Element {
   const ref = useDialogFocus();
-  const [error, setError] = useState<string | null>(null);
+  const notify = useToast();
   const [keywordsDirty, setKeywordsDirty] = useState(false);
   useDismissableLayer({
     modal: true,
@@ -98,18 +99,15 @@ export function SettingsPanel({
                   <input
                     type="checkbox"
                     checked={autoRestore}
-                    onChange={(event) =>
-                      setError(
-                        onAutoRestore(event.target.checked)
-                          ? null
-                          : '无法保存自动恢复设置，请检查本地存储空间',
-                      )
-                    }
+                    onChange={(event) => {
+                      if (!onAutoRestore(event.target.checked)) {
+                        notify('无法保存自动恢复设置，请检查本地存储空间', 'error');
+                      }
+                    }}
                   />
                   启动时自动恢复上次观看
                 </label>
                 <p>主窗口启动时恢复房间、布局和已保存的声音设置。副屏窗口不自动恢复。</p>
-                {error ? <p role="alert">{error}</p> : null}
               </div>
             </section>
             <section hidden={section !== 'playback'} aria-label="播放与声音设置">

@@ -4,6 +4,7 @@ import type { Rectangle } from 'electron';
 import { workspaceShortcut } from '@shared/shortcuts';
 import { IPC } from '@shared/contracts/ipc';
 import { isAllowedExternalUrl } from './constants';
+import { registerYubaView } from './yubaView';
 import appIcon from '../../build/icon.png?asset';
 
 export interface CreateMainWindowOptions {
@@ -32,6 +33,7 @@ export function createMainWindow(options: CreateMainWindowOptions = {}): Browser
       contextIsolation: true,
       nodeIntegration: false,
       webSecurity: true,
+      webviewTag: true,
       // Keep live video frames and timers running while the window is covered
       // or left in the background; otherwise audio continues while video is
       // throttled and the picture drifts out of sync until refocus.
@@ -39,6 +41,7 @@ export function createMainWindow(options: CreateMainWindowOptions = {}): Browser
     },
   });
 
+  registerYubaView(window.webContents);
   window.setMenu(null);
   window.webContents.on('before-input-event', (_event, input) => {
     // 只屏蔽由页面接管的菜单快捷键，保留复制、粘贴、退出等系统操作；不能 preventDefault，否则页面也收不到按键。

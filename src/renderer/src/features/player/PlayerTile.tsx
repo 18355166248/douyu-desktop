@@ -216,19 +216,10 @@ export function PlayerTile({
         <RoomAudience platform={playback.platform} roomId={playback.roomId} />
       )}
 
-      {error ? (
-        <div className="player-alert" role="alert">
-          <Icon name="alert" size={14} />
-          <span className="selectable">{error}</span>
-          <button type="button" onClick={reloadPlaybackAndAudience} disabled={isReloading}>
-            重试
-          </button>
-        </div>
-      ) : null}
-
       <VideoPlayer
         playback={playback}
         playbackVisible={playbackVisible}
+        resolveError={error ?? null}
         muted={muted}
         volume={volume}
         quality={quality}

@@ -713,7 +713,7 @@
   position: absolute;
   z-index: 4;
   right: 12px;
-  bottom: 64px;
+  bottom: min(64px, 25%);
   left: 12px;
   display: flex;
   align-items: center;
@@ -724,6 +724,19 @@
   background: rgb(26 18 12 / 85%);
   color: #ffd8a8;
   font-size: 11px;
+}
+
+.video-reconnect-notice > span {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.video-reconnect-notice > button {
+  flex: none;
 }
 
 .video {
@@ -1727,40 +1740,6 @@
 
 .player-title > div {
   min-width: 0;
-}
-
-.player-alert {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 12px;
-  border-bottom: 1px solid rgb(255 107 107 / 20%);
-  background: rgb(255 107 107 / 8%);
-  color: #ffb3b3;
-  font-size: 10px;
-}
-
-.player-alert span {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.player-alert button {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #ffb3b3;
-  font-size: 10px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.player-alert button:hover:not(:disabled) {
-  text-decoration: underline;
 }
 
 .grid-slot {

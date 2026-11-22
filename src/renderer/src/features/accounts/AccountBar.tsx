@@ -1,15 +1,12 @@
 import { useDismissableLayer } from '../../lib/useDismissableLayer';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { AccountSummary } from '@shared/contracts/account';
 import type { GuidedPlatform, PlatformLoginStatus } from '@shared/contracts/platformLogin';
 import type { StreamPlatform } from '@shared/contracts/stream';
 import { Icon } from '../../components/Icon';
-import { errorMessage } from '../../lib/api';
 import { platformLabel } from '../../lib/streamIdentity';
 import { useAccounts } from './useAccounts';
 import { usePlatformLogin } from './usePlatformLogin';
-
-const ACCOUNT_MESSAGE_VISIBLE_MS = 4000;
 
 function initialOf(name: string): string {
   return name.trim().slice(0, 1) || '斗';
@@ -208,7 +205,6 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
   const huya = usePlatformLogin('huya');
   const [open, setOpen] = useState(false);
   const [chooserOpen, setChooserOpen] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
 
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -222,75 +218,6 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
     triggerRef,
     restoreFocusRef: triggerRef,
   });
-  const rawError =
-    login.error ??
-    switchAccount.error ??
-    logout.error ??
-    health.error ??
-    bilibili.login.error ??
-    bilibili.logout.error ??
-    huya.login.error ??
-    huya.logout.error;
-  const [visibleError, setVisibleError] = useState<unknown>(null);
-
-  useEffect(() => {
-    if (!rawError) {
-      setVisibleError(null);
-      return;
-    }
-
-    setVisibleError(rawError);
-    const timer = window.setTimeout(() => setVisibleError(null), ACCOUNT_MESSAGE_VISIBLE_MS);
-    return () => window.clearTimeout(timer);
-  }, [rawError]);
-
-  useEffect(() => {
-    if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(null), ACCOUNT_MESSAGE_VISIBLE_MS);
-    return () => window.clearTimeout(timer);
-  }, [notice]);
-
-  useEffect(() => {
-    if (!bilibili.login.data?.loggedIn) return;
-    setNotice('B站登录成功');
-  }, [bilibili.login.data]);
-
-  useEffect(() => {
-    if (!huya.login.data?.loggedIn) return;
-    setNotice('虎牙登录成功');
-  }, [huya.login.data]);
-
-  useEffect(() => {
-    if (!bilibili.logout.isSuccess) return;
-    setNotice('已退出B站');
-  }, [bilibili.logout.isSuccess]);
-
-  useEffect(() => {
-    if (!huya.logout.isSuccess) return;
-    setNotice('已退出虎牙');
-  }, [huya.logout.isSuccess]);
-
-  useEffect(() => {
-    if (!login.data) return;
-    setNotice(`斗鱼登录成功：${login.data.nickname}`);
-  }, [login.data]);
-
-  useEffect(() => {
-    if (!switchAccount.isSuccess) return;
-    setNotice('已切换斗鱼账号');
-  }, [switchAccount.isSuccess]);
-
-  useEffect(() => {
-    if (!logout.isSuccess) return;
-    setNotice('已退出斗鱼账号');
-  }, [logout.isSuccess]);
-
-  useEffect(() => {
-    if (!health.data) return;
-    setNotice(health.data.status === 'active' ? '斗鱼账号状态正常' : '斗鱼账号登录已过期');
-  }, [health.data]);
-
-  const error = visibleError;
   const bilibiliBusy = bilibili.login.isPending || bilibili.logout.isPending;
   const huyaBusy = huya.login.isPending || huya.logout.isPending;
   const busy =
@@ -350,7 +277,6 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
         : null;
 
   const choosePlatform = (platform: StreamPlatform): void => {
-    setNotice(null);
     setChooserOpen(false);
     setOpen(false);
     if (platform === 'douyu') {
@@ -365,7 +291,6 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
   };
 
   const refreshAll = (): void => {
-    setNotice(null);
     if (activeAccount) health.mutate(activeAccount.id);
     void query.refetch();
     void bilibili.query.refetch();
@@ -382,12 +307,13 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
             ref={triggerRef}
             onClick={() => setChooserOpen((value) => !value)}
             disabled={loginPending}
+            aria-busy={loginPending}
             aria-haspopup="menu"
             aria-expanded={chooserOpen}
-            title="登录 / 添加账号"
+            title={loginPending ? '等待登录完成' : '登录 / 添加账号'}
           >
-            <Icon name="user" />
-            {loginPending ? '等待…' : compact ? '登录' : '登录 / 添加账号'}
+            <Icon name={loginPending ? 'loading' : 'user'} />
+            {compact ? '登录' : '登录 / 添加账号'}
           </button>
           {chooserOpen ? (
             <>
@@ -405,16 +331,6 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
             </>
           ) : null}
         </div>
-        {notice ? (
-          <span className="account-notice" role="status">
-            {notice}
-          </span>
-        ) : null}
-        {error ? (
-          <span className="account-error selectable" role="status">
-            {errorMessage(error)}
-          </span>
-        ) : null}
       </div>
     );
   }
@@ -479,7 +395,6 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
                 role="menuitem"
                 className="popover-action"
                 onClick={() => {
-                  setNotice(null);
                   setOpen(false);
                   login.mutate();
                 }}
@@ -501,7 +416,6 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
                 failed={bilibili.query.isError}
                 busy={bilibiliBusy}
                 onLogin={() => {
-                  setNotice(null);
                   setOpen(false);
                   bilibili.login.mutate();
                 }}
@@ -518,7 +432,6 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
                 failed={huya.query.isError}
                 busy={huyaBusy}
                 onLogin={() => {
-                  setNotice(null);
                   setOpen(false);
                   huya.login.mutate();
                 }}
@@ -561,16 +474,6 @@ export function AccountBar({ compact = false }: { compact?: boolean }): React.JS
           </>
         ) : null}
       </div>
-      {notice ? (
-        <span className="account-notice" role="status">
-          {notice}
-        </span>
-      ) : null}
-      {error ? (
-        <span className="account-error selectable" role="status">
-          {errorMessage(error)}
-        </span>
-      ) : null}
     </div>
   );
 }

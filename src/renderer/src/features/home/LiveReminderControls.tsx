@@ -2,13 +2,15 @@ import { Icon } from '../../components/Icon';
 import { useEffect, useState } from 'react';
 import type { LiveReminderSettings } from '@shared/contracts/viewing';
 import { errorMessage, unwrap } from '../../lib/api';
+import { useToast } from '../../lib/toast';
 
 export function LiveReminderControls(): React.JSX.Element {
   const [settings, setSettings] = useState<(LiveReminderSettings & { supported: boolean }) | null>(
     null,
   );
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const notify = useToast();
   useEffect(() => {
     let active = true;
     const unsubscribe = window.api.home.onReminderChange((value) => {
@@ -21,7 +23,7 @@ export function LiveReminderControls(): React.JSX.Element {
         if (active) setSettings(value);
       })
       .catch((reason) => {
-        if (active) setError(errorMessage(reason));
+        if (active) setLoadError(errorMessage(reason));
       });
     return () => {
       active = false;
@@ -31,11 +33,10 @@ export function LiveReminderControls(): React.JSX.Element {
   async function change(patch: Partial<LiveReminderSettings>): Promise<void> {
     if (!settings || busy) return;
     setBusy(true);
-    setError(null);
     try {
       setSettings(unwrap(await window.api.home.setReminders({ ...settings, ...patch })));
     } catch (reason) {
-      setError(errorMessage(reason));
+      notify(errorMessage(reason), 'error');
     } finally {
       setBusy(false);
     }
@@ -49,7 +50,6 @@ export function LiveReminderControls(): React.JSX.Element {
         <p>
           应用运行时，每分钟检查斗鱼特别关注。需登录且房间在关注列表内；首次检查不提醒，视频轮播不提醒。
         </p>
-        {error ? <p role="alert">{error}</p> : null}
         {settings ? (
           <>
             {!settings.supported ? <p>当前系统不支持桌面通知。</p> : null}
@@ -100,6 +100,8 @@ export function LiveReminderControls(): React.JSX.Element {
             </div>
             <small>相同开始和结束时间表示不限制时段。通知也受 Windows 通知设置影响。</small>
           </>
+        ) : loadError ? (
+          <p role="alert">{loadError}</p>
         ) : (
           <span>正在读取提醒设置…</span>
         )}

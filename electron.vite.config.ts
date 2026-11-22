@@ -83,6 +83,14 @@ export default defineConfig({
   preload: {
     plugins: [externalizeDepsPlugin()],
     resolve: { alias: sharedAlias },
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve('src/preload/index.ts'),
+          yuba: resolve('src/preload/yuba.ts'),
+        },
+      },
+    },
   },
   renderer: {
     build: { minify: true },

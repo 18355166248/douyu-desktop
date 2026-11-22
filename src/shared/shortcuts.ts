@@ -25,3 +25,21 @@ export function workspaceShortcut(input: ShortcutInput, isMac: boolean) {
       return null;
   }
 }
+
+export type YubaShortcut = 'close' | 'refresh';
+
+export function yubaShortcut(input: ShortcutInput, isMac: boolean): YubaShortcut | null {
+  const command = workspaceShortcut(input, isMac);
+  if (command === 'refresh') return 'refresh';
+  if (command === 'close-room') return 'close';
+  if (
+    input.key.toLowerCase() === 'x' &&
+    !input.altKey &&
+    !input.shiftKey &&
+    !input.ctrlKey &&
+    !input.metaKey
+  ) {
+    return 'close';
+  }
+  return null;
+}

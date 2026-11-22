@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SpecialFollowEntry, SpecialFollowTarget } from '@shared/contracts/specialFollow';
 import { errorMessage, unwrap } from '../../lib/api';
+import { useToast } from '../../lib/toast';
 import { specialFollowKey } from './homeModel';
 
 export interface UseSpecialFollowsResult {
@@ -23,6 +24,7 @@ function optimisticEntry(target: SpecialFollowTarget): SpecialFollowEntry {
 }
 
 export function useSpecialFollows(): UseSpecialFollowsResult {
+  const notify = useToast();
   const [entries, setEntries] = useState<SpecialFollowEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,14 +94,14 @@ export function useSpecialFollows(): UseSpecialFollowsResult {
         })
         .catch((reason: unknown) => {
           setEntries(confirmed.current);
-          setError(errorMessage(reason));
+          notify(errorMessage(reason), 'error');
         })
         .finally(() => {
           pending.current = false;
           setBusy(false);
         });
     },
-    [accept],
+    [accept, notify],
   );
 
   return { entries, error, busy, reload, toggle };

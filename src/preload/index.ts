@@ -15,6 +15,13 @@ const api: DesktopApi = {
     switch: (accountId) => ipcRenderer.invoke(IPC.accountsSwitch, accountId),
     logout: (accountId) => ipcRenderer.invoke(IPC.accountsLogout, accountId),
     health: (accountId) => ipcRenderer.invoke(IPC.accountsHealth, accountId),
+    onChange: (listener) => {
+      const handler = (): void => listener();
+      ipcRenderer.on(IPC.accountsChanged, handler);
+      return () => {
+        ipcRenderer.removeListener(IPC.accountsChanged, handler);
+      };
+    },
   },
   platforms: {
     status: (platform) => ipcRenderer.invoke(IPC.platformsStatus, platform),
@@ -70,6 +77,9 @@ const api: DesktopApi = {
         ipcRenderer.removeListener(IPC.specialChanged, handler);
       };
     },
+  },
+  yuba: {
+    prepare: (accountId) => ipcRenderer.invoke(IPC.yubaPrepare, accountId),
   },
   search: {
     rooms: (input) => ipcRenderer.invoke(IPC.searchRooms, input),

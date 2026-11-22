@@ -1,0 +1,81 @@
+.toast-viewport {
+  position: fixed;
+  z-index: 250;
+  inset: 54px 12px auto;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.is-compact-window .toast-viewport {
+  inset-block-start: 44px;
+}
+
+.toast-card {
+  --toast-accent: #a8caff;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  max-width: min(460px, 100%);
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--toast-accent) 28%, var(--line));
+  border-radius: var(--radius-sm);
+  background: var(--panel-2);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 35%);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  animation: toast-in 160ms ease-out both;
+}
+
+.toast-card.is-success {
+  --toast-accent: var(--green);
+}
+
+.toast-card.is-warning {
+  --toast-accent: #ffbe73;
+}
+
+.toast-card.is-error {
+  --toast-accent: var(--danger);
+}
+
+.toast-card svg {
+  flex: none;
+  color: var(--toast-accent);
+}
+
+.toast-card span {
+  min-width: 0;
+  white-space: pre-line;
+}
+
+.toast-announcer {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-card {
+    animation: none;
+  }
+}
